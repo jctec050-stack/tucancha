@@ -1,0 +1,180 @@
+
+import React, { useState } from 'react';
+import { UserRole } from '../types';
+
+interface RegisterFormProps {
+    onRegister: (name: string, email: string, password: string, role: UserRole) => Promise<{ success: boolean; error?: string }>;
+    onSwitchToLogin: () => void;
+}
+
+export const RegisterForm: React.FC<RegisterFormProps> = ({ onRegister, onSwitchToLogin }) => {
+    const [name, setName] = useState('');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [role, setRole] = useState<UserRole>('PLAYER');
+    const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError('');
+
+        // Validation
+        if (!name.trim()) {
+            setError('Por favor ingresa tu nombre');
+            return;
+        }
+
+        if (!email.trim() || !email.includes('@')) {
+            setError('Por favor ingresa un email válido');
+            return;
+        }
+
+        if (password.length < 6) {
+            setError('La contraseña debe tener al menos 6 caracteres');
+            return;
+        }
+
+        if (password !== confirmPassword) {
+            setError('Las contraseñas no coinciden');
+            return;
+        }
+
+        setLoading(true);
+        const result = await onRegister(name, email, password, role);
+        setLoading(false);
+
+        if (!result.success) {
+            setError(result.error || 'Error al registrarse');
+        }
+    };
+
+    return (
+        <div className="w-full max-w-md">
+            <div className="bg-white p-8 md:p-10 rounded-3xl shadow-2xl">
+                <div className="mb-6 text-center">
+                    <div className="inline-block p-4 bg-indigo-100 rounded-2xl text-indigo-600 mb-4">
+                        <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                        </svg>
+                    </div>
+                    <h2 className="text-3xl font-extrabold text-gray-900 mb-2">Crear Cuenta</h2>
+                    <p className="text-gray-500">Únete a Padel & Beach Pro</p>
+                </div>
+
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    {error && (
+                        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
+                            {error}
+                        </div>
+                    )}
+
+                    <div>
+                        <label htmlFor="name" className="block text-sm font-bold text-gray-700 mb-2">
+                            Nombre Completo
+                        </label>
+                        <input
+                            id="name"
+                            type="text"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition"
+                            placeholder="Juan Pérez"
+                        />
+                    </div>
+
+                    <div>
+                        <label htmlFor="email" className="block text-sm font-bold text-gray-700 mb-2">
+                            Email
+                        </label>
+                        <input
+                            id="email"
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition"
+                            placeholder="tu@email.com"
+                        />
+                    </div>
+
+                    <div>
+                        <label htmlFor="password" className="block text-sm font-bold text-gray-700 mb-2">
+                            Contraseña
+                        </label>
+                        <input
+                            id="password"
+                            type="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition"
+                            placeholder="Mínimo 6 caracteres"
+                        />
+                    </div>
+
+                    <div>
+                        <label htmlFor="confirmPassword" className="block text-sm font-bold text-gray-700 mb-2">
+                            Confirmar Contraseña
+                        </label>
+                        <input
+                            id="confirmPassword"
+                            type="password"
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition"
+                            placeholder="Repite tu contraseña"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-3">
+                            Tipo de Usuario
+                        </label>
+                        <div className="grid grid-cols-2 gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setRole('PLAYER')}
+                                className={`py-3 px-4 rounded-xl font-bold text-sm transition ${role === 'PLAYER'
+                                        ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200'
+                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                    }`}
+                            >
+                                🎾 Jugador
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setRole('OWNER')}
+                                className={`py-3 px-4 rounded-xl font-bold text-sm transition ${role === 'OWNER'
+                                        ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200'
+                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                    }`}
+                            >
+                                🏢 Dueño
+                            </button>
+                        </div>
+                    </div>
+
+                    <button
+                        type="submit"
+                        disabled={loading}
+                        className="w-full py-4 bg-indigo-600 text-white rounded-xl font-bold text-lg hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {loading ? 'Registrando...' : 'Crear Cuenta'}
+                    </button>
+                </form>
+
+                <div className="mt-6 text-center">
+                    <p className="text-gray-500 text-sm">
+                        ¿Ya tienes cuenta?{' '}
+                        <button
+                            onClick={onSwitchToLogin}
+                            className="text-indigo-600 font-bold hover:underline"
+                        >
+                            Inicia Sesión
+                        </button>
+                    </p>
+                </div>
+            </div>
+        </div>
+    );
+};
