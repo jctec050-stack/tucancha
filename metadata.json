@@ -1,9 +1,0 @@
-
-{
-  "name": "Padel & Beach Tennis Pro Manager",
-  "description": "A comprehensive booking management platform for padel and beach tennis complexes, featuring real-time reservations, owner dashboards, and player notifications.",
-  "requestFramePermissions": [
-    "camera",
-    "microphone"
-  ]
-}
