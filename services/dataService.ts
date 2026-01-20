@@ -160,7 +160,7 @@ export const createVenueWithCourts = async (
     // Run Pre-flight Check
     const health = await checkSystemHealth();
     if (!health.db) {
-        alert('Error de conexión con la Base de Datos. Revisa tu internet o la configuración de Supabase.');
+        console.error('Error de conexión con la Base de Datos. Revisa tu internet o la configuración de Supabase.');
         return false;
     }
 
@@ -213,7 +213,6 @@ export const createVenueWithCourts = async (
 
         if (venueError) {
             console.error('❌ Error creating venue:', venueError);
-            alert(`Error al guardar el complejo: ${venueError.message}`);
             return false;
         }
 
@@ -239,7 +238,6 @@ export const createVenueWithCourts = async (
         return true;
     } catch (error: any) {
         console.error('❌ Exception creating venue:', error);
-        alert(`Error inesperado: ${error.message}`);
         return false;
     }
 };

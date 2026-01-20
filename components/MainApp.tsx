@@ -7,6 +7,7 @@ import { NotificationCenter } from '@/components/NotificationCenter';
 import { OwnerDashboard } from '@/components/OwnerDashboard';
 import { ScheduleManager } from '@/components/ScheduleManager';
 import { ManageVenues } from './ManageVenues';
+import { Toast } from './Toast';
 import { LoginForm } from '@/components/LoginForm';
 import { RegisterForm } from '@/components/RegisterForm';
 import { AddCourtModal } from '@/components/AddCourtModal';
@@ -28,6 +29,11 @@ const MainApp: React.FC = () => {
     const [authView, setAuthView] = useState<'login' | 'register'>('login');
     const [showAddCourtModal, setShowAddCourtModal] = useState(false);
     const [ownerTab, setOwnerTab] = useState<'dashboard' | 'schedule' | 'venues'>('dashboard');
+    const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null);
+
+    const showToast = (message: string, type: 'success' | 'error' | 'info') => {
+        setToast({ message, type });
+    };
 
     // Initialize date
     useEffect(() => {
@@ -85,7 +91,7 @@ const MainApp: React.FC = () => {
         );
 
         if (isTaken) {
-            alert("Este horario ya está reservado.");
+            showToast("Este horario ya está reservado.", 'error');
             return;
         }
 
@@ -107,15 +113,15 @@ const MainApp: React.FC = () => {
             addNotification('PLAYER', 'Reserva Confirmada', `Has reservado ${court.name} en ${venue.name} para el ${selectedDate} a las ${time}.`);
             addNotification('OWNER', 'Nueva Reserva Recibida', `${user.name} ha reservado ${court.name} para el ${selectedDate} a las ${time}.`);
 
-            alert("¡Reserva realizada con éxito!");
+            showToast("¡Reserva realizada con éxito!", 'success');
         } else {
-            alert("Error al realizar la reserva. Intenta de nuevo.");
+            showToast("Error al realizar la reserva. Intenta de nuevo.", 'error');
         }
     };
 
     const handleCancel = (bookingId: string) => {
         // TODO: Implement cancelBooking in dataService (update status to CANCELLED)
-        alert("Funcionalidad de cancelar pendiente de migración a DB.");
+        showToast("Funcionalidad de cancelar pendiente de migración a DB.", 'info');
     };
 
     const handleSaveVenue = async (
@@ -157,9 +163,9 @@ const MainApp: React.FC = () => {
         if (success) {
             await fetchData();
             addNotification('OWNER', 'Configuración Guardada', 'Se han actualizado los datos del complejo.');
-            alert('¡Cambios guardados exitosamente!');
+            showToast('¡Cambios guardados exitosamente!', 'success');
         } else {
-            alert("Error al guardar el complejo.");
+            showToast("Error al guardar el complejo.", 'error');
         }
     };
 
@@ -173,7 +179,7 @@ const MainApp: React.FC = () => {
             const fetchedSlots = await getDisabledSlots(venues[0].id, date);
             setDisabledSlots(fetchedSlots);
         } else {
-            alert("Error al actualizar el horario.");
+            showToast("Error al actualizar el horario.", 'error');
         }
     };
 
@@ -194,20 +200,23 @@ const MainApp: React.FC = () => {
     // Show authentication screen if not logged in
     if (!user) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600 p-4">
-                {authView === 'login' ? (
-                    <LoginForm
-                        onLogin={login}
-                        onSwitchToRegister={() => setAuthView('register')}
-                    />
-                ) : (
-                    <RegisterForm
-                        onRegister={register}
-                        onSwitchToLogin={() => setAuthView('login')}
-                    // Pass error if any
-                    />
-                )}
-            </div>
+            <>
+                {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+                <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600 p-4">
+                    {authView === 'login' ? (
+                        <LoginForm
+                            onLogin={login}
+                            onSwitchToRegister={() => setAuthView('register')}
+                        />
+                    ) : (
+                        <RegisterForm
+                            onRegister={register}
+                            onSwitchToLogin={() => setAuthView('login')}
+                        // Pass error if any
+                        />
+                    )}
+                </div>
+            </>
         );
     }
 
@@ -667,7 +676,6 @@ const MainApp: React.FC = () => {
                 />
             )}
         </div>
-    );
-};
-
+    )
+}
 export default MainApp;
