@@ -5,8 +5,8 @@ import './globals.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata = {
-    title: 'Padel & Beach Tennis Pro Manager',
-    description: 'Sistema de gestión de canchas deportivas',
+    title: 'TuCancha! - Reserva tu Cancha',
+    description: 'Sistema de gestión y reserva de canchas de padel y beach tennis',
 };
 
 export default function RootLayout({

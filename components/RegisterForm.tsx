@@ -59,13 +59,10 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onRegister, onSwitch
         <div className="w-full max-w-md">
             <div className="bg-white p-8 md:p-10 rounded-3xl shadow-2xl">
                 <div className="mb-6 text-center">
-                    <div className="inline-block p-4 bg-indigo-100 rounded-2xl text-indigo-600 mb-4">
-                        <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                        </svg>
+                    <div className="inline-block mb-4">
+                        <img src="/logo.png" alt="TuCancha" className="w-40 h-40 object-contain" />
                     </div>
                     <h2 className="text-3xl font-extrabold text-gray-900 mb-2">Crear Cuenta</h2>
-                    <p className="text-gray-500">Únete a Padel & Beach Pro</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">

@@ -8,12 +8,14 @@ import { OwnerDashboard } from '@/components/OwnerDashboard';
 import { LoginForm } from '@/components/LoginForm';
 import { RegisterForm } from '@/components/RegisterForm';
 import { AddCourtModal } from '@/components/AddCourtModal';
+import SplashScreen from '@/components/SplashScreen';
 import { useAuth } from '@/AuthContext';
 import { getVenues, createVenueWithCourts, getBookings, createBooking } from '@/services/dataService';
 
 const MainApp: React.FC = () => {
     const { user, login, register, logout, isLoading } = useAuth();
 
+    const [showSplash, setShowSplash] = useState(true);
     const [venues, setVenues] = useState<Venue[]>([]);
     const [bookings, setBookings] = useState<Booking[]>([]);
     const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -139,6 +141,11 @@ const MainApp: React.FC = () => {
         }
     };
 
+    // Show splash screen
+    if (showSplash) {
+        return <SplashScreen onFinish={() => setShowSplash(false)} />;
+    }
+
     // Show loading state
     if (isLoading) {
         return (
@@ -174,11 +181,9 @@ const MainApp: React.FC = () => {
         <div className="min-h-screen bg-gray-50 pb-12">
             {/* Header */}
             <nav className="sticky top-0 z-40 bg-white border-b border-gray-200 px-4 md:px-8 py-4 flex items-center justify-between shadow-sm">
-                <div className="flex items-center gap-2 cursor-pointer" onClick={() => setSelectedVenue(null)}>
-                    <div className="bg-indigo-600 p-2 rounded-lg text-white">
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
-                    </div>
-                    <span className="font-bold text-xl text-gray-900 tracking-tight">PadelPro</span>
+                <div className="flex items-center gap-3 cursor-pointer" onClick={() => setSelectedVenue(null)}>
+                    <img src="/logo.png" alt="TuCancha" className="w-12 h-12 object-contain" />
+                    <span className="font-bold text-2xl text-gray-900 tracking-tight">TuCancha!</span>
                 </div>
 
                 <div className="flex items-center gap-4">
@@ -239,7 +244,15 @@ const MainApp: React.FC = () => {
                             {venues.map(v => (
                                 <div key={v.id} className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition group cursor-pointer" onClick={() => setSelectedVenue(v)}>
                                     <div className="relative h-48">
-                                        <img src={v.imageUrl} alt={v.name} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+                                        {v.imageUrl ? (
+                                            <img src={v.imageUrl} alt={v.name} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+                                        ) : (
+                                            <div className="w-full h-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center">
+                                                <svg className="w-16 h-16 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                </svg>
+                                            </div>
+                                        )}
                                         <div className="absolute top-4 right-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-indigo-600 uppercase tracking-wider">
                                             Abierto: {v.openingHours}
                                         </div>
@@ -318,7 +331,15 @@ const MainApp: React.FC = () => {
                         </button>
                         <div className="bg-white rounded-3xl overflow-hidden shadow-xl border border-gray-100">
                             <div className="h-64 relative">
-                                <img src={selectedVenue.imageUrl} alt={selectedVenue.name} className="w-full h-full object-cover" />
+                                {selectedVenue.imageUrl ? (
+                                    <img src={selectedVenue.imageUrl} alt={selectedVenue.name} className="w-full h-full object-cover" />
+                                ) : (
+                                    <div className="w-full h-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center">
+                                        <svg className="w-20 h-20 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                    </div>
+                                )}
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
                                 <div className="absolute bottom-6 left-8 text-white">
                                     <h2 className="text-4xl font-extrabold">{selectedVenue.name}</h2>

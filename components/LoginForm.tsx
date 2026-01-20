@@ -34,13 +34,10 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onSwitchToRegiste
         <div className="w-full max-w-md">
             <div className="bg-white p-8 md:p-10 rounded-3xl shadow-2xl">
                 <div className="mb-6 text-center">
-                    <div className="inline-block p-4 bg-indigo-100 rounded-2xl text-indigo-600 mb-4">
-                        <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
+                    <div className="inline-block mb-4">
+                        <img src="/logo.png" alt="TuCancha" className="w-40 h-40 object-contain" />
                     </div>
                     <h2 className="text-3xl font-extrabold text-gray-900 mb-2">Bienvenido</h2>
-                    <p className="text-gray-500">Inicia sesión en Padel & Beach Pro</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
