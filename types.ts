@@ -58,3 +58,12 @@ export interface User {
 export interface AuthUser extends User {
   password: string; // In a real app, this would be hashed
 }
+
+export interface DisabledSlot {
+  id: string;
+  venueId: string;
+  courtId: string;
+  date: string;
+  timeSlot: string;
+  reason?: string;
+}

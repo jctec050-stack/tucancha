@@ -114,3 +114,30 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
+
+-- Disabled Slots Table
+create table public.disabled_slots (
+  id uuid not null default gen_random_uuid() primary key,
+  venue_id uuid references public.venues(id) on delete cascade,
+  court_id uuid references public.courts(id) on delete cascade,
+  date date not null,
+  time_slot varchar(5) not null,
+  reason text,
+  created_at timestamptz default now(),
+  unique(court_id, date, time_slot)
+);
+
+alter table public.disabled_slots enable row level security;
+
+-- Policies for Disabled Slots
+create policy "Owners can manage disabled slots for their venues" on public.disabled_slots
+  for all using (
+    exists (
+      select 1 from public.venues
+      where venues.id = disabled_slots.venue_id
+      and venues.owner_id = auth.uid()
+    )
+  );
+
+create policy "Everyone can read disabled slots" on public.disabled_slots
+  for select using (true);

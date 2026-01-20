@@ -11,39 +11,39 @@ interface AddCourtModalProps {
     currentContactInfo?: string;
     onClose: () => void;
     onSave: (
-        venueName: string, 
-        venueAddress: string, 
-        openingHours: string, 
-        imageUrl: string, 
-        amenities: string[], 
-        contactInfo: string, 
+        venueName: string,
+        venueAddress: string,
+        openingHours: string,
+        imageUrl: string,
+        amenities: string[],
+        contactInfo: string,
         newCourts: Omit<Court, 'id'>[]
     ) => void;
 }
 
-export const AddCourtModal: React.FC<AddCourtModalProps> = ({ 
-    currentVenueName, 
-    currentVenueAddress, 
+export const AddCourtModal: React.FC<AddCourtModalProps> = ({
+    currentVenueName,
+    currentVenueAddress,
     currentOpeningHours,
     currentImageUrl,
     currentAmenities = [],
     currentContactInfo = '',
-    onClose, 
-    onSave 
+    onClose,
+    onSave
 }) => {
     // Venue State
     const [venueName, setVenueName] = useState(currentVenueName);
     const [venueAddress, setVenueAddress] = useState(currentVenueAddress);
-    
+
     // Parse initial hours (e.g. "08:00 - 22:00")
     const [startHour, setStartHour] = useState(currentOpeningHours.split(' - ')[0] || '08:00');
     const [endHour, setEndHour] = useState(currentOpeningHours.split(' - ')[1] || '22:00');
-    
+
     const [imageUrl, setImageUrl] = useState(currentImageUrl);
-    
+
     // Step 4: Amenities
     const [amenities, setAmenities] = useState<string[]>(currentAmenities);
-    
+
     // Step 5: Contact
     const [contactPhone, setContactPhone] = useState(currentContactInfo);
 
@@ -83,7 +83,7 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
         };
 
         setPendingCourts([...pendingCourts, newCourt]);
-        
+
         // Reset form
         setCourtName('');
         setPrice(0);
@@ -96,7 +96,7 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
 
     const handleSave = (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         if (!venueName.trim()) {
             setError('El nombre del complejo es obligatorio');
             return;
@@ -187,17 +187,44 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
                     <div className="bg-gray-50 p-4 rounded-2xl space-y-4">
                         <h4 className="font-bold text-gray-800">3. Foto del Complejo</h4>
                         <div>
-                            <label className="block text-sm font-bold text-gray-700 mb-2">URL de la Imagen</label>
+                            <label className="block text-sm font-bold text-gray-700 mb-2">Subir Imagen</label>
                             <input
-                                type="text"
-                                value={imageUrl}
-                                onChange={(e) => setImageUrl(e.target.value)}
-                                placeholder="https://..."
-                                className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                        // Validate file size (max 5MB)
+                                        if (file.size > 5 * 1024 * 1024) {
+                                            setError('La imagen es muy grande. Máximo 5MB.');
+                                            return;
+                                        }
+
+                                        const reader = new FileReader();
+                                        reader.onloadend = () => {
+                                            setImageUrl(reader.result as string);
+                                        };
+                                        reader.readAsDataURL(file);
+                                    }
+                                }}
+                                className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
                             />
+                            <p className="text-xs text-gray-500 mt-1">Formatos: JPG, PNG, WEBP. Máximo 5MB.</p>
                             {imageUrl && (
-                                <div className="mt-2 h-32 rounded-xl overflow-hidden bg-gray-100">
-                                    <img src={imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                                <div className="mt-3 relative">
+                                    <div className="h-40 rounded-xl overflow-hidden bg-gray-100 border-2 border-gray-200">
+                                        <img src={imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setImageUrl('')}
+                                        className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition shadow-lg"
+                                        title="Eliminar imagen"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
                                 </div>
                             )}
                         </div>
@@ -258,7 +285,7 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
                             </div>
                             <div className="md:col-span-3">
                                 <label className="block text-xs font-bold text-indigo-800 mb-1">Deporte</label>
-                                <select 
+                                <select
                                     value={courtType}
                                     onChange={(e) => setCourtType(e.target.value as SportType)}
                                     className="w-full px-3 py-2 border border-indigo-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
@@ -303,7 +330,7 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
                                                 <p className="text-xs text-gray-500">{court.type} • Gs. {formatNumber(court.pricePerHour)}</p>
                                             </div>
                                         </div>
-                                        <button 
+                                        <button
                                             onClick={() => removePendingCourt(idx)}
                                             className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition"
                                         >

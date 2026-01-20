@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { Booking, Venue } from '../types';
-import { getPerformanceSummary } from '../services/geminiService';
+
 
 interface OwnerDashboardProps {
   bookings: Booking[];
@@ -10,11 +10,11 @@ interface OwnerDashboardProps {
 }
 
 export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ bookings, venue }) => {
-  const [aiSummary, setAiSummary] = useState<string>('Generando análisis...');
+
 
   const activeBookings = bookings.filter(b => b.status === 'ACTIVE');
   const totalRevenue = activeBookings.reduce((sum, b) => sum + b.price, 0);
-  
+
   const revenueByDay = bookings.reduce((acc: any[], b) => {
     if (b.status !== 'ACTIVE') return acc;
     const dateStr = b.date;
@@ -40,13 +40,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ bookings, venue 
 
   const COLORS = ['#4F46E5', '#10B981', '#F59E0B', '#EF4444'];
 
-  useEffect(() => {
-    const fetchAi = async () => {
-      const summary = await getPerformanceSummary(bookings);
-      setAiSummary(summary || 'No se pudo generar el análisis.');
-    };
-    fetchAi();
-  }, [bookings]);
+
 
   return (
     <div className="space-y-6">
@@ -92,7 +86,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ bookings, venue 
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
           <h5 className="text-lg font-bold text-gray-800 mb-6">Distribución por Deporte</h5>
           <div className="h-64 flex flex-col items-center">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height={256}>
               <PieChart>
                 <Pie data={sportDistribution} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
                   {sportDistribution.map((entry: any, index: number) => (
@@ -114,17 +108,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ bookings, venue 
         </div>
       </div>
 
-      <div className="bg-indigo-50 border border-indigo-100 p-6 rounded-2xl">
-        <div className="flex items-center gap-2 mb-3">
-          <div className="bg-indigo-600 p-1.5 rounded-lg">
-            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-          </div>
-          <h5 className="text-indigo-900 font-bold">Resumen Inteligente (AI)</h5>
-        </div>
-        <p className="text-indigo-800 text-sm leading-relaxed italic">
-          "{aiSummary}"
-        </p>
-      </div>
+
     </div>
   );
 };

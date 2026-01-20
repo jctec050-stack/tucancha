@@ -24,7 +24,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 .from('profiles')
                 .select('*')
                 .eq('id', userId)
-                .single();
+                .maybeSingle();
 
             if (error) {
                 console.error('Error fetching profile:', error);
@@ -38,6 +38,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     name: data.full_name,
                     role: data.role as UserRole
                 });
+            } else {
+                // Profile doesn't exist yet (might be waiting for trigger)
+                console.log('Profile not found yet for user:', userId);
             }
         } catch (e) {
             console.error('Exception fetching profile:', e);
@@ -77,6 +80,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         });
 
         if (error) {
+            // Check if it's an invalid credentials error (user doesn't exist or wrong password)
+            if (error.message.includes('Invalid login credentials') || error.message.includes('invalid_credentials')) {
+                return { success: false, error: 'Usuario no registrado o contraseña incorrecta' };
+            }
             return { success: false, error: error.message };
         }
 
@@ -94,7 +101,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 data: {
                     full_name: name,
                     role: role
-                }
+                },
+                emailRedirectTo: window.location.origin
             }
         });
 
@@ -102,12 +110,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         if (error) {
             console.error('Registration error:', error);
+
+            // Check for common errors
+            if (error.message.includes('already registered')) {
+                return { success: false, error: 'Este correo ya está registrado. Intenta iniciar sesión.' };
+            }
+
             return { success: false, error: error.message };
         }
 
         console.log('Registration successful');
-        // Return success even if email confirmation is required
-        // The user will receive an email to confirm their account
         return { success: true };
     };
 

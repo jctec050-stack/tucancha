@@ -1,16 +1,18 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Venue, Booking, Notification, Court } from '@/types';
+import { Venue, Booking, Notification, Court, DisabledSlot } from '@/types';
 import { TIME_SLOTS } from '@/constants';
 import { NotificationCenter } from '@/components/NotificationCenter';
 import { OwnerDashboard } from '@/components/OwnerDashboard';
+import { ScheduleManager } from '@/components/ScheduleManager';
+import { ManageVenues } from './ManageVenues';
 import { LoginForm } from '@/components/LoginForm';
 import { RegisterForm } from '@/components/RegisterForm';
 import { AddCourtModal } from '@/components/AddCourtModal';
 import SplashScreen from '@/components/SplashScreen';
 import { useAuth } from '@/AuthContext';
-import { getVenues, createVenueWithCourts, getBookings, createBooking } from '@/services/dataService';
+import { getVenues, createVenueWithCourts, getBookings, createBooking, getDisabledSlots, toggleSlotAvailability } from '@/services/dataService';
 
 const MainApp: React.FC = () => {
     const { user, login, register, logout, isLoading } = useAuth();
@@ -18,12 +20,14 @@ const MainApp: React.FC = () => {
     const [showSplash, setShowSplash] = useState(true);
     const [venues, setVenues] = useState<Venue[]>([]);
     const [bookings, setBookings] = useState<Booking[]>([]);
+    const [disabledSlots, setDisabledSlots] = useState<DisabledSlot[]>([]);
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [showNotifications, setShowNotifications] = useState(false);
     const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
     const [selectedDate, setSelectedDate] = useState<string>('');
     const [authView, setAuthView] = useState<'login' | 'register'>('login');
     const [showAddCourtModal, setShowAddCourtModal] = useState(false);
+    const [ownerTab, setOwnerTab] = useState<'dashboard' | 'schedule' | 'venues'>('dashboard');
 
     // Initialize date
     useEffect(() => {
@@ -41,7 +45,13 @@ const MainApp: React.FC = () => {
         // Load Bookings (optimize: filter by date or venue later)
         const fetchedBookings = await getBookings();
         setBookings(fetchedBookings);
-    }, [user]);
+
+        // Load Disabled Slots for owners
+        if (user.role === 'OWNER' && fetchedVenues.length > 0) {
+            const fetchedSlots = await getDisabledSlots(fetchedVenues[0].id, selectedDate);
+            setDisabledSlots(fetchedSlots);
+        }
+    }, [user, selectedDate]);
 
     useEffect(() => {
         fetchData();
@@ -119,6 +129,16 @@ const MainApp: React.FC = () => {
     ) => {
         if (!user) return;
 
+        console.log('💾 Saving venue...', {
+            venueName,
+            venueAddress,
+            openingHours,
+            imageUrl: imageUrl ? 'Image provided' : 'No image',
+            amenities,
+            contactInfo,
+            newCourts
+        });
+
         const success = await createVenueWithCourts(
             {
                 ownerId: user.id,
@@ -132,12 +152,28 @@ const MainApp: React.FC = () => {
             newCourts
         );
 
+        console.log('💾 Save result:', success);
+
         if (success) {
             await fetchData();
             addNotification('OWNER', 'Configuración Guardada', 'Se han actualizado los datos del complejo.');
             alert('¡Cambios guardados exitosamente!');
         } else {
             alert("Error al guardar el complejo.");
+        }
+    };
+
+    const handleToggleSlot = async (courtId: string, date: string, timeSlot: string) => {
+        if (!user || !venues[0]) return;
+
+        const success = await toggleSlotAvailability(venues[0].id, courtId, date, timeSlot);
+
+        if (success) {
+            // Refresh disabled slots
+            const fetchedSlots = await getDisabledSlots(venues[0].id, date);
+            setDisabledSlots(fetchedSlots);
+        } else {
+            alert("Error al actualizar el horario.");
         }
     };
 
@@ -259,10 +295,19 @@ const MainApp: React.FC = () => {
                                     </div>
                                     <div className="p-6">
                                         <h3 className="text-xl font-bold text-gray-900">{v.name}</h3>
-                                        <p className="text-gray-500 text-sm mt-1 mb-4 flex items-center gap-1">
-                                            <svg className="w-4 h-4 text-indigo-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" /></svg>
-                                            {v.address}
-                                        </p>
+                                        <a
+                                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(v.address)}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            onClick={(e) => e.stopPropagation()}
+                                            className="text-gray-500 hover:text-indigo-600 text-sm mt-1 mb-4 flex items-center gap-1 transition group w-fit"
+                                        >
+                                            <svg className="w-4 h-4 text-indigo-400 group-hover:text-indigo-600" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" /></svg>
+                                            <span className="group-hover:underline">{v.address}</span>
+                                            <svg className="w-3 h-3 opacity-0 group-hover:opacity-100 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                            </svg>
+                                        </a>
                                         <div className="flex items-center gap-2 mb-6">
                                             {Array.from(new Set(v.courts.map(c => c.type))).map(type => (
                                                 <span key={type} className="px-2 py-1 bg-gray-100 text-gray-600 text-[10px] font-bold rounded uppercase tracking-tighter">
@@ -343,7 +388,20 @@ const MainApp: React.FC = () => {
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
                                 <div className="absolute bottom-6 left-8 text-white">
                                     <h2 className="text-4xl font-extrabold">{selectedVenue.name}</h2>
-                                    <p className="opacity-80 font-medium">{selectedVenue.address}</p>
+                                    <a
+                                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedVenue.address)}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="opacity-80 font-medium hover:opacity-100 transition flex items-center gap-2 mt-1 group"
+                                    >
+                                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                                        </svg>
+                                        <span className="group-hover:underline">{selectedVenue.address}</span>
+                                        <svg className="w-4 h-4 opacity-0 group-hover:opacity-100 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                        </svg>
+                                    </a>
                                 </div>
                             </div>
                             <div className="p-8">
@@ -462,7 +520,74 @@ const MainApp: React.FC = () => {
                             </div>
                         </div>
 
-                        {venues.length > 0 && <OwnerDashboard bookings={bookings} venue={venues[0]} />}
+                        {/* Tab Navigation */}
+                        <div className="flex gap-2 border-b border-gray-200">
+                            <button
+                                onClick={() => setOwnerTab('dashboard')}
+                                className={`px-6 py-3 font-bold text-sm transition-all ${ownerTab === 'dashboard'
+                                    ? 'text-indigo-600 border-b-2 border-indigo-600'
+                                    : 'text-gray-500 hover:text-gray-700'
+                                    }`}
+                            >
+                                📊 Dashboard
+                            </button>
+                            <button
+                                onClick={() => setOwnerTab('schedule')}
+                                className={`px-6 py-3 font-bold text-sm transition-all ${ownerTab === 'schedule'
+                                    ? 'text-indigo-600 border-b-2 border-indigo-600'
+                                    : 'text-gray-500 hover:text-gray-700'
+                                    }`}
+                            >
+                                📅 Gestión de Horarios
+                            </button>
+                            <button
+                                onClick={() => setOwnerTab('venues')}
+                                className={`px-6 py-3 font-bold text-sm transition-all ${ownerTab === 'venues'
+                                    ? 'text-indigo-600 border-b-2 border-indigo-600'
+                                    : 'text-gray-500 hover:text-gray-700'
+                                    }`}
+                            >
+                                🏭 Mis Complejos
+                            </button>
+                        </div>
+
+                        {/* Tab Content */}
+                        {ownerTab === 'dashboard' && venues.length > 0 && <OwnerDashboard bookings={bookings} venue={venues[0]} />}
+
+                        {ownerTab === 'schedule' && venues.length > 0 && (
+                            <ScheduleManager
+                                venue={venues[0]}
+                                bookings={bookings}
+                                disabledSlots={disabledSlots}
+                                onToggleSlot={handleToggleSlot}
+                            />
+                        )}
+
+                        {ownerTab === 'venues' && (
+                            <ManageVenues
+                                venues={venues}
+                                onVenueDeleted={fetchData}
+                            />
+                        )}
+
+                        {ownerTab === 'schedule' && venues.length === 0 && (
+                            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-12 text-center">
+                                <div className="inline-block p-4 bg-indigo-100 rounded-2xl text-indigo-600 mb-4">
+                                    <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                </div>
+                                <h3 className="text-xl font-bold text-gray-900 mb-2">No tienes complejos registrados</h3>
+                                <p className="text-gray-500 mb-6">Primero debes crear un complejo y agregar canchas para gestionar horarios</p>
+                                <button
+                                    onClick={() => setShowAddCourtModal(true)}
+                                    className="inline-flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition"
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
+                                    Crear Complejo
+                                </button>
+                            </div>
+                        )}
 
                         <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
                             <div className="p-6 border-b border-gray-50 flex items-center justify-between">
