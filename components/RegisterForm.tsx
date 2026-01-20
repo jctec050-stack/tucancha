@@ -47,6 +47,11 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onRegister, onSwitch
 
         if (!result.success) {
             setError(result.error || 'Error al registrarse');
+        } else {
+            // Show success message
+            alert('¡Registro exitoso! Por favor revisa tu email para confirmar tu cuenta y poder iniciar sesión.');
+            // Switch to login view
+            onSwitchToLogin();
         }
     };
 
@@ -135,8 +140,8 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onRegister, onSwitch
                                 type="button"
                                 onClick={() => setRole('PLAYER')}
                                 className={`py-3 px-4 rounded-xl font-bold text-sm transition ${role === 'PLAYER'
-                                        ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200'
-                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200'
+                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                     }`}
                             >
                                 🎾 Jugador
@@ -145,8 +150,8 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onRegister, onSwitch
                                 type="button"
                                 onClick={() => setRole('OWNER')}
                                 className={`py-3 px-4 rounded-xl font-bold text-sm transition ${role === 'OWNER'
-                                        ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200'
-                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200'
+                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                     }`}
                             >
                                 🏢 Dueño

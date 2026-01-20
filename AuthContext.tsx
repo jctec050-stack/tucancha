@@ -1,6 +1,8 @@
+'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, AuthUser, UserRole } from './types';
+import { User, UserRole } from './types';
+import { supabase } from '@/lib/supabase';
 
 interface AuthContextType {
     user: User | null;
@@ -12,105 +14,106 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const STORAGE_KEY = 'padelpro_users';
-const SESSION_KEY = 'padelpro_session';
-
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
-    // Load session on mount
-    useEffect(() => {
-        const sessionData = localStorage.getItem(SESSION_KEY);
-        if (sessionData) {
-            try {
-                const userData = JSON.parse(sessionData);
-                setUser(userData);
-            } catch (e) {
-                console.error('Error loading session:', e);
-            }
-        }
-        setIsLoading(false);
-    }, []);
-
-    // Get all registered users from localStorage
-    const getUsers = (): AuthUser[] => {
-        const usersData = localStorage.getItem(STORAGE_KEY);
-        if (!usersData) return [];
+    const fetchProfile = async (userId: string, email: string) => {
         try {
-            return JSON.parse(usersData);
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', userId)
+                .single();
+
+            if (error) {
+                console.error('Error fetching profile:', error);
+                return;
+            }
+
+            if (data) {
+                setUser({
+                    id: userId,
+                    email: email,
+                    name: data.full_name,
+                    role: data.role as UserRole
+                });
+            }
         } catch (e) {
-            console.error('Error parsing users:', e);
-            return [];
+            console.error('Exception fetching profile:', e);
         }
     };
 
-    // Save users to localStorage
-    const saveUsers = (users: AuthUser[]) => {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(users));
-    };
-
-    const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
-        const users = getUsers();
-        const foundUser = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-
-        if (!foundUser) {
-            return { success: false, error: 'Usuario no encontrado' };
-        }
-
-        if (foundUser.password !== password) {
-            return { success: false, error: 'Contraseña incorrecta' };
-        }
-
-        // Create user session (without password)
-        const userSession: User = {
-            id: foundUser.id,
-            name: foundUser.name,
-            email: foundUser.email,
-            role: foundUser.role
+    useEffect(() => {
+        // Check active session
+        const initSession = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user?.email) {
+                await fetchProfile(session.user.id, session.user.email);
+            }
+            setIsLoading(false);
         };
 
-        setUser(userSession);
-        localStorage.setItem(SESSION_KEY, JSON.stringify(userSession));
+        initSession();
+
+        // Listen for auth changes
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            if (event === 'SIGNED_IN' && session?.user?.email) {
+                await fetchProfile(session.user.id, session.user.email);
+            } else if (event === 'SIGNED_OUT') {
+                setUser(null);
+            }
+        });
+
+        return () => {
+            subscription.unsubscribe();
+        };
+    }, []);
+
+    const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+        const { error } = await supabase.auth.signInWithPassword({
+            email,
+            password
+        });
+
+        if (error) {
+            return { success: false, error: error.message };
+        }
+
         return { success: true };
     };
 
     const register = async (name: string, email: string, password: string, role: UserRole): Promise<{ success: boolean; error?: string }> => {
-        const users = getUsers();
+        console.log('Attempting to register user:', { name, email, role });
 
-        // Check if email already exists
-        if (users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
-            return { success: false, error: 'Este email ya está registrado' };
+        // Sign up with metadata so the trigger (schema.sql) can populate the profiles table
+        const { data, error } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+                data: {
+                    full_name: name,
+                    role: role
+                }
+            }
+        });
+
+        console.log('Supabase signUp response:', { data, error });
+
+        if (error) {
+            console.error('Registration error:', error);
+            return { success: false, error: error.message };
         }
 
-        // Create new user
-        const newUser: AuthUser = {
-            id: Math.random().toString(36).substr(2, 9),
-            name,
-            email,
-            password, // In production, this should be hashed
-            role
-        };
-
-        users.push(newUser);
-        saveUsers(users);
-
-        // Auto-login after registration
-        const userSession: User = {
-            id: newUser.id,
-            name: newUser.name,
-            email: newUser.email,
-            role: newUser.role
-        };
-
-        setUser(userSession);
-        localStorage.setItem(SESSION_KEY, JSON.stringify(userSession));
+        console.log('Registration successful');
+        // Return success even if email confirmation is required
+        // The user will receive an email to confirm their account
         return { success: true };
     };
 
-    const logout = () => {
+    const logout = async () => {
+        await supabase.auth.signOut();
         setUser(null);
-        localStorage.removeItem(SESSION_KEY);
     };
 
     return (

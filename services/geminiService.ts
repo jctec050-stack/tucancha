@@ -3,7 +3,7 @@ import { GoogleGenAI } from "@google/genai";
 import { Booking } from "../types";
 
 export const getPerformanceSummary = async (bookings: Booking[]) => {
-  const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
+  const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY || '' });
 
   const statsSummary = bookings.reduce((acc, b) => {
     if (b.status === 'ACTIVE') {
