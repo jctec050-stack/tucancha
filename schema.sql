@@ -57,6 +57,10 @@ alter table public.bookings enable row level security;
 create policy "Users can read own profile" on public.profiles
   for select using (auth.uid() = id);
 
+-- Allow profile creation during signup (used by trigger)
+create policy "Enable insert for authenticated users during signup" on public.profiles
+  for insert with check (true);
+
 -- Policies for Venues
 -- Everyone can read venues (for search)
 create policy "Venues are viewable by everyone" on public.venues
@@ -104,8 +108,17 @@ create or replace function public.handle_new_user()
 returns trigger as $$
 begin
   insert into public.profiles (id, email, full_name, role)
-  values (new.id, new.email, new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'role');
+  values (
+    new.id, 
+    new.email, 
+    coalesce(new.raw_user_meta_data->>'full_name', ''), 
+    coalesce(new.raw_user_meta_data->>'role', 'PLAYER')
+  );
   return new;
+exception
+  when others then
+    raise log 'Error creating profile for user %: %', new.id, sqlerrm;
+    return new;
 end;
 $$ language plpgsql security definer;
 

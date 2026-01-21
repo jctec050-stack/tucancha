@@ -103,7 +103,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     full_name: name,
                     role: role
                 },
-                emailRedirectTo: window.location.origin
+                emailRedirectTo: process.env.NEXT_PUBLIC_APP_URL || window.location.origin
             }
         });
 
@@ -113,20 +113,39 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             console.error('Registration error:', error);
 
             // Check for common errors
-            if (error.message.includes('already registered')) {
+            if (error.message.includes('already registered') || error.message.includes('User already registered')) {
                 return { success: false, error: 'Este correo ya está registrado. Intenta iniciar sesión.' };
+            }
+
+            if (error.message.includes('Invalid email')) {
+                return { success: false, error: 'El formato del email no es válido.' };
+            }
+
+            if (error.message.includes('Password')) {
+                return { success: false, error: 'La contraseña no cumple con los requisitos mínimos.' };
+            }
+
+            // Generic database error
+            if (error.message.includes('Database') || error.message.includes('database')) {
+                return { success: false, error: 'Error al guardar en la base de datos. Por favor intenta nuevamente.' };
             }
 
             return { success: false, error: error.message };
         }
 
-        console.log('Registration successful');
+        // Check if user was created successfully
+        if (!data.user) {
+            console.error('No user data returned after signup');
+            return { success: false, error: 'Error al crear la cuenta. Por favor intenta nuevamente.' };
+        }
+
+        console.log('Registration successful, user created:', data.user.id);
         return { success: true };
     };
 
     const resetPassword = async (email: string): Promise<{ success: boolean; error?: string }> => {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-            redirectTo: `${window.location.origin}/reset-password`,
+            redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || window.location.origin}/reset-password`,
         });
 
         if (error) {
