@@ -12,8 +12,9 @@ import { LoginForm } from '@/components/LoginForm';
 import { RegisterForm } from '@/components/RegisterForm';
 import { AddCourtModal } from '@/components/AddCourtModal';
 import SplashScreen from '@/components/SplashScreen';
+import { ConfirmationModal } from './ConfirmationModal';
 import { useAuth } from '@/AuthContext';
-import { getVenues, createVenueWithCourts, getBookings, createBooking, getDisabledSlots, toggleSlotAvailability } from '@/services/dataService';
+import { getVenues, createVenueWithCourts, getBookings, createBooking, getDisabledSlots, toggleSlotAvailability, cancelBooking } from '@/services/dataService';
 
 const MainApp: React.FC = () => {
     const { user, login, register, logout, isLoading } = useAuth();
@@ -30,6 +31,9 @@ const MainApp: React.FC = () => {
     const [showAddCourtModal, setShowAddCourtModal] = useState(false);
     const [ownerTab, setOwnerTab] = useState<'dashboard' | 'schedule' | 'venues'>('dashboard');
     const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null);
+
+    const [selectedSlots, setSelectedSlots] = useState<{ courtId: string, time: string, price: number, courtName: string }[]>([]);
+    const [bookingToCancel, setBookingToCancel] = useState<string[] | null>(null);
 
     const showToast = (message: string, type: 'success' | 'error' | 'info') => {
         setToast({ message, type });
@@ -77,51 +81,126 @@ const MainApp: React.FC = () => {
         setNotifications(prev => [newNotif, ...prev]);
     }, []);
 
-    const handleBooking = async (venue: Venue, courtId: string, time: string) => {
-        const court = venue.courts.find(c => c.id === courtId);
-        if (!court || !user) return;
-
-        // Check if slot is taken (Optimistic check, DB will implement constraints ideally or we verify again)
-        const isTaken = bookings.some(b =>
+    const handleSlotSelect = (venue: Venue, court: Court, time: string) => {
+        // Check if slot is already booked (DB)
+        const isBooked = bookings.some(b =>
             b.venueId === venue.id &&
-            b.courtId === courtId &&
+            b.courtId === court.id &&
             b.date === selectedDate &&
             b.startTime === time &&
             b.status === 'ACTIVE'
         );
 
-        if (isTaken) {
-            showToast("Este horario ya está reservado.", 'error');
-            return;
-        }
+        if (isBooked) return;
 
-        const success = await createBooking({
-            venueId: venue.id,
-            courtId,
-            date: selectedDate,
-            startTime: time,
-            endTime: time, // Assume 1 hour
-            price: court.pricePerHour,
-            status: 'ACTIVE'
-        });
+        // Toggle selection
+        const isSelected = selectedSlots.some(s => s.courtId === court.id && s.time === time);
 
-        if (success) {
-            // Refresh data
-            await fetchData();
-
-            // Notifications (Local only for now, could be DB trigger)
-            addNotification('PLAYER', 'Reserva Confirmada', `Has reservado ${court.name} en ${venue.name} para el ${selectedDate} a las ${time}.`);
-            addNotification('OWNER', 'Nueva Reserva Recibida', `${user.name} ha reservado ${court.name} para el ${selectedDate} a las ${time}.`);
-
-            showToast("¡Reserva realizada con éxito!", 'success');
+        if (isSelected) {
+            setSelectedSlots(prev => prev.filter(s => !(s.courtId === court.id && s.time === time)));
         } else {
-            showToast("Error al realizar la reserva. Intenta de nuevo.", 'error');
+            setSelectedSlots(prev => [...prev, {
+                courtId: court.id,
+                time,
+                price: court.pricePerHour,
+                courtName: court.name
+            }]);
         }
     };
 
-    const handleCancel = (bookingId: string) => {
-        // TODO: Implement cancelBooking in dataService (update status to CANCELLED)
-        showToast("Funcionalidad de cancelar pendiente de migración a DB.", 'info');
+    const handleConfirmBooking = async () => {
+        if (!user || selectedSlots.length === 0) return;
+
+        let successCount = 0;
+        let failCount = 0;
+
+        for (const slot of selectedSlots) {
+            const success = await createBooking({
+                venueId: venues[0].id, // Limit to current venue context
+                courtId: slot.courtId,
+                date: selectedDate,
+                startTime: slot.time,
+                endTime: slot.time,
+                price: slot.price,
+                status: 'ACTIVE'
+            });
+            if (success) successCount++;
+            else failCount++;
+        }
+
+        if (successCount > 0) {
+            await fetchData();
+            addNotification('OWNER', 'Nueva Reserva', `${user.name} ha realizado ${successCount} reserva(s).`);
+            showToast(`¡${successCount} reserva(s) confirmada(s)!`, 'success');
+            setSelectedSlots([]); // Clear selection
+        }
+
+        if (failCount > 0) {
+            showToast(`Error al procesar ${failCount} reserva(s).`, 'error');
+        }
+    };
+
+    const getGroupedBookings = (bookings: Booking[]) => {
+        const active = bookings.filter(b => b.status === 'ACTIVE');
+        const groups: { [key: string]: Booking[] } = {};
+
+        active.forEach(b => {
+            const key = `${b.venueId}-${b.courtId}-${b.date}`;
+            if (!groups[key]) groups[key] = [];
+            groups[key].push(b);
+        });
+
+        return Object.values(groups).map(group => {
+            // Sort by time
+            const sorted = group.sort((a, b) => a.startTime.localeCompare(b.startTime));
+            const first = sorted[0];
+            const last = sorted[sorted.length - 1];
+
+            // Calculate end time of the last slot (approximate +1h)
+            const lastHour = parseInt(last.startTime.split(':')[0]);
+            const endTime = `${(lastHour + 1).toString().padStart(2, '0')}:00`;
+
+            return {
+                id: sorted.map(b => b.id), // Array of IDs
+                venueId: first.venueId,
+                courtId: first.courtId,
+                venueName: first.venueName,
+                courtName: first.courtName,
+                date: first.date,
+                startTime: first.startTime,
+                endTime: endTime, // Display range end
+                price: sorted.reduce((sum, b) => sum + b.price, 0),
+                count: sorted.length,
+                timeRange: sorted.length > 1 ? `${first.startTime} - ${endTime}` : `${first.startTime} - 1h`
+            };
+        });
+    };
+
+    const handleCancelClick = (bookingIds: string[]) => {
+        setBookingToCancel(bookingIds);
+    };
+
+    const confirmCancel = async () => {
+        if (!bookingToCancel) return;
+
+        let successCount = 0;
+        let failCount = 0;
+
+        for (const id of bookingToCancel) {
+            const success = await cancelBooking(id);
+            if (success) successCount++;
+            else failCount++;
+        }
+
+        if (successCount > 0) {
+            await fetchData();
+            showToast(`${successCount} reserva(s) cancelada(s).`, 'success');
+        }
+
+        if (failCount > 0) {
+            showToast(`Error al cancelar ${failCount} reserva(s).`, 'error');
+        }
+        setBookingToCancel(null);
     };
 
     const handleSaveVenue = async (
@@ -170,7 +249,11 @@ const MainApp: React.FC = () => {
     };
 
     const handleToggleSlot = async (courtId: string, date: string, timeSlot: string) => {
-        if (!user || !venues[0]) return;
+        console.log('👆 Toggle Slot clicked:', { courtId, date, timeSlot });
+        if (!user || !venues[0]) {
+            console.error('❌ Missing user or venue[0]', { user, venue: venues[0] });
+            return;
+        }
 
         const success = await toggleSlotAvailability(venues[0].id, courtId, date, timeSlot);
 
@@ -341,26 +424,31 @@ const MainApp: React.FC = () => {
                                         Aún no tienes reservas programadas
                                     </div>
                                 ) : (
-                                    bookings.filter(b => b.status === 'ACTIVE').map(b => (
-                                        <div key={b.id} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                                    getGroupedBookings(bookings).map(group => (
+                                        <div key={group.id[0]} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                                             <div>
-                                                <p className="text-xs font-bold text-indigo-600 uppercase tracking-widest">{b.courtName}</p>
-                                                <h4 className="text-lg font-bold text-gray-900">{b.venueName}</h4>
+                                                <p className="text-xs font-bold text-indigo-600 uppercase tracking-widest">{group.courtName}</p>
+                                                <h4 className="text-lg font-bold text-gray-900">{group.venueName}</h4>
                                                 <div className="flex gap-4 mt-1 text-sm text-gray-500 font-medium">
                                                     <span className="flex items-center gap-1">
                                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                                                        {b.date}
+                                                        {group.date}
                                                     </span>
                                                     <span className="flex items-center gap-1">
                                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                                        {b.startTime} - 1h
+                                                        {group.timeRange}
+                                                        {group.count > 1 && (
+                                                            <span className="ml-2 px-2 py-0.5 bg-indigo-50 text-indigo-700 text-xs rounded-full">
+                                                                {group.count} turnos
+                                                            </span>
+                                                        )}
                                                     </span>
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-4 w-full md:w-auto">
-                                                <span className="text-lg font-bold text-gray-900">${b.price}</span>
+                                                <span className="text-lg font-bold text-gray-900">Gs. {group.price.toLocaleString('es-PY')}</span>
                                                 <button
-                                                    onClick={() => handleCancel(b.id)}
+                                                    onClick={() => handleCancelClick(group.id)}
                                                     className="flex-1 md:flex-none px-6 py-2 border border-red-100 text-red-600 font-bold rounded-xl hover:bg-red-50 transition"
                                                 >
                                                     Cancelar
@@ -486,16 +574,20 @@ const MainApp: React.FC = () => {
                                                         b.status === 'ACTIVE'
                                                     );
 
+                                                    const isSelected = selectedSlots.some(s => s.courtId === court.id && s.time === slot);
+
                                                     return (
                                                         <button
                                                             key={slot}
                                                             disabled={isBooked}
-                                                            onClick={() => handleBooking(selectedVenue, court.id, slot)}
+                                                            onClick={() => handleSlotSelect(selectedVenue, court, slot)}
                                                             className={`
                                 py-3 rounded-xl font-bold text-sm transition-all
                                 ${isBooked
                                                                     ? 'bg-gray-100 text-gray-300 cursor-not-allowed border border-gray-200 line-through'
-                                                                    : 'bg-white border-2 border-indigo-100 text-indigo-600 hover:border-indigo-600 hover:bg-indigo-50 shadow-sm active:scale-95'}
+                                                                    : isSelected
+                                                                        ? 'bg-indigo-600 text-white shadow-lg scale-105 ring-2 ring-indigo-300'
+                                                                        : 'bg-white border-2 border-indigo-100 text-indigo-600 hover:border-indigo-600 hover:bg-indigo-50 shadow-sm active:scale-95'}
                               `}
                                                         >
                                                             {slot}
@@ -508,6 +600,29 @@ const MainApp: React.FC = () => {
                                 </div>
                             </div>
                         </div>
+
+                        {/* Floating Action Bar for Selections */}
+                        {selectedSlots.length > 0 && (
+                            <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-bottom-4 fade-in">
+                                <div className="bg-gray-900 text-white rounded-2xl shadow-2xl px-8 py-4 flex items-center gap-8 min-w-[320px]">
+                                    <div>
+                                        <p className="text-gray-400 text-xs font-bold uppercase mb-0.5">Total a Pagar</p>
+                                        <p className="text-xl font-extrabold text-white">
+                                            Gs. {selectedSlots.reduce((acc, curr) => acc + curr.price, 0).toLocaleString('es-PY')}
+                                        </p>
+                                        <p className="text-xs text-gray-400">
+                                            {selectedSlots.length} turno{selectedSlots.length > 1 ? 's' : ''} sel.
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={handleConfirmBooking}
+                                        className="bg-indigo-500 hover:bg-indigo-400 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-indigo-500/30 transition transform hover:scale-105 active:scale-95"
+                                    >
+                                        Confirmar Reserva
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
 
@@ -647,8 +762,12 @@ const MainApp: React.FC = () => {
                                                         </span>
                                                     </td>
                                                     <td className="px-6 py-4">
-                                                        <button className="text-gray-400 hover:text-indigo-600 transition">
-                                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" /></svg>
+                                                        <button
+                                                            onClick={() => handleCancelClick([b.id])}
+                                                            className="text-gray-400 hover:text-red-600 transition"
+                                                            title="Cancelar Reserva"
+                                                        >
+                                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                                                         </button>
                                                     </td>
                                                 </tr>
@@ -675,6 +794,18 @@ const MainApp: React.FC = () => {
                     onSave={handleSaveVenue}
                 />
             )}
+
+            {/* Cancel Confirmation Modal */}
+            <ConfirmationModal
+                isOpen={!!bookingToCancel}
+                title="Cancelar Reserva"
+                message={`¿Estás seguro de que quieres cancelar ${bookingToCancel && bookingToCancel.length > 1 ? 'estas reservas' : 'esta reserva'}? Esta acción no se puede deshacer.`}
+                confirmText="Sí, Cancelar"
+                cancelText="Mantenerme Reservado"
+                isDangerous={true}
+                onConfirm={confirmCancel}
+                onCancel={() => setBookingToCancel(null)}
+            />
         </div>
     )
 }

@@ -261,6 +261,25 @@ export const deleteVenue = async (venueId: string): Promise<boolean> => {
 };
 
 // Bookings
+export const cancelBooking = async (bookingId: string): Promise<boolean> => {
+    try {
+        const { error } = await supabase
+            .from('bookings')
+            .update({ status: 'CANCELLED' })
+            .eq('id', bookingId);
+
+        if (error) {
+            console.error('❌ Error cancelling booking:', error);
+            return false;
+        }
+
+        return true;
+    } catch (error: any) {
+        console.error('❌ Exception cancelling booking:', error);
+        return false;
+    }
+};
+
 export const getBookings = async (): Promise<Booking[]> => {
     const { data: bookings, error } = await supabase
         .from('bookings')
