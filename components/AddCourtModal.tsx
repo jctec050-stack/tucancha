@@ -1,7 +1,6 @@
 
 import React, { useState } from 'react';
 import { SportType, Court } from '../types';
-import { uploadCourtImage } from '../services/dataService';
 import { compressImage } from '../utils/imageUtils';
 
 interface AddCourtModalProps {
@@ -90,34 +89,16 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
         }
 
         setIsUploadingCourt(true);
-        let uploadedImageUrl = '';
 
-        if (courtImageFile) {
-            // Use a temporary ID for the filename
-            const tempId = `new-${Date.now()}`;
-
-            // Compress generic file before upload, optimization
-            // NOTE: We rely on the file selection to have already compressed it or we do it here?
-            // Actually it's better to do it at selection time for UI responsiveness, 
-            // BUT doing it here ensures we upload the compressed version.
-            // Let's rely on the state 'courtImageFile' already being the compressed version from the onChange handler.
-
-            const publicUrl = await uploadCourtImage(courtImageFile, tempId);
-            if (publicUrl) {
-                uploadedImageUrl = publicUrl;
-            } else {
-                setError('Error al subir la imagen. Intenta de nuevo.');
-                setIsUploadingCourt(false);
-                return;
-            }
-        }
+        // Use the preview (base64) directly instead of uploading to storage
+        const imageUrl = courtImagePreview || '';
 
         const newCourt: Omit<Court, 'id'> = {
             name: courtName.trim(),
             type: courtType,
             pricePerHour: price,
             address: venueAddress,
-            imageUrl: uploadedImageUrl
+            imageUrl: imageUrl // Store base64 directly
         };
 
         setPendingCourts([...pendingCourts, newCourt]);
