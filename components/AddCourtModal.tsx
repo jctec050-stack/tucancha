@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { SportType, Court } from '../types';
+import { uploadCourtImage } from '../services/dataService';
 import { compressImage } from '../utils/imageUtils';
 
 interface AddCourtModalProps {
@@ -89,16 +90,26 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
         }
 
         setIsUploadingCourt(true);
+        let uploadedImageUrl = '';
 
-        // Use the preview (base64) directly instead of uploading to storage
-        const imageUrl = courtImagePreview || '';
+        if (courtImageFile) {
+            const tempId = `new-${Date.now()}`;
+            const publicUrl = await uploadCourtImage(courtImageFile, tempId);
+
+            if (publicUrl) {
+                uploadedImageUrl = publicUrl;
+            } else {
+                // Don't block if image fails, just continue without image
+                console.warn('Image upload failed, continuing without image');
+            }
+        }
 
         const newCourt: Omit<Court, 'id'> = {
             name: courtName.trim(),
             type: courtType,
             pricePerHour: price,
             address: venueAddress,
-            imageUrl: imageUrl // Store base64 directly
+            imageUrl: uploadedImageUrl
         };
 
         setPendingCourts([...pendingCourts, newCourt]);
