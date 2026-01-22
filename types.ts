@@ -10,6 +10,7 @@ export interface Court {
   pricePerHour: number;
   address?: string;
   photos?: string[];
+  imageUrl?: string;
 }
 
 export interface Venue {

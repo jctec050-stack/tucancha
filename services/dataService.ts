@@ -1,6 +1,36 @@
 import { supabase } from '@/lib/supabase';
 import { Venue, Court, Booking } from '@/types';
 
+// Upload court image to Supabase Storage
+export const uploadCourtImage = async (file: File, courtId: string): Promise<string | null> => {
+    try {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${courtId}-${Date.now()}.${fileExt}`;
+
+        const { data, error } = await supabase.storage
+            .from('court-images')
+            .upload(fileName, file, {
+                cacheControl: '3600',
+                upsert: false
+            });
+
+        if (error) {
+            console.error('Error uploading image:', error);
+            return null;
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+            .from('court-images')
+            .getPublicUrl(fileName);
+
+        return publicUrl;
+    } catch (error) {
+        console.error('Exception uploading image:', error);
+        return null;
+    }
+};
+
+
 // Venues & Courts
 export const getVenues = async (): Promise<Venue[]> => {
     const { data: venues, error } = await supabase
@@ -31,7 +61,8 @@ export const getVenues = async (): Promise<Venue[]> => {
             id: c.id,
             name: c.name,
             type: c.type,
-            pricePerHour: c.price_per_hour
+            pricePerHour: c.price_per_hour,
+            imageUrl: c.image_url
         }))
     }));
 };
