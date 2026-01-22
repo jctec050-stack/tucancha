@@ -290,14 +290,18 @@ const MainApp: React.FC = () => {
         if (venueToEdit) {
             // Delete courts first if any
             if (courtsToDelete.length > 0) {
+                console.log('🗑️ Attempting to delete courts:', courtsToDelete);
                 const deletePromises = courtsToDelete.map(courtId => deleteCourt(courtId));
                 const deleteResults = await Promise.all(deletePromises);
+                console.log('🗑️ Delete results:', deleteResults);
                 const failedDeletes = deleteResults.filter((r: boolean) => !r).length;
 
                 if (failedDeletes > 0) {
+                    console.error('❌ Failed to delete', failedDeletes, 'court(s)');
                     showToast(`Error al eliminar ${failedDeletes} cancha(s)`, 'error');
                     return;
                 }
+                console.log('✅ Successfully deleted', courtsToDelete.length, 'court(s)');
             }
 
             // Update existing venue
