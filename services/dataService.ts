@@ -215,23 +215,8 @@ export const createVenueWithCourts = async (
     venue: Omit<Venue, 'id' | 'courts'>,
     courts: Omit<Court, 'id'>[]
 ): Promise<boolean> => {
-    let imageUrl = venue.imageUrl;
-
-    // Handle Image Upload if it's base64
-    if (imageUrl && imageUrl.startsWith('data:image')) {
-        console.log('📤 Uploading image to storage (Optimistic check)...');
-
-        // Try uploading even if health.storage is false (Bucket might exist but be hidden from list)
-        const uploadedUrl = await uploadVenueImage(imageUrl, venue.ownerId);
-
-        if (uploadedUrl) {
-            console.log('✅ Image uploaded successfully:', uploadedUrl);
-            imageUrl = uploadedUrl;
-        } else {
-            console.warn('⚠️ Image upload failed, saving without image');
-            imageUrl = '';
-        }
-    }
+    // Store image as base64 directly (no upload to storage)
+    const imageUrl = venue.imageUrl || '';
 
     // Geocode address to get coordinates
     let latitude: number | null = null;
@@ -273,9 +258,9 @@ export const createVenueWithCourts = async (
             .select()
             .single();
 
-        // Create timeout promise (10 seconds)
+        // Create timeout promise (30 seconds)
         const dbTimeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Timeout: Database insert took too long. Likely RLS or Network issue.')), 10000)
+            setTimeout(() => reject(new Error('Timeout: Database insert took too long. Likely RLS or Network issue.')), 30000)
         );
 
         // Race them
