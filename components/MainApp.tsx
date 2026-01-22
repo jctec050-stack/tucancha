@@ -1015,6 +1015,11 @@ const MainApp: React.FC = () => {
                 )}
             </main>
 
+            {/* Version Display - Footer */}
+            <div className="fixed bottom-2 right-2 text-xs text-gray-400 bg-white/80 backdrop-blur px-2 py-1 rounded-lg shadow-sm">
+                v1.0.0
+            </div>
+
             {/* Add Court Modal */}
             {showAddCourtModal && (
                 <AddCourtModal
