@@ -211,7 +211,7 @@ export const ScheduleManager: React.FC<ScheduleManagerProps> = ({
                                                     </div>
                                                 ) : null}
                                                 <span className={isLoading ? 'opacity-0' : ''}>
-                                                    {slot}
+                                                    {slot} - {parseInt(slot.split(':')[0]) + 1}:00
                                                 </span>
                                             </button>
                                         );
