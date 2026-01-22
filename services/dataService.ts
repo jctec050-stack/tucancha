@@ -351,6 +351,24 @@ export const deleteVenue = async (venueId: string): Promise<boolean> => {
     }
 };
 
+export const deleteCourt = async (courtId: string): Promise<boolean> => {
+    try {
+        const { error } = await supabase
+            .from('courts')
+            .delete()
+            .eq('id', courtId);
+
+        if (error) {
+            console.error('Error deleting court:', error);
+            return false;
+        }
+        return true;
+    } catch (error) {
+        console.error('Exception deleting court:', error);
+        return false;
+    }
+};
+
 // Bookings
 export const cancelBooking = async (bookingId: string): Promise<boolean> => {
     try {

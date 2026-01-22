@@ -9,6 +9,7 @@ interface AddCourtModalProps {
     currentImageUrl: string;
     currentAmenities?: string[];
     currentContactInfo?: string;
+    currentCourts?: Court[];
     onClose: () => void;
     onSave: (
         venueName: string,
@@ -17,7 +18,8 @@ interface AddCourtModalProps {
         imageUrl: string,
         amenities: string[],
         contactInfo: string,
-        newCourts: Omit<Court, 'id'>[]
+        newCourts: Omit<Court, 'id'>[],
+        courtsToDelete: string[]
     ) => void;
 }
 
@@ -28,6 +30,7 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
     currentImageUrl,
     currentAmenities = [],
     currentContactInfo = '',
+    currentCourts = [],
     onClose,
     onSave
 }) => {
@@ -49,6 +52,10 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
 
     // Pending Courts List
     const [pendingCourts, setPendingCourts] = useState<Omit<Court, 'id'>[]>([]);
+
+    // Courts to Delete
+    const [courtsToDelete, setCourtsToDelete] = useState<string[]>([]);
+    const [courtToConfirmDelete, setCourtToConfirmDelete] = useState<Court | null>(null);
 
     // Current Court Form State
     const [courtName, setCourtName] = useState('');
@@ -94,6 +101,16 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
         setPendingCourts(pendingCourts.filter((_, i) => i !== index));
     };
 
+    const handleDeleteCourt = (court: Court) => {
+        setCourtToConfirmDelete(court);
+    };
+
+    const confirmDeleteCourt = () => {
+        if (!courtToConfirmDelete) return;
+        setCourtsToDelete([...courtsToDelete, courtToConfirmDelete.id]);
+        setCourtToConfirmDelete(null);
+    };
+
     const handleSave = (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -102,12 +119,14 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
             return;
         }
 
-        if (pendingCourts.length === 0 && !window.confirm('¿Guardar sin agregar nuevas canchas?')) {
+        const remainingCourts = currentCourts.filter(c => !courtsToDelete.includes(c.id));
+        if (pendingCourts.length === 0 && remainingCourts.length === 0) {
+            setError('Debes tener al menos una cancha en el complejo');
             return;
         }
 
         const fullOpeningHours = `${startHour} - ${endHour}`;
-        onSave(venueName, venueAddress, fullOpeningHours, imageUrl, amenities, contactPhone, pendingCourts);
+        onSave(venueName, venueAddress, fullOpeningHours, imageUrl, amenities, contactPhone, pendingCourts, courtsToDelete);
         onClose();
     };
 
@@ -316,10 +335,37 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
                         </div>
                     </div>
 
-                    {/* Section 7: Pending List */}
+                    {/* Section 7: Existing Courts */}
+                    {currentCourts.length > 0 && (
+                        <div>
+                            <h4 className="font-bold text-gray-800 mb-3">7. Canchas Existentes ({currentCourts.filter(c => !courtsToDelete.includes(c.id)).length})</h4>
+                            <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
+                                {currentCourts.filter(c => !courtsToDelete.includes(c.id)).map((court) => (
+                                    <div key={court.id} className="flex items-center justify-between bg-white border border-gray-200 p-3 rounded-xl shadow-sm">
+                                        <div className="flex items-center gap-3">
+                                            <span className={`w-2 h-8 rounded-full ${court.type === 'Padel' ? 'bg-indigo-500' : 'bg-orange-400'}`}></span>
+                                            <div>
+                                                <p className="font-bold text-gray-900">{court.name}</p>
+                                                <p className="text-xs text-gray-500">{court.type} • Gs. {formatNumber(court.pricePerHour)}</p>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => handleDeleteCourt(court)}
+                                            className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition"
+                                            title="Eliminar cancha"
+                                        >
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Section 8: Pending List */}
                     {pendingCourts.length > 0 && (
                         <div>
-                            <h4 className="font-bold text-gray-800 mb-3">7. Canchas a Guardar ({pendingCourts.length})</h4>
+                            <h4 className="font-bold text-gray-800 mb-3">8. Canchas Nuevas a Agregar ({pendingCourts.length})</h4>
                             <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
                                 {pendingCourts.map((court, idx) => (
                                     <div key={idx} className="flex items-center justify-between bg-white border border-gray-200 p-3 rounded-xl shadow-sm">
@@ -359,6 +405,33 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
                     </div>
                 </div>
             </div>
+
+            {/* Confirmation Modal for Deleting Court */}
+            {courtToConfirmDelete && (
+                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-in fade-in zoom-in duration-200">
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">¿Eliminar Cancha?</h3>
+                        <p className="text-gray-600 mb-6">
+                            ¿Estás seguro de que deseas eliminar <span className="font-bold">{courtToConfirmDelete.name}</span>?
+                            Esta acción eliminará todas las reservas asociadas y no se puede deshacer.
+                        </p>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setCourtToConfirmDelete(null)}
+                                className="flex-1 py-2 border-2 border-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-50 transition"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={confirmDeleteCourt}
+                                className="flex-1 py-2 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition"
+                            >
+                                Sí, Eliminar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

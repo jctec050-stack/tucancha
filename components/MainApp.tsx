@@ -14,7 +14,7 @@ import { AddCourtModal } from '@/components/AddCourtModal';
 import SplashScreen from '@/components/SplashScreen';
 import { ConfirmationModal } from './ConfirmationModal';
 import { useAuth } from '@/AuthContext';
-import { getVenues, createVenueWithCourts, updateVenue, getBookings, createBooking, getDisabledSlots, toggleSlotAvailability, cancelBooking, deleteBooking, addCourts } from '@/services/dataService';
+import { getVenues, createVenueWithCourts, updateVenue, getBookings, createBooking, getDisabledSlots, toggleSlotAvailability, cancelBooking, deleteBooking, addCourts, deleteCourt } from '@/services/dataService';
 
 const MainApp: React.FC = () => {
     const { user, login, register, logout, isLoading } = useAuth();
@@ -282,11 +282,24 @@ const MainApp: React.FC = () => {
         imageUrl: string,
         amenities: string[],
         contactInfo: string,
-        newCourts: Omit<Court, 'id'>[]
+        newCourts: Omit<Court, 'id'>[],
+        courtsToDelete: string[] = []
     ) => {
         if (!user) return;
 
         if (venueToEdit) {
+            // Delete courts first if any
+            if (courtsToDelete.length > 0) {
+                const deletePromises = courtsToDelete.map(courtId => deleteCourt(courtId));
+                const deleteResults = await Promise.all(deletePromises);
+                const failedDeletes = deleteResults.filter((r: boolean) => !r).length;
+
+                if (failedDeletes > 0) {
+                    showToast(`Error al eliminar ${failedDeletes} cancha(s)`, 'error');
+                    return;
+                }
+            }
+
             // Update existing venue
             const updates: Partial<Omit<Venue, 'id' | 'courts' | 'ownerId'>> = {
                 name: venueName,
@@ -305,7 +318,10 @@ const MainApp: React.FC = () => {
                     await addCourts(venueToEdit.id, newCourts);
                 }
                 await fetchData();
-                showToast('Complejo actualizado correctamente', 'success');
+                const message = courtsToDelete.length > 0
+                    ? `Complejo actualizado. ${courtsToDelete.length} cancha(s) eliminada(s).`
+                    : 'Complejo actualizado correctamente';
+                showToast(message, 'success');
                 setVenueToEdit(null);
             } else {
                 showToast('Error al actualizar el complejo', 'error');
@@ -997,6 +1013,7 @@ const MainApp: React.FC = () => {
                     currentImageUrl={venueToEdit?.imageUrl || ''}
                     currentAmenities={venueToEdit?.amenities || []}
                     currentContactInfo={venueToEdit?.contactInfo || ''}
+                    currentCourts={venueToEdit?.courts || []}
                     onClose={() => setShowAddCourtModal(false)}
                     onSave={handleSaveVenue}
                 />
