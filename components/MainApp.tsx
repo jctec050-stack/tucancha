@@ -58,7 +58,7 @@ const MainApp: React.FC = () => {
             setVenues(fetchedVenues);
 
             // Load Bookings (optimize: filter by date or venue later)
-            const fetchedBookings = await getBookings();
+            const fetchedBookings = await getBookings(user.role === 'OWNER' ? user.id : undefined);
             setBookings(fetchedBookings);
 
             // Load Disabled Slots (for everyone, so players see blocked times)

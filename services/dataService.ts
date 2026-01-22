@@ -447,15 +447,22 @@ export const deleteBooking = async (bookingId: string): Promise<boolean> => {
     }
 };
 
-export const getBookings = async (): Promise<Booking[]> => {
-    const { data: bookings, error } = await supabase
+export const getBookings = async (ownerId?: string): Promise<Booking[]> => {
+    let query = supabase
         .from('bookings')
         .select(`
       *,
-      venue:venues(name),
+      venue:venues!inner(name, owner_id),
       court:courts(name, type),
       player:profiles(full_name)
     `);
+
+    // Filter by owner if provided
+    if (ownerId) {
+        query = query.eq('venue.owner_id', ownerId);
+    }
+
+    const { data: bookings, error } = await query;
 
     if (error) {
         console.error('Error fetching bookings:', error);
