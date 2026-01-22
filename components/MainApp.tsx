@@ -47,18 +47,25 @@ const MainApp: React.FC = () => {
     const fetchData = useCallback(async () => {
         if (!user) return;
 
-        // Load Venues
-        const fetchedVenues = await getVenues();
-        setVenues(fetchedVenues);
+        try {
+            console.log('📡 Fetching data...');
+            // Load Venues
+            const fetchedVenues = await getVenues();
+            setVenues(fetchedVenues);
 
-        // Load Bookings (optimize: filter by date or venue later)
-        const fetchedBookings = await getBookings();
-        setBookings(fetchedBookings);
+            // Load Bookings (optimize: filter by date or venue later)
+            const fetchedBookings = await getBookings();
+            setBookings(fetchedBookings);
 
-        // Load Disabled Slots (for everyone, so players see blocked times)
-        if (fetchedVenues.length > 0) {
-            const fetchedSlots = await getDisabledSlots(fetchedVenues[0].id, selectedDate);
-            setDisabledSlots(fetchedSlots);
+            // Load Disabled Slots (for everyone, so players see blocked times)
+            if (fetchedVenues.length > 0) {
+                const fetchedSlots = await getDisabledSlots(fetchedVenues[0].id, selectedDate);
+                setDisabledSlots(fetchedSlots);
+            }
+            console.log('✅ Data fetched successfully');
+        } catch (error) {
+            console.error('❌ Error fetching data:', error);
+            showToast('Error al cargar datos. Por favor recarga la página.', 'error');
         }
     }, [user, selectedDate]);
 
