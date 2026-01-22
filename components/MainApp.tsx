@@ -867,7 +867,7 @@ const MainApp: React.FC = () => {
                                                                                 : 'bg-white border-2 border-indigo-100 text-indigo-600 hover:border-indigo-600 hover:bg-indigo-50 shadow-sm active:scale-95'}
                                                                 `}
                                                                 >
-                                                                    {slot}
+                                                                    {slot} - {parseInt(slot.split(':')[0]) + 1}:00
                                                                 </button>
                                                             );
                                                         })}
