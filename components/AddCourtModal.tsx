@@ -120,7 +120,9 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
         }
 
         const remainingCourts = currentCourts.filter(c => !courtsToDelete.includes(c.id));
-        if (pendingCourts.length === 0 && remainingCourts.length === 0) {
+        const totalCourts = remainingCourts.length + pendingCourts.length;
+
+        if (totalCourts === 0) {
             setError('Debes tener al menos una cancha en el complejo');
             return;
         }
