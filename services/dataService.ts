@@ -6,8 +6,9 @@ export const uploadCourtImage = async (file: File, courtId: string): Promise<str
     try {
         const fileExt = file.name.split('.').pop();
         const fileName = `${courtId}-${Date.now()}.${fileExt}`;
+        const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
 
-        console.log('⏳ Starting upload to "court-images" bucket...');
+        console.log(`⏳ Starting upload to "court-images" bucket... File size: ${fileSizeMB} MB`);
 
         // Create upload promise
         const uploadPromise = supabase.storage
@@ -17,9 +18,9 @@ export const uploadCourtImage = async (file: File, courtId: string): Promise<str
                 upsert: false
             });
 
-        // Create timeout promise (10 seconds)
+        // Create timeout promise (30 seconds)
         const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Timeout: Image upload took too long. Check if "court-images" bucket exists.')), 10000)
+            setTimeout(() => reject(new Error(`Timeout: Image upload took too long (>30s). File size: ${fileSizeMB} MB. Check internet or bucket.`)), 30000)
         );
 
         // Race them
