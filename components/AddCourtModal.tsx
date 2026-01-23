@@ -80,6 +80,8 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
     };
 
     const handleAddCourtToList = async () => {
+        console.log('🏟️ [handleAddCourtToList] START');
+
         if (!courtName.trim()) {
             setError('Ingresa un nombre para la cancha');
             return;
@@ -93,15 +95,18 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
         let uploadedImageUrl = '';
 
         if (courtImageFile) {
+            console.log('  📸 Court has image file, uploading...');
             const tempId = `new-${Date.now()}`;
             const publicUrl = await uploadCourtImage(courtImageFile, tempId);
 
             if (publicUrl) {
                 uploadedImageUrl = publicUrl;
+                console.log('  ✅ Image uploaded successfully:', uploadedImageUrl);
             } else {
-                // Don't block if image fails, just continue without image
-                console.warn('Image upload failed, continuing without image');
+                console.warn('  ⚠️ Image upload failed, continuing without image');
             }
+        } else {
+            console.log('  ℹ️ No image file selected');
         }
 
         const newCourt: Omit<Court, 'id'> = {
@@ -112,7 +117,9 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
             imageUrl: uploadedImageUrl
         };
 
+        console.log('  📝 New court object:', JSON.stringify(newCourt, null, 2));
         setPendingCourts([...pendingCourts, newCourt]);
+        console.log('  ✅ Court added to pending list');
 
         // Reset form
         setCourtName('');
@@ -121,6 +128,7 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
         setCourtImagePreview('');
         setError('');
         setIsUploadingCourt(false);
+        console.log('✅ [handleAddCourtToList] END');
     };
 
     const removePendingCourt = (index: number) => {

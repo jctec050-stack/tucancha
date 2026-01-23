@@ -4,9 +4,15 @@ import { Venue, Court, Booking } from '@/types';
 // Upload court image to Supabase Storage
 export const uploadCourtImage = async (file: File, courtId: string): Promise<string | null> => {
     try {
+        console.log('🔍 [uploadCourtImage] START');
+        console.log('  📁 File:', file.name, 'Size:', file.size, 'Type:', file.type);
+        console.log('  🆔 Court ID:', courtId);
+
         const fileExt = file.name.split('.').pop();
         const fileName = `${courtId}-${Date.now()}.${fileExt}`;
+        console.log('  📝 Generated filename:', fileName);
 
+        console.log('  ⏳ Starting upload to Supabase...');
         const { data, error } = await supabase.storage
             .from('court-images')
             .upload(fileName, file, {
@@ -15,17 +21,22 @@ export const uploadCourtImage = async (file: File, courtId: string): Promise<str
             });
 
         if (error) {
-            console.error('Error uploading image:', error);
+            console.error('  ❌ Upload error:', error);
+            console.error('  ❌ Error details:', JSON.stringify(error, null, 2));
             return null;
         }
+
+        console.log('  ✅ Upload successful, data:', data);
 
         const { data: { publicUrl } } = supabase.storage
             .from('court-images')
             .getPublicUrl(fileName);
 
+        console.log('  🔗 Public URL generated:', publicUrl);
+        console.log('✅ [uploadCourtImage] END - SUCCESS');
         return publicUrl;
     } catch (error) {
-        console.error('Exception uploading image:', error);
+        console.error('❌ [uploadCourtImage] EXCEPTION:', error);
         return null;
     }
 };
@@ -274,6 +285,10 @@ export const createVenueWithCourts = async (
 
 export const addCourts = async (venueId: string, courts: Omit<Court, 'id'>[]): Promise<boolean> => {
     try {
+        console.log('💾 [addCourts] START');
+        console.log('  🏢 Venue ID:', venueId);
+        console.log('  📊 Number of courts to insert:', courts.length);
+
         const courtsToInsert = courts.map(c => ({
             venue_id: venueId,
             name: c.name,
@@ -282,17 +297,23 @@ export const addCourts = async (venueId: string, courts: Omit<Court, 'id'>[]): P
             image_url: c.imageUrl || null
         }));
 
+        console.log('  📝 Courts to insert:', JSON.stringify(courtsToInsert, null, 2));
+
         const { error } = await supabase
             .from('courts')
             .insert(courtsToInsert);
 
         if (error) {
-            console.error('❌ Error adding courts:', error);
+            console.error('  ❌ Error adding courts:', error);
+            console.error('  ❌ Error details:', JSON.stringify(error, null, 2));
             return false;
         }
+
+        console.log('  ✅ Courts inserted successfully');
+        console.log('✅ [addCourts] END - SUCCESS');
         return true;
     } catch (error) {
-        console.error('❌ Exception adding courts:', error);
+        console.error('❌ [addCourts] EXCEPTION:', error);
         return false;
     }
 };
