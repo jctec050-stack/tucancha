@@ -9,8 +9,8 @@ export const getPerformanceSummary = async (bookings: Booking[]) => {
     if (b.status === 'ACTIVE') {
       acc.totalRevenue += b.price;
       acc.totalBookings += 1;
-      acc.bySport[b.courtName.includes('Beach') ? 'Beach Tennis' : 'Padel'] =
-        (acc.bySport[b.courtName.includes('Beach') ? 'Beach Tennis' : 'Padel'] || 0) + 1;
+      const sport = (b.court_name || '').includes('Beach') ? 'Beach Tennis' : 'Padel';
+      acc.bySport[sport] = (acc.bySport[sport] || 0) + 1;
     } else {
       acc.cancelledCount += 1;
     }
