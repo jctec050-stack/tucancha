@@ -7,7 +7,7 @@ import { venueFromDB, bookingFromDB, disabledSlotFromDB } from '@/utils/adapters
 // ============================================
 export const uploadImage = async (
     file: File,
-    bucket: 'venue-images' | 'court-images',
+    bucket: 'venue-images' | 'court-images' | 'court-photos',
     path: string
 ): Promise<string | null> => {
     try {
@@ -340,7 +340,7 @@ export const createCourt = async (
         if (imageFile) {
             const cleanFileName = imageFile.name.replace(/[^a-zA-Z0-9.-]/g, '_');
             const path = `${court.venue_id}/${Date.now()}_${cleanFileName}`;
-            const uploadedUrl = await uploadImage(imageFile, 'court-images', path);
+            const uploadedUrl = await uploadImage(imageFile, 'court-photos', path);
             image_url = uploadedUrl || null;
         }
 
@@ -695,6 +695,7 @@ export const createVenueWithCourts = async (
 export const uploadCourtImage = async (file: File, courtId: string): Promise<string | null> => {
     const cleanFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
     const path = `${courtId}_${Date.now()}_${cleanFileName}`;
-    return await uploadImage(file, 'court-images', path);
+    // Use new bucket 'court-photos' due to corruption in 'court-images'
+    return await uploadImage(file, 'court-photos', path);
 };
 
