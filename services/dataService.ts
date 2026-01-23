@@ -339,8 +339,8 @@ export const createCourt = async (
         // Upload image if provided
         if (imageFile) {
             const cleanFileName = imageFile.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-            const path = `${court.venue_id}/${Date.now()}_${cleanFileName}`;
-            const uploadedUrl = await uploadImage(imageFile, 'court-photos', path);
+            const path = `courts/${court.venue_id}/${Date.now()}_${cleanFileName}`;
+            const uploadedUrl = await uploadImage(imageFile, 'venue-images', path); // Use venue-images as fallback
             image_url = uploadedUrl || null;
         }
 
@@ -694,8 +694,8 @@ export const createVenueWithCourts = async (
 // ============================================
 export const uploadCourtImage = async (file: File, courtId: string): Promise<string | null> => {
     const cleanFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const path = `${courtId}_${Date.now()}_${cleanFileName}`;
-    // Use new bucket 'court-photos' due to corruption in 'court-images'
-    return await uploadImage(file, 'court-photos', path);
+    const path = `courts/${courtId}_${Date.now()}_${cleanFileName}`;
+    // Use 'venue-images' because it is confirmed to work
+    return await uploadImage(file, 'venue-images', path);
 };
 
