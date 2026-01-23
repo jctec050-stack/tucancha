@@ -610,8 +610,8 @@ export const createVenueWithCourts = async (
                 courts.map(c => ({
                     name: c.name,
                     type: c.type,
-                    price_per_hour: c.pricePerHour,
-                    image_url: c.imageUrl
+                    price_per_hour: c.pricePerHour || c.price_per_hour,
+                    image_url: c.imageUrl || c.image_url
                 }))
             );
             return success;

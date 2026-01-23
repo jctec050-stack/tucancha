@@ -121,11 +121,14 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
         }
 
         const newCourt: Omit<Court, 'id'> = {
+            venue_id: '',
             name: courtName.trim(),
             type: courtType,
-            pricePerHour: price,
-            address: venueAddress,
-            imageUrl: uploadedImageUrl
+            price_per_hour: price,
+            image_url: uploadedImageUrl,
+            is_active: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
         };
 
         console.log('  📝 New court object:', JSON.stringify(newCourt, null, 2));
@@ -439,16 +442,16 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
                                 {currentCourts.filter(c => !courtsToDelete.includes(c.id)).map((court) => (
                                     <div key={court.id} className="flex items-center justify-between bg-white border border-gray-200 p-3 rounded-xl shadow-sm">
                                         <div className="flex items-center gap-3">
-                                            {court.imageUrl ? (
+                                            {court.image_url ? (
                                                 <div className="w-12 h-12 rounded-lg overflow-hidden border border-gray-200">
-                                                    <img src={court.imageUrl} alt={court.name} className="w-full h-full object-cover" />
+                                                    <img src={court.image_url} alt={court.name} className="w-full h-full object-cover" />
                                                 </div>
                                             ) : (
                                                 <span className={`w-2 h-8 rounded-full ${court.type === 'Padel' ? 'bg-indigo-500' : 'bg-orange-400'}`}></span>
                                             )}
                                             <div>
                                                 <p className="font-bold text-gray-900">{court.name}</p>
-                                                <p className="text-xs text-gray-500">{court.type} • Gs. {formatNumber(court.pricePerHour)}</p>
+                                                <p className="text-xs text-gray-500">{court.type} • Gs. {formatNumber(court.price_per_hour)}</p>
                                             </div>
                                         </div>
                                         <button
@@ -472,16 +475,16 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
                                 {pendingCourts.map((court, idx) => (
                                     <div key={idx} className="flex items-center justify-between bg-white border border-gray-200 p-3 rounded-xl shadow-sm">
                                         <div className="flex items-center gap-3">
-                                            {court.imageUrl ? (
+                                            {court.image_url ? (
                                                 <div className="w-12 h-12 rounded-lg overflow-hidden border border-gray-200">
-                                                    <img src={court.imageUrl} alt={court.name} className="w-full h-full object-cover" />
+                                                    <img src={court.image_url} alt={court.name} className="w-full h-full object-cover" />
                                                 </div>
                                             ) : (
                                                 <span className={`w-2 h-8 rounded-full ${court.type === 'Padel' ? 'bg-indigo-500' : 'bg-orange-400'}`}></span>
                                             )}
                                             <div>
                                                 <p className="font-bold text-gray-900">{court.name}</p>
-                                                <p className="text-xs text-gray-500">{court.type} • Gs. {formatNumber(court.pricePerHour)}</p>
+                                                <p className="text-xs text-gray-500">{court.type} • Gs. {formatNumber(court.price_per_hour)}</p>
                                             </div>
                                         </div>
                                         <button
