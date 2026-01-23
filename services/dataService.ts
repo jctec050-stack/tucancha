@@ -134,8 +134,7 @@ export const getVenues = async (ownerId?: string): Promise<any[]> => {
             return [];
         }
 
-        // Convert to legacy format for component compatibility
-        return (data || []).map(venueFromDB);
+        return data || [];
     } catch (error) {
         console.error('❌ Exception fetching venues:', error);
         return [];
@@ -371,8 +370,14 @@ export const getBookings = async (): Promise<any[]> => {
             return [];
         }
 
-        // Convert to legacy format for component compatibility
-        return (data || []).map(bookingFromDB);
+        // Map to include populated fields but keep snake_case structure
+        return (data || []).map(b => ({
+            ...b,
+            venue_name: b.venues?.name,
+            court_name: b.courts?.name,
+            court_type: b.courts?.type,
+            player_name: b.profiles?.full_name
+        }));
     } catch (error) {
         console.error('❌ Exception fetching bookings:', error);
         return [];
@@ -453,8 +458,7 @@ export const getDisabledSlots = async (venueId: string, date: string): Promise<a
             return [];
         }
 
-        // Convert to legacy format for component compatibility
-        return (data || []).map(disabledSlotFromDB);
+        return data || [];
     } catch (error) {
         console.error('❌ Exception fetching disabled slots:', error);
         return [];

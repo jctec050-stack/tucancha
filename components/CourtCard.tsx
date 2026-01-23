@@ -23,9 +23,9 @@ export const CourtCard: React.FC<CourtCardProps> = ({ court, isSelected, onSelec
         >
             {/* Background Image or Gradient */}
             <div className="absolute inset-0 bg-gray-200">
-                {court.imageUrl ? (
+                {court.image_url ? (
                     <img
-                        src={court.imageUrl}
+                        src={court.image_url}
                         alt={court.name}
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                     />
@@ -53,7 +53,7 @@ export const CourtCard: React.FC<CourtCardProps> = ({ court, isSelected, onSelec
 
             {/* Price Tag Badge */}
             <div className="absolute bottom-4 right-4 bg-indigo-500 text-white px-3 py-1 rounded-lg font-bold text-sm shadow-lg group-hover:bg-indigo-600 transition-colors">
-                Gs. {formatNumber(court.pricePerHour)}
+                Gs. {formatNumber(court.price_per_hour)}
             </div>
 
             {/* Selection Indicator (Icon) */}

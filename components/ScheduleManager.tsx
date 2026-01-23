@@ -36,18 +36,18 @@ export const ScheduleManager: React.FC<ScheduleManagerProps> = ({
 
     const isSlotBooked = (courtId: string, timeSlot: string) => {
         return bookings.some(b =>
-            b.courtId === courtId &&
+            b.court_id === courtId &&
             b.date === selectedDate &&
-            b.startTime === timeSlot &&
+            b.start_time === timeSlot &&
             b.status === 'ACTIVE'
         );
     };
 
     const isSlotDisabled = (courtId: string, timeSlot: string) => {
         return disabledSlots.some(ds =>
-            ds.courtId === courtId &&
+            ds.court_id === courtId &&
             ds.date === selectedDate &&
-            ds.timeSlot === timeSlot
+            ds.time_slot === timeSlot
         );
     };
 
@@ -165,9 +165,9 @@ export const ScheduleManager: React.FC<ScheduleManagerProps> = ({
                             <div key={court.id}>
                                 <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-2">
                                     <div className="flex items-center gap-4">
-                                        {court.imageUrl && (
+                                        {court.image_url && (
                                             <div className="w-16 h-16 rounded-xl overflow-hidden border border-gray-200">
-                                                <img src={court.imageUrl} alt={court.name} className="w-full h-full object-cover" />
+                                                <img src={court.image_url} alt={court.name} className="w-full h-full object-cover" />
                                             </div>
                                         )}
                                         <div>
@@ -179,7 +179,7 @@ export const ScheduleManager: React.FC<ScheduleManagerProps> = ({
                                         </div>
                                     </div>
                                     <span className="text-indigo-600 font-bold bg-indigo-50 px-4 py-2 rounded-xl">
-                                        Gs. {court.pricePerHour.toLocaleString('es-PY')}/h
+                                        Gs. {court.price_per_hour.toLocaleString('es-PY')}/h
                                     </span>
                                 </div>
 

@@ -148,11 +148,12 @@ const MainApp: React.FC = () => {
     const addNotification = useCallback((userId: string, title: string, message: string) => {
         const newNotif: Notification = {
             id: Math.random().toString(36).substr(2, 9),
-            userId,
+            user_id: userId,
             title,
             message,
-            timestamp: Date.now(),
-            read: false
+            type: 'SYSTEM',
+            created_at: new Date().toISOString(),
+            is_read: false
         };
         setNotifications(prev => [newNotif, ...prev]);
     }, []);
@@ -167,17 +168,17 @@ const MainApp: React.FC = () => {
     const handleSlotSelect = (venue: Venue, court: Court, time: string) => {
         // Check if slot is already booked (DB)
         const isBooked = bookings.some(b =>
-            b.venueId === venue.id &&
-            b.courtId === court.id &&
+            b.venue_id === venue.id &&
+            b.court_id === court.id &&
             b.date === selectedDate &&
-            b.startTime === time &&
+            b.start_time === time &&
             b.status === 'ACTIVE'
         );
 
         const isDisabled = disabledSlots.some(s =>
-            s.venueId === venue.id &&
-            s.courtId === court.id &&
-            s.timeSlot === time
+            s.venue_id === venue.id &&
+            s.court_id === court.id &&
+            s.time_slot === time
         );
 
         if (isBooked || isDisabled) return;
@@ -191,7 +192,7 @@ const MainApp: React.FC = () => {
             setSelectedSlots(prev => [...prev, {
                 courtId: court.id,
                 time,
-                price: court.pricePerHour,
+                price: court.price_per_hour,
                 courtName: court.name
             }]);
         }
@@ -236,36 +237,36 @@ const MainApp: React.FC = () => {
 
         bookings.forEach(b => {
             // Group by venue, court, date, status AND playerId (unique per user)
-            const key = `${b.venueId}-${b.courtId}-${b.date}-${b.status}-${b.playerId}`;
+            const key = `${b.venue_id}-${b.court_id}-${b.date}-${b.status}-${b.player_id}`;
             if (!groups[key]) groups[key] = [];
             groups[key].push(b);
         });
 
         return Object.values(groups).map(group => {
             // Sort by time
-            const sorted = group.sort((a, b) => a.startTime.localeCompare(b.startTime));
+            const sorted = group.sort((a, b) => a.start_time.localeCompare(b.start_time));
             const first = sorted[0];
             const last = sorted[sorted.length - 1];
 
             // Calculate end time of the last slot (approximate +1h)
-            const lastHour = parseInt(last.startTime.split(':')[0]);
+            const lastHour = parseInt(last.start_time.split(':')[0]);
             const endTime = `${(lastHour + 1).toString().padStart(2, '0')}:00`;
 
             return {
                 id: sorted.map(b => b.id), // Array of IDs
-                venueId: first.venueId,
-                courtId: first.courtId,
-                venueName: first.venueName,
-                courtName: first.courtName,
-                courtType: first.courtType,
-                playerName: first.playerName,
+                venueId: first.venue_id,
+                courtId: first.court_id,
+                venueName: first.venue_name,
+                courtName: first.court_name,
+                courtType: first.court_type,
+                playerName: first.player_name,
                 status: first.status, // Add status to group for display
                 date: first.date,
-                startTime: first.startTime,
+                startTime: first.start_time,
                 endTime: endTime, // Display range end
                 price: sorted.reduce((sum, b) => sum + b.price, 0),
                 count: sorted.length,
-                timeRange: `${first.startTime.substring(0, 5)} - ${endTime}`
+                timeRange: `${first.start_time.substring(0, 5)} - ${endTime}`
             };
         });
     };
@@ -335,13 +336,13 @@ const MainApp: React.FC = () => {
             }
 
             // Update existing venue
-            const updates: Partial<Omit<Venue, 'id' | 'courts' | 'ownerId'>> = {
+            const updates: Partial<Omit<Venue, 'id' | 'courts' | 'owner_id'>> = {
                 name: venueName,
                 address: venueAddress,
-                openingHours: openingHours,
-                imageUrl: imageUrl,
+                opening_hours: openingHours,
+                image_url: imageUrl,
                 amenities: amenities,
-                contactInfo: contactInfo
+                contact_info: contactInfo
             };
 
             const success = await updateVenue(venueToEdit.id, updates);
@@ -365,13 +366,13 @@ const MainApp: React.FC = () => {
             // Create New Venue
             const success = await createVenueWithCourts(
                 {
-                    ownerId: user.id,
+                    owner_id: user.id,
                     name: venueName,
                     address: venueAddress,
-                    imageUrl: imageUrl,
-                    openingHours: openingHours,
+                    image_url: imageUrl,
+                    opening_hours: openingHours,
                     amenities: amenities,
-                    contactInfo: contactInfo
+                    contact_info: contactInfo
                 },
                 newCourts
             );
@@ -395,22 +396,22 @@ const MainApp: React.FC = () => {
         const groupedBookings = getGroupedBookings(dailyBookings);
 
         const disabledItems = dailyDisabled.map(ds => {
-            const court = venues[0]?.courts.find(c => c.id === ds.courtId);
-            const start = ds.timeSlot.substring(0, 5);
-            const hour = parseInt(ds.timeSlot.split(':')[0]);
+            const court = venues[0]?.courts.find(c => c.id === ds.court_id);
+            const start = ds.time_slot.substring(0, 5);
+            const hour = parseInt(ds.time_slot.split(':')[0]);
             const end = `${(hour + 1).toString().padStart(2, '0')}:00`;
 
             return {
                 id: [ds.id],
-                venueId: ds.venueId,
-                courtId: ds.courtId,
+                venueId: ds.venue_id,
+                courtId: ds.court_id,
                 venueName: venues[0]?.name || '',
                 courtName: court?.name || 'Cancha',
                 courtType: court?.type,
                 playerName: ds.reason ? `⛔ BLOQUEO: ${ds.reason}` : '⛔ BLOQUEO (Sin motivo)',
                 status: 'DISABLED',
                 date: ds.date,
-                startTime: ds.timeSlot,
+                startTime: ds.time_slot,
                 endTime: end,
                 price: 0,
                 count: 1,
@@ -582,8 +583,8 @@ const MainApp: React.FC = () => {
                                 return (
                                     <div key={v.id} className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition group cursor-pointer" onClick={() => setSelectedVenue(v)}>
                                         <div className="relative h-48">
-                                            {v.imageUrl ? (
-                                                <img src={v.imageUrl} alt={v.name} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+                                            {v.image_url ? (
+                                                <img src={v.image_url} alt={v.name} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
                                             ) : (
                                                 <div className="w-full h-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center">
                                                     <svg className="w-16 h-16 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -602,7 +603,7 @@ const MainApp: React.FC = () => {
                                                 );
                                             })()}
                                             <div className="absolute top-4 right-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-indigo-600 uppercase tracking-wider">
-                                                Abierto: {v.openingHours}
+                                                Abierto: {v.opening_hours}
                                             </div>
                                         </div>
                                         <div className="p-6">
@@ -710,8 +711,8 @@ const MainApp: React.FC = () => {
                         </button>
                         <div className="bg-white rounded-3xl overflow-hidden shadow-xl border border-gray-100">
                             <div className="h-64 relative">
-                                {selectedVenue.imageUrl ? (
-                                    <img src={selectedVenue.imageUrl} alt={selectedVenue.name} className="w-full h-full object-cover" />
+                                {selectedVenue.image_url ? (
+                                    <img src={selectedVenue.image_url} alt={selectedVenue.name} className="w-full h-full object-cover" />
                                 ) : (
                                     <div className="w-full h-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center">
                                         <svg className="w-20 h-20 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -756,7 +757,7 @@ const MainApp: React.FC = () => {
                                         </div>
                                         <div className="text-center bg-gray-50 px-6 py-3 rounded-2xl border border-gray-100">
                                             <p className="text-[10px] font-bold text-gray-400 uppercase">Apertura</p>
-                                            <p className="text-lg font-bold text-gray-800">{selectedVenue.openingHours.split(' - ')[0]}</p>
+                                            <p className="text-lg font-bold text-gray-800">{selectedVenue.opening_hours.split(' - ')[0]}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -785,7 +786,7 @@ const MainApp: React.FC = () => {
                                             Contacto
                                         </h4>
                                         <p className="text-gray-600 font-medium">
-                                            {selectedVenue.contactInfo || 'No especificado'}
+                                            {selectedVenue.contact_info || 'No especificado'}
                                         </p>
                                     </div>
                                 </div>
@@ -1103,10 +1104,10 @@ const MainApp: React.FC = () => {
                 <AddCourtModal
                     currentVenueName={venueToEdit?.name || ''}
                     currentVenueAddress={venueToEdit?.address || ''}
-                    currentOpeningHours={venueToEdit?.openingHours || '08:00 - 22:00'}
-                    currentImageUrl={venueToEdit?.imageUrl || ''}
+                    currentOpeningHours={venueToEdit?.opening_hours || '08:00 - 22:00'}
+                    currentImageUrl={venueToEdit?.image_url || ''}
                     currentAmenities={venueToEdit?.amenities || []}
-                    currentContactInfo={venueToEdit?.contactInfo || ''}
+                    currentContactInfo={venueToEdit?.contact_info || ''}
                     currentCourts={venueToEdit?.courts || []}
                     onClose={() => setShowAddCourtModal(false)}
                     onSave={handleSaveVenue}
