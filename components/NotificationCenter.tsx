@@ -24,12 +24,12 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({ notifica
         {notifications.length === 0 ? (
           <div className="p-8 text-center text-gray-400 text-sm">No tienes notificaciones nuevas</div>
         ) : (
-          notifications.sort((a,b) => b.timestamp - a.timestamp).map(notif => (
+          notifications.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).map(notif => (
             <div key={notif.id} className="p-4 border-b border-gray-50 hover:bg-gray-50 transition">
               <p className="text-sm font-semibold text-gray-800">{notif.title}</p>
               <p className="text-xs text-gray-500 mt-1">{notif.message}</p>
               <p className="text-[10px] text-gray-400 mt-2">
-                {new Date(notif.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                {new Date(notif.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </p>
             </div>
           ))
