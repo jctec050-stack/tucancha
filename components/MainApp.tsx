@@ -313,7 +313,9 @@ const MainApp: React.FC = () => {
         newCourts: Omit<Court, 'id'>[],
         courtsToDelete: string[] = []
     ) => {
-        if (!user) return;
+        if (!user) {
+            throw new Error('Usuario no autenticado');
+        }
 
         if (venueToEdit) {
             // Delete courts first if any
@@ -327,7 +329,7 @@ const MainApp: React.FC = () => {
                 if (failedDeletes > 0) {
                     console.error('❌ Failed to delete', failedDeletes, 'court(s)');
                     showToast(`Error al eliminar ${failedDeletes} cancha(s)`, 'error');
-                    return;
+                    throw new Error(`Failed to delete ${failedDeletes} court(s)`);
                 }
                 console.log('✅ Successfully deleted', courtsToDelete.length, 'court(s)');
             }
@@ -357,6 +359,7 @@ const MainApp: React.FC = () => {
                 setVenueToEdit(null);
             } else {
                 showToast('Error al actualizar el complejo', 'error');
+                throw new Error('Failed to update venue');
             }
         } else {
             // Create New Venue
@@ -379,9 +382,10 @@ const MainApp: React.FC = () => {
                 showToast('¡Complejo creado exitosamente!', 'success');
             } else {
                 showToast("Error al guardar el complejo.", 'error');
+                throw new Error('Failed to create venue');
             }
         }
-        setShowAddCourtModal(false);
+        // Modal will close itself after successful save
     };
 
     const getCombinedHistory = (date: string) => {

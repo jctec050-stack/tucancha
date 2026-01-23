@@ -22,7 +22,7 @@ interface AddCourtModalProps {
         contactInfo: string,
         newCourts: Omit<Court, 'id'>[],
         courtsToDelete: string[]
-    ) => void;
+    ) => Promise<void>;
 }
 
 export const AddCourtModal: React.FC<AddCourtModalProps> = ({
@@ -69,6 +69,9 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
     const [courtImageFile, setCourtImageFile] = useState<File | null>(null);
     const [courtImagePreview, setCourtImagePreview] = useState<string>('');
     const [isUploadingCourt, setIsUploadingCourt] = useState(false);
+
+    // Save state
+    const [isSaving, setIsSaving] = useState(false);
 
     const formatNumber = (num: number) => {
         return new Intl.NumberFormat('es-PY').format(num);
@@ -153,7 +156,7 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
         setCourtToConfirmDelete(null);
     };
 
-    const handleSave = (e: React.FormEvent) => {
+    const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
 
         if (!venueName.trim()) {
@@ -169,9 +172,19 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
             return;
         }
 
-        const fullOpeningHours = `${startHour} - ${endHour}`;
-        onSave(venueName, venueAddress, fullOpeningHours, imageUrl, amenities, contactPhone, pendingCourts, courtsToDelete);
-        onClose();
+        setIsSaving(true);
+        setError('');
+
+        try {
+            const fullOpeningHours = `${startHour} - ${endHour}`;
+            await onSave(venueName, venueAddress, fullOpeningHours, imageUrl, amenities, contactPhone, pendingCourts, courtsToDelete);
+            onClose();
+        } catch (err) {
+            console.error('Error saving venue:', err);
+            setError('Error al guardar el complejo. Por favor intenta nuevamente.');
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     return (
@@ -493,9 +506,17 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
                         </button>
                         <button
                             onClick={handleSave}
-                            className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition shadow-lg shadow-indigo-200"
+                            disabled={isSaving}
+                            className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
-                            Guardar Todo
+                            {isSaving ? (
+                                <>
+                                    <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                                    Guardando...
+                                </>
+                            ) : (
+                                'Guardar Todo'
+                            )}
                         </button>
                     </div>
                 </div>
