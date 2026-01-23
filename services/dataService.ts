@@ -12,13 +12,23 @@ export const uploadCourtImage = async (file: File, courtId: string): Promise<str
         const fileName = `${courtId}-${Date.now()}.${fileExt}`;
         console.log('  📝 Generated filename:', fileName);
 
-        console.log('  ⏳ Starting upload to Supabase...');
-        const { data, error } = await supabase.storage
+        console.log('  ⏳ Starting upload to Supabase with 15s timeout...');
+
+        // Create upload promise
+        const uploadPromise = supabase.storage
             .from('court-images')
             .upload(fileName, file, {
                 cacheControl: '3600',
                 upsert: false
             });
+
+        // Create timeout promise (15 seconds)
+        const timeoutPromise = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('Upload timeout after 15 seconds')), 15000)
+        );
+
+        // Race them - whichever finishes first wins
+        const { data, error } = await Promise.race([uploadPromise, timeoutPromise]);
 
         if (error) {
             console.error('  ❌ Upload error:', error);
@@ -35,8 +45,12 @@ export const uploadCourtImage = async (file: File, courtId: string): Promise<str
         console.log('  🔗 Public URL generated:', publicUrl);
         console.log('✅ [uploadCourtImage] END - SUCCESS');
         return publicUrl;
-    } catch (error) {
-        console.error('❌ [uploadCourtImage] EXCEPTION:', error);
+    } catch (error: any) {
+        if (error.message?.includes('timeout')) {
+            console.error('❌ [uploadCourtImage] TIMEOUT - Upload took too long');
+        } else {
+            console.error('❌ [uploadCourtImage] EXCEPTION:', error);
+        }
         return null;
     }
 };
