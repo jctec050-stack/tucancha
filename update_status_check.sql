@@ -1,2 +1,0 @@
-ALTER TABLE public.bookings DROP CONSTRAINT bookings_status_check;
-ALTER TABLE public.bookings ADD CONSTRAINT bookings_status_check CHECK (status IN ('ACTIVE', 'CANCELLED', 'COMPLETED'));
