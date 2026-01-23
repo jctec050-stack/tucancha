@@ -150,7 +150,8 @@ export const createVenue = async (
 
         // Upload image if provided
         if (imageFile) {
-            const path = `${venue.owner_id}/${Date.now()}_${imageFile.name}`;
+            const cleanFileName = imageFile.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+            const path = `${venue.owner_id}/${Date.now()}_${cleanFileName}`;
             const uploadedUrl = await uploadImage(imageFile, 'venue-images', path);
             image_url = uploadedUrl || null;
         }
@@ -215,7 +216,8 @@ export const updateVenue = async (
                 .single();
 
             if (venue) {
-                const path = `${venue.owner_id}/${Date.now()}_${imageFile.name}`;
+                const cleanFileName = imageFile.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+                const path = `${venue.owner_id}/${Date.now()}_${cleanFileName}`;
                 const uploadedUrl = await uploadImage(imageFile, 'venue-images', path);
                 image_url = uploadedUrl || null;
 
@@ -278,7 +280,8 @@ export const createCourt = async (
 
         // Upload image if provided
         if (imageFile) {
-            const path = `${court.venue_id}/${Date.now()}_${imageFile.name}`;
+            const cleanFileName = imageFile.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+            const path = `${court.venue_id}/${Date.now()}_${cleanFileName}`;
             const uploadedUrl = await uploadImage(imageFile, 'court-images', path);
             image_url = uploadedUrl || null;
         }
@@ -632,7 +635,8 @@ export const createVenueWithCourts = async (
 // LEGACY: uploadCourtImage (for AddCourtModal compatibility)
 // ============================================
 export const uploadCourtImage = async (file: File, courtId: string): Promise<string | null> => {
-    const path = `${courtId}_${Date.now()}_${file.name}`;
+    const cleanFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const path = `${courtId}_${Date.now()}_${cleanFileName}`;
     return await uploadImage(file, 'court-images', path);
 };
 
