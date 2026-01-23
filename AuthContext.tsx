@@ -30,6 +30,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
             if (error) {
                 console.error('❌ Error fetching profile:', error);
+                console.error('Error details:', JSON.stringify(error, null, 2));
                 return;
             }
 
@@ -42,8 +43,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     role: data.role as UserRole
                 });
             } else {
-                // Profile doesn't exist yet (might be waiting for trigger)
-                console.log('⚠️ Profile not found yet for user:', userId);
+                // Profile doesn't exist (likely an old user from before DB reset)
+                console.log('⚠️ Profile not found for user:', userId, '- Attempting to create one...');
+
+                // Try to insert a default profile
+                const { error: insertError } = await supabase
+                    .from('profiles')
+                    .insert({
+                        id: userId,
+                        email: email,
+                        full_name: email.split('@')[0], // Fallback name
+                        role: 'OWNER' // Default to OWNER for now to be safe, or 'PLAYER'
+                    });
+
+                if (insertError) {
+                    console.error('❌ Failed to create missing profile:', insertError);
+                } else {
+                    console.log('✅ Missing profile created successfully. Retrying fetch...');
+                    // Retry fetch
+                    await fetchProfile(userId, email);
+                }
             }
         } catch (e) {
             console.error('❌ Exception fetching profile:', e);
