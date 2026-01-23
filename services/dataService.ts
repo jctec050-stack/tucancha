@@ -1,352 +1,229 @@
 import { supabase } from '@/lib/supabase';
-import { Venue, Court, Booking } from '@/types';
+import { Venue, Court, Booking, DisabledSlot, Profile, Subscription, Payment, Notification } from '@/types';
+import { venueFromDB, bookingFromDB, disabledSlotFromDB } from '@/utils/adapters';
 
-// Upload court image to Supabase Storage
-export const uploadCourtImage = async (file: File, courtId: string): Promise<string | null> => {
+// ============================================
+// HELPER: Upload Image to Supabase Storage
+// ============================================
+export const uploadImage = async (
+    file: File,
+    bucket: 'venue-images' | 'court-images',
+    path: string
+): Promise<string | null> => {
     try {
-        console.log('🔍 [uploadCourtImage] START');
-        console.log('  📁 File:', file.name, 'Size:', file.size, 'Type:', file.type);
-        console.log('  🆔 Court ID:', courtId);
+        console.log(`📤 Uploading image to ${bucket}/${path}`);
 
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${courtId}-${Date.now()}.${fileExt}`;
-        console.log('  📝 Generated filename:', fileName);
-
-        console.log('  ⏳ Starting upload to Supabase with 15s timeout...');
-
-        // Create upload promise
-        const uploadPromise = supabase.storage
-            .from('court-images')
-            .upload(fileName, file, {
+        // Upload file
+        const { data, error } = await supabase.storage
+            .from(bucket)
+            .upload(path, file, {
                 cacheControl: '3600',
-                upsert: false
-            });
-
-        // Create timeout promise (15 seconds)
-        const timeoutPromise = new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error('Upload timeout after 15 seconds')), 15000)
-        );
-
-        // Race them - whichever finishes first wins
-        const { data, error } = await Promise.race([uploadPromise, timeoutPromise]);
-
-        if (error) {
-            console.error('  ❌ Upload error:', error);
-            console.error('  ❌ Error details:', JSON.stringify(error, null, 2));
-            return null;
-        }
-
-        console.log('  ✅ Upload successful, data:', data);
-
-        const { data: { publicUrl } } = supabase.storage
-            .from('court-images')
-            .getPublicUrl(fileName);
-
-        console.log('  🔗 Public URL generated:', publicUrl);
-        console.log('✅ [uploadCourtImage] END - SUCCESS');
-        return publicUrl;
-    } catch (error: any) {
-        if (error.message?.includes('timeout')) {
-            console.error('❌ [uploadCourtImage] TIMEOUT - Upload took too long');
-        } else {
-            console.error('❌ [uploadCourtImage] EXCEPTION:', error);
-        }
-        return null;
-    }
-};
-
-
-// Venues & Courts
-export const getVenues = async (ownerId?: string): Promise<Venue[]> => {
-    let query = supabase
-        .from('venues')
-        .select(`
-      *,
-      courts (*)
-    `);
-
-    // Filter by owner if provided
-    if (ownerId) {
-        query = query.eq('owner_id', ownerId);
-    }
-
-    const { data: venues, error } = await query;
-
-    if (error) {
-        console.error('Error fetching venues:', error);
-        return [];
-    }
-
-    // Map database response to Venue type
-    return venues.map((v: any) => ({
-        id: v.id,
-        ownerId: v.owner_id,
-        name: v.name,
-        address: v.address,
-        imageUrl: v.image_url,
-        openingHours: v.opening_hours,
-        amenities: v.amenities,
-        contactInfo: v.contact_info,
-        latitude: v.latitude,
-        longitude: v.longitude,
-        courts: v.courts.map((c: any) => ({
-            id: c.id,
-            name: c.name,
-            type: c.type,
-            pricePerHour: c.price_per_hour,
-            imageUrl: c.image_url
-        }))
-    }));
-};
-
-// Helper to upload base64 image to Supabase Storage
-const uploadVenueImage = async (base64Image: string, userId: string): Promise<string | null> => {
-    try {
-        // Convert base64 to Blob
-        const res = await fetch(base64Image);
-        const blob = await res.blob();
-
-        // Generate unique filename
-        const filename = `${userId}/${Date.now()}.jpg`;
-
-        console.log('⏳ Starting upload to "venues" bucket...');
-
-        // Create upload promise
-        const uploadPromise = supabase.storage
-            .from('venues')
-            .upload(filename, blob, {
-                contentType: 'image/jpeg',
                 upsert: true
             });
 
-        // Create timeout promise (5 seconds)
-        const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Timeout: Image upload took too long. Check if "venues" bucket exists.')), 5000)
-        );
-
-        // Race them
-        const { data, error } = await Promise.race([uploadPromise, timeoutPromise]) as any;
-
         if (error) {
-            console.error('❌ Error uploading image:', error);
+            console.error('❌ Upload error:', error);
             return null;
         }
 
-        // Get Public URL
+        // Get public URL
         const { data: { publicUrl } } = supabase.storage
-            .from('venues')
-            .getPublicUrl(filename);
+            .from(bucket)
+            .getPublicUrl(path);
 
+        console.log('✅ Image uploaded successfully:', publicUrl);
         return publicUrl;
-    } catch (e) {
-        console.error('❌ Exception uploading image:', e);
+    } catch (error) {
+        console.error('❌ Exception uploading image:', error);
         return null;
     }
 };
 
-const checkSystemHealth = async () => {
-    console.log('🩺 Starting System Health Check...');
-    const results = { db: false, storage: false, auth: false };
-
-    // 0. Check Client Config
-    console.log('🔍 Checking Supabase Config...');
+// ============================================
+// HELPER: Delete Image from Supabase Storage
+// ============================================
+export const deleteImage = async (
+    bucket: 'venue-images' | 'court-images',
+    path: string
+): Promise<boolean> => {
     try {
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-        const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-        console.log(`   URL Configured: ${url ? 'YES' : 'NO'} (${url?.substring(0, 10)}...)`);
-        console.log(`   Key Configured: ${key ? 'YES' : 'NO'}`);
+        const { error } = await supabase.storage
+            .from(bucket)
+            .remove([path]);
 
-        if (!url || !key) {
-            console.error('❌ CRITICAL: Supabase Env Vars missing!');
-            alert('FATAL: Missing Supabase Env Vars');
-            return results;
+        if (error) {
+            console.error('❌ Delete error:', error);
+            return false;
         }
-    } catch (e) { console.error('Error checking config', e); }
 
-    // 1. Check Auth (with timeout)
-    console.log('🔐 Verifying Auth Session...');
-    try {
-        const authPromise = supabase.auth.getSession();
-        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject('Auth Timeout'), 5000));
-
-        const { data: { session } } = await Promise.race([authPromise, timeoutPromise]) as any;
-
-        if (session) {
-            console.log('✅ Auth: User is logged in:', session.user.id);
-            results.auth = true;
-        } else {
-            console.error('❌ Auth: No active session found (User might be logged out)');
-        }
-    } catch (e) {
-        console.error('❌ Auth: Check FAILED or TIMED OUT:', e);
+        console.log('✅ Image deleted successfully');
+        return true;
+    } catch (error) {
+        console.error('❌ Exception deleting image:', error);
+        return false;
     }
-
-    // 2. Check DB Read
-    try {
-        console.log('💾 Verifying Database Connection...');
-        const { error: dbError } = await supabase.from('venues').select('id').limit(1);
-        if (!dbError) {
-            console.log('✅ DB: Connection successful');
-            results.db = true;
-        } else {
-            console.error('❌ DB: Connection failed:', dbError.message);
-        }
-    } catch (e) {
-        console.error('❌ DB: Exception:', e);
-    }
-
-    // 3. Check Storage
-    try {
-        console.log('📦 Verifying Storage...');
-        const { data: buckets, error: storageError } = await supabase.storage.listBuckets();
-        if (!storageError) {
-            console.log('✅ Storage: Listed buckets:', buckets?.map(b => b.name));
-            const venuesBucket = buckets?.find(b => b.name === 'venues');
-            if (venuesBucket) {
-                console.log('✅ Storage: "venues" bucket exists');
-                results.storage = true;
-            } else {
-                console.error('❌ Storage: "venues" bucket MISSING');
-            }
-        } else {
-            console.error('❌ Storage: List buckets failed:', storageError.message);
-        }
-    } catch (e) {
-        console.error('❌ Storage: Exception:', e);
-    }
-
-    return results;
 };
 
-export const createVenueWithCourts = async (
-    venue: Omit<Venue, 'id' | 'courts'>,
-    courts: Omit<Court, 'id'>[]
-): Promise<boolean> => {
-    // Store image as base64 directly (no upload to storage)
-    const imageUrl = venue.imageUrl || '';
-
-    // Geocode address to get coordinates
-    let latitude: number | null = null;
-    let longitude: number | null = null;
-
+// ============================================
+// PROFILES
+// ============================================
+export const getProfile = async (userId: string): Promise<Profile | null> => {
     try {
-        console.log('🌍 Geocoding address:', venue.address);
-        const { geocodeAddress } = await import('@/lib/geocoding');
-        const coords = await geocodeAddress(venue.address);
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', userId)
+            .single();
 
-        if (coords) {
-            latitude = coords.lat;
-            longitude = coords.lng;
-            console.log('✅ Coordinates obtained:', coords);
-        } else {
-            console.warn('⚠️ Could not geocode address, saving without coordinates');
+        if (error) {
+            console.error('❌ Error fetching profile:', error);
+            return null;
         }
+
+        return data;
     } catch (error) {
-        console.error('❌ Geocoding error:', error);
+        console.error('❌ Exception fetching profile:', error);
+        return null;
     }
+};
 
+export const updateProfile = async (
+    userId: string,
+    updates: Partial<Omit<Profile, 'id' | 'created_at' | 'updated_at'>>
+): Promise<boolean> => {
     try {
-        console.log('📝 Inserting venue into DB (Image URL length: ' + imageUrl.length + ')');
+        const { error } = await supabase
+            .from('profiles')
+            .update(updates)
+            .eq('id', userId);
 
-        const { data: venueData, error: venueError } = await supabase
+        if (error) {
+            console.error('❌ Error updating profile:', error);
+            return false;
+        }
+
+        return true;
+    } catch (error) {
+        console.error('❌ Exception updating profile:', error);
+        return false;
+    }
+};
+
+// ============================================
+// VENUES
+// ============================================
+export const getVenues = async (ownerId?: string): Promise<any[]> => {
+    try {
+        let query = supabase
+            .from('venues')
+            .select(`
+                *,
+                courts (*)
+            `)
+            .eq('is_active', true)
+            .order('created_at', { ascending: false });
+
+        if (ownerId) {
+            query = query.eq('owner_id', ownerId);
+        }
+
+        const { data, error } = await query;
+
+        if (error) {
+            console.error('❌ Error fetching venues:', error);
+            return [];
+        }
+
+        // Convert to legacy format for component compatibility
+        return (data || []).map(venueFromDB);
+    } catch (error) {
+        console.error('❌ Exception fetching venues:', error);
+        return [];
+    }
+};
+
+export const createVenue = async (
+    venue: Omit<Venue, 'id' | 'courts' | 'created_at' | 'updated_at' | 'is_active'>,
+    imageFile?: File
+): Promise<string | null> => {
+    try {
+        let image_url = venue.image_url || null;
+
+        // Upload image if provided
+        if (imageFile) {
+            const path = `${venue.owner_id}/${Date.now()}_${imageFile.name}`;
+            const uploadedUrl = await uploadImage(imageFile, 'venue-images', path);
+            image_url = uploadedUrl || null;
+        }
+
+        // Geocode address to get coordinates
+        let latitude: number | null = null;
+        let longitude: number | null = null;
+
+        try {
+            const { geocodeAddress } = await import('@/lib/geocoding');
+            const coords = await geocodeAddress(venue.address);
+            if (coords) {
+                latitude = coords.lat;
+                longitude = coords.lng;
+            }
+        } catch (error) {
+            console.warn('⚠️ Geocoding failed:', error);
+        }
+
+        const { data, error } = await supabase
             .from('venues')
             .insert({
-                owner_id: venue.ownerId,
+                owner_id: venue.owner_id,
                 name: venue.name,
                 address: venue.address,
-                image_url: imageUrl,
-                opening_hours: venue.openingHours,
+                latitude,
+                longitude,
+                opening_hours: venue.opening_hours,
                 amenities: venue.amenities,
-                contact_info: venue.contactInfo,
-                latitude: latitude,
-                longitude: longitude
+                contact_info: venue.contact_info || null,
+                image_url
             })
             .select()
             .single();
 
-        if (venueError) {
-            console.error('❌ Error creating venue:', venueError);
-            alert(`Error al crear complejo: ${venueError.message}. Verifica las políticas RLS en Supabase.`);
-            return false;
-        }
-
-        // 2. Insert Courts
-        if (courts.length > 0) {
-            const courtsToInsert = courts.map(c => ({
-                venue_id: venueData.id,
-                name: c.name,
-                type: c.type,
-                price_per_hour: c.pricePerHour,
-                image_url: c.imageUrl || null
-            }));
-
-            const { error: courtsError } = await supabase
-                .from('courts')
-                .insert(courtsToInsert);
-
-            if (courtsError) {
-                console.error('❌ Error creating courts:', courtsError);
-                return false;
-            }
-        }
-
-        return true;
-    } catch (error: any) {
-        console.error('❌ Exception creating venue:', error);
-        return false;
-    }
-};
-
-export const addCourts = async (venueId: string, courts: Omit<Court, 'id'>[]): Promise<boolean> => {
-    try {
-        console.log('💾 [addCourts] START');
-        console.log('  🏢 Venue ID:', venueId);
-        console.log('  📊 Number of courts to insert:', courts.length);
-
-        const courtsToInsert = courts.map(c => ({
-            venue_id: venueId,
-            name: c.name,
-            type: c.type,
-            price_per_hour: c.pricePerHour,
-            image_url: c.imageUrl || null
-        }));
-
-        console.log('  📝 Courts to insert:', JSON.stringify(courtsToInsert, null, 2));
-
-        const { error } = await supabase
-            .from('courts')
-            .insert(courtsToInsert);
-
         if (error) {
-            console.error('  ❌ Error adding courts:', error);
-            console.error('  ❌ Error details:', JSON.stringify(error, null, 2));
-            return false;
+            console.error('❌ Error creating venue:', error);
+            return null;
         }
 
-        console.log('  ✅ Courts inserted successfully');
-        console.log('✅ [addCourts] END - SUCCESS');
-        return true;
+        return data.id;
     } catch (error) {
-        console.error('❌ [addCourts] EXCEPTION:', error);
-        return false;
+        console.error('❌ Exception creating venue:', error);
+        return null;
     }
 };
 
 export const updateVenue = async (
     venueId: string,
-    updates: Partial<Omit<Venue, 'id' | 'courts' | 'ownerId'>>
+    updates: Partial<Omit<Venue, 'id' | 'owner_id' | 'courts' | 'created_at' | 'updated_at'>>,
+    imageFile?: File
 ): Promise<boolean> => {
     try {
-        let imageUrl = updates.imageUrl;
+        let image_url = updates.image_url || null;
 
-        // Handle Image Upload if it's base64 (new image selected)
-        if (imageUrl && imageUrl.startsWith('data:image')) {
-            const user = (await supabase.auth.getUser()).data.user;
-            if (user) {
-                console.log('📤 Uploading new image for venue update...');
-                const uploadedUrl = await uploadVenueImage(imageUrl, user.id);
-                if (uploadedUrl) {
-                    imageUrl = uploadedUrl;
+        // Upload new image if provided
+        if (imageFile) {
+            const { data: venue } = await supabase
+                .from('venues')
+                .select('owner_id, image_url')
+                .eq('id', venueId)
+                .single();
+
+            if (venue) {
+                const path = `${venue.owner_id}/${Date.now()}_${imageFile.name}`;
+                const uploadedUrl = await uploadImage(imageFile, 'venue-images', path);
+                image_url = uploadedUrl || null;
+
+                // Delete old image if exists
+                if (venue.image_url) {
+                    const oldPath = venue.image_url.split('/').slice(-2).join('/');
+                    await deleteImage('venue-images', oldPath);
                 }
             }
         }
@@ -354,12 +231,8 @@ export const updateVenue = async (
         const { error } = await supabase
             .from('venues')
             .update({
-                name: updates.name,
-                address: updates.address,
-                opening_hours: updates.openingHours,
-                image_url: imageUrl,
-                amenities: updates.amenities,
-                contact_info: updates.contactInfo
+                ...updates,
+                image_url
             })
             .eq('id', venueId);
 
@@ -383,19 +256,84 @@ export const deleteVenue = async (venueId: string): Promise<boolean> => {
             .eq('id', venueId);
 
         if (error) {
-            console.error('Error deleting venue:', error);
+            console.error('❌ Error deleting venue:', error);
             return false;
         }
+
         return true;
     } catch (error) {
-        console.error('Exception deleting venue:', error);
+        console.error('❌ Exception deleting venue:', error);
+        return false;
+    }
+};
+
+// ============================================
+// COURTS
+// ============================================
+export const createCourt = async (
+    court: Omit<Court, 'id' | 'created_at' | 'updated_at' | 'is_active'>,
+    imageFile?: File
+): Promise<boolean> => {
+    try {
+        let image_url = court.image_url || null;
+
+        // Upload image if provided
+        if (imageFile) {
+            const path = `${court.venue_id}/${Date.now()}_${imageFile.name}`;
+            const uploadedUrl = await uploadImage(imageFile, 'court-images', path);
+            image_url = uploadedUrl || null;
+        }
+
+        const { error } = await supabase
+            .from('courts')
+            .insert({
+                ...court,
+                image_url
+            });
+
+        if (error) {
+            console.error('❌ Error creating court:', error);
+            return false;
+        }
+
+        return true;
+    } catch (error) {
+        console.error('❌ Exception creating court:', error);
+        return false;
+    }
+};
+
+export const addCourts = async (
+    venueId: string,
+    courts: Omit<Court, 'id' | 'venue_id' | 'created_at' | 'updated_at' | 'is_active'>[]
+): Promise<boolean> => {
+    try {
+        const courtsToInsert = courts.map(c => ({
+            venue_id: venueId,
+            name: c.name,
+            type: c.type,
+            price_per_hour: c.price_per_hour,
+            image_url: c.image_url || null
+        }));
+
+        const { error } = await supabase
+            .from('courts')
+            .insert(courtsToInsert);
+
+        if (error) {
+            console.error('❌ Error adding courts:', error);
+            return false;
+        }
+
+        return true;
+    } catch (error) {
+        console.error('❌ Exception adding courts:', error);
         return false;
     }
 };
 
 export const deleteCourt = async (courtId: string): Promise<boolean> => {
     try {
-        console.log('🔍 Deleting court with ID:', courtId);
         const { error } = await supabase
             .from('courts')
             .delete()
@@ -405,7 +343,7 @@ export const deleteCourt = async (courtId: string): Promise<boolean> => {
             console.error('❌ Error deleting court:', error);
             return false;
         }
-        console.log('✅ Court deleted successfully:', courtId);
+
         return true;
     } catch (error) {
         console.error('❌ Exception deleting court:', error);
@@ -413,7 +351,54 @@ export const deleteCourt = async (courtId: string): Promise<boolean> => {
     }
 };
 
-// Bookings
+// ============================================
+// BOOKINGS
+// ============================================
+export const getBookings = async (): Promise<any[]> => {
+    try {
+        const { data, error } = await supabase
+            .from('bookings')
+            .select(`
+                *,
+                venues!inner(name),
+                courts!inner(name, type),
+                profiles!inner(full_name)
+            `)
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('❌ Error fetching bookings:', error);
+            return [];
+        }
+
+        // Convert to legacy format for component compatibility
+        return (data || []).map(bookingFromDB);
+    } catch (error) {
+        console.error('❌ Exception fetching bookings:', error);
+        return [];
+    }
+};
+
+export const createBooking = async (
+    booking: Omit<Booking, 'id' | 'created_at' | 'updated_at' | 'venue_name' | 'court_name' | 'court_type' | 'player_name'>
+): Promise<boolean> => {
+    try {
+        const { error } = await supabase
+            .from('bookings')
+            .insert(booking);
+
+        if (error) {
+            console.error('❌ Error creating booking:', error);
+            return false;
+        }
+
+        return true;
+    } catch (error) {
+        console.error('❌ Exception creating booking:', error);
+        return false;
+    }
+};
+
 export const cancelBooking = async (bookingId: string): Promise<boolean> => {
     try {
         const { error } = await supabase
@@ -427,7 +412,7 @@ export const cancelBooking = async (bookingId: string): Promise<boolean> => {
         }
 
         return true;
-    } catch (error: any) {
+    } catch (error) {
         console.error('❌ Exception cancelling booking:', error);
         return false;
     }
@@ -444,131 +429,36 @@ export const deleteBooking = async (bookingId: string): Promise<boolean> => {
             console.error('❌ Error deleting booking:', error);
             return false;
         }
+
         return true;
-    } catch (error: any) {
+    } catch (error) {
         console.error('❌ Exception deleting booking:', error);
         return false;
     }
 };
 
-export const getBookings = async (): Promise<Booking[]> => {
-    const { data: bookings, error } = await supabase
-        .from('bookings')
-        .select(`
-      *,
-      venue:venues(name),
-      court:courts(name, type),
-      player:profiles(full_name)
-    `);
+// ============================================
+// DISABLED SLOTS
+// ============================================
+export const getDisabledSlots = async (venueId: string, date: string): Promise<any[]> => {
+    try {
+        const { data, error } = await supabase
+            .from('disabled_slots')
+            .select('*')
+            .eq('venue_id', venueId)
+            .eq('date', date);
 
-    if (error) {
-        console.error('Error fetching bookings:', error);
-        return [];
-    }
-
-    const now = new Date();
-    const currentDateTime = now.getTime(); // Current timestamp
-
-    const processedBookings = await Promise.all(bookings.map(async (b: any) => {
-        // Parse booking date and end time
-        // b.date is "YYYY-MM-DD", b.end_time is "HH:mm:ss"
-        const bookingDateTimeStr = `${b.date}T${b.end_time}`;
-        const bookingDate = new Date(bookingDateTimeStr);
-        const bookingTimestamp = bookingDate.getTime();
-
-        let status = b.status;
-
-        // Check if booking is ACTIVE but expired
-        if (status === 'ACTIVE' && bookingTimestamp < currentDateTime) {
-            console.log(`🔄 Auto-closing booking ${b.id} ended at ${bookingDateTimeStr}`);
-
-            // Fire-and-forget update to DB
-            supabase
-                .from('bookings')
-                .update({ status: 'COMPLETED' })
-                .eq('id', b.id)
-                .then(({ error }) => {
-                    // Start of RLS Error Handling
-                    // If we get an error here, it's likely RLS preventing the player from updating the global status.
-                    // This is fine because we already set status = 'COMPLETED' locally for the UI.
-                    // We suppress the error to avoid console noise unless it's critical.
-                    if (error && Object.keys(error).length > 0) {
-                        console.warn('⚠️ Could not persist auto-close to DB (likely permissions/RLS). UI will still show correct status.', error);
-                    }
-                });
-
-            // ALWAYS return COMPLETED for display if the time has passed
-            status = 'COMPLETED';
+        if (error) {
+            console.error('❌ Error fetching disabled slots:', error);
+            return [];
         }
 
-        return {
-            id: b.id,
-            venueId: b.venue_id,
-            courtId: b.court_id,
-            venueName: b.venue?.name || 'Unknown',
-            courtName: b.court?.name || 'Unknown',
-            courtType: b.court?.type,
-            playerId: b.player_id, // Add playerId for filtering
-            playerName: b.player?.full_name || 'Usuario',
-            date: b.date,
-            startTime: b.start_time.substring(0, 5), // Normalize to HH:MM
-            endTime: b.end_time.substring(0, 5),     // Normalize to HH:MM
-            price: b.price,
-            status: status,
-            createdAt: new Date(b.created_at).getTime()
-        };
-    }));
-
-    return processedBookings;
-};
-
-export const createBooking = async (
-    booking: Omit<Booking, 'id' | 'createdAt' | 'venueName' | 'courtName' | 'playerName'>
-): Promise<boolean> => {
-    const user = (await supabase.auth.getUser()).data.user;
-    if (!user) return false;
-
-    const { error } = await supabase
-        .from('bookings')
-        .insert({
-            venue_id: booking.venueId,
-            court_id: booking.courtId,
-            player_id: user.id,
-            date: booking.date,
-            start_time: booking.startTime,
-            end_time: booking.endTime,
-            price: booking.price,
-            status: 'ACTIVE'
-        });
-
-    if (error) {
-        console.error('Error creating booking:', error);
-        return false;
-    }
-    return true;
-};
-
-// Disabled Slots Management
-export const getDisabledSlots = async (venueId: string, date: string) => {
-    const { data, error } = await supabase
-        .from('disabled_slots')
-        .select('*')
-        .eq('venue_id', venueId)
-        .eq('date', date);
-
-    if (error) {
-        console.error('Error fetching disabled slots:', error);
+        // Convert to legacy format for component compatibility
+        return (data || []).map(disabledSlotFromDB);
+    } catch (error) {
+        console.error('❌ Exception fetching disabled slots:', error);
         return [];
     }
-
-    return data.map((ds: any) => ({
-        id: ds.id,
-        venueId: ds.venue_id,
-        courtId: ds.court_id,
-        date: ds.date,
-        timeSlot: ds.time_slot.substring(0, 5),
-        reason: ds.reason
-    }));
 };
 
 export const toggleSlotAvailability = async (
@@ -578,43 +468,167 @@ export const toggleSlotAvailability = async (
     timeSlot: string,
     reason: string = ''
 ): Promise<boolean> => {
-    // Check if slot is already disabled
-    const { data: existing } = await supabase
-        .from('disabled_slots')
-        .select('id')
-        .eq('court_id', courtId)
-        .eq('date', date)
-        .eq('time_slot', timeSlot)
-        .maybeSingle();
-
-    if (existing) {
-        // Enable slot (remove from disabled_slots)
-        const { error } = await supabase
+    try {
+        // Check if slot is already disabled
+        const { data: existing } = await supabase
             .from('disabled_slots')
-            .delete()
-            .eq('id', existing.id);
+            .select('id')
+            .eq('court_id', courtId)
+            .eq('date', date)
+            .eq('time_slot', timeSlot)
+            .single();
 
-        if (error) {
-            console.error('Error enabling slot:', error);
-            return false;
-        }
-    } else {
-        // Disable slot (add to disabled_slots)
-        const { error } = await supabase
-            .from('disabled_slots')
-            .insert({
-                venue_id: venueId,
-                court_id: courtId,
-                date: date,
-                time_slot: timeSlot,
-                reason: reason
-            });
+        if (existing) {
+            // Enable slot (delete)
+            const { error } = await supabase
+                .from('disabled_slots')
+                .delete()
+                .eq('id', existing.id);
 
-        if (error) {
-            console.error('Error disabling slot:', error);
-            return false;
+            if (error) {
+                console.error('❌ Error enabling slot:', error);
+                return false;
+            }
+        } else {
+            // Disable slot (insert)
+            const user = (await supabase.auth.getUser()).data.user;
+            if (!user) return false;
+
+            const { error } = await supabase
+                .from('disabled_slots')
+                .insert({
+                    venue_id: venueId,
+                    court_id: courtId,
+                    date,
+                    time_slot: timeSlot,
+                    reason,
+                    created_by: user.id
+                });
+
+            if (error) {
+                console.error('❌ Error disabling slot:', error);
+                return false;
+            }
         }
+
+        return true;
+    } catch (error) {
+        console.error('❌ Exception toggling slot:', error);
+        return false;
     }
-
-    return true;
 };
+
+// ============================================
+// NOTIFICATIONS
+// ============================================
+export const getNotifications = async (userId: string): Promise<Notification[]> => {
+    try {
+        const { data, error } = await supabase
+            .from('notifications')
+            .select('*')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('❌ Error fetching notifications:', error);
+            return [];
+        }
+
+        return data || [];
+    } catch (error) {
+        console.error('❌ Exception fetching notifications:', error);
+        return [];
+    }
+};
+
+export const markNotificationAsRead = async (notificationId: string): Promise<boolean> => {
+    try {
+        const { error } = await supabase
+            .from('notifications')
+            .update({ is_read: true })
+            .eq('id', notificationId);
+
+        if (error) {
+            console.error('❌ Error marking notification as read:', error);
+            return false;
+        }
+
+        return true;
+    } catch (error) {
+        console.error('❌ Exception marking notification as read:', error);
+        return false;
+    }
+};
+
+// ============================================
+// LEGACY COMPATIBILITY FUNCTIONS
+// ============================================
+
+// Helper to convert new Venue to legacy format
+export const venueToLegacy = (venue: Venue): any => ({
+    id: venue.id,
+    ownerId: venue.owner_id,
+    name: venue.name,
+    address: venue.address,
+    imageUrl: venue.image_url || '',
+    openingHours: venue.opening_hours,
+    amenities: venue.amenities,
+    contactInfo: venue.contact_info || '',
+    latitude: venue.latitude,
+    longitude: venue.longitude,
+    courts: (venue.courts || []).map(c => ({
+        id: c.id,
+        name: c.name,
+        type: c.type,
+        pricePerHour: c.price_per_hour,
+        imageUrl: c.image_url
+    }))
+});
+
+// Wrapper for createVenue + addCourts
+export const createVenueWithCourts = async (
+    venue: any,
+    courts: any[],
+    imageFile?: File
+): Promise<boolean> => {
+    try {
+        const venueId = await createVenue({
+            owner_id: venue.ownerId,
+            name: venue.name,
+            address: venue.address,
+            opening_hours: venue.openingHours,
+            amenities: venue.amenities,
+            contact_info: venue.contactInfo,
+            image_url: venue.imageUrl
+        }, imageFile);
+
+        if (!venueId) return false;
+
+        if (courts.length > 0) {
+            const success = await addCourts(
+                venueId,
+                courts.map(c => ({
+                    name: c.name,
+                    type: c.type,
+                    price_per_hour: c.pricePerHour,
+                    image_url: c.imageUrl
+                }))
+            );
+            return success;
+        }
+
+        return true;
+    } catch (error) {
+        console.error('❌ Exception creating venue with courts:', error);
+        return false;
+    }
+};
+
+// ============================================
+// LEGACY: uploadCourtImage (for AddCourtModal compatibility)
+// ============================================
+export const uploadCourtImage = async (file: File, courtId: string): Promise<string | null> => {
+    const path = `${courtId}_${Date.now()}_${file.name}`;
+    return await uploadImage(file, 'court-images', path);
+};
+
