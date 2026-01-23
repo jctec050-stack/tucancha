@@ -92,18 +92,26 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
         }
 
         setIsUploadingCourt(true);
+        setError(''); // Clear previous errors
         let uploadedImageUrl = '';
 
         if (courtImageFile) {
             console.log('  📸 Court has image file, uploading...');
             const tempId = `new-${Date.now()}`;
-            const publicUrl = await uploadCourtImage(courtImageFile, tempId);
 
-            if (publicUrl) {
-                uploadedImageUrl = publicUrl;
-                console.log('  ✅ Image uploaded successfully:', uploadedImageUrl);
-            } else {
-                console.warn('  ⚠️ Image upload failed, continuing without image');
+            try {
+                const publicUrl = await uploadCourtImage(courtImageFile, tempId);
+
+                if (publicUrl) {
+                    uploadedImageUrl = publicUrl;
+                    console.log('  ✅ Image uploaded successfully:', uploadedImageUrl);
+                } else {
+                    console.warn('  ⚠️ Image upload failed or timed out');
+                    setError('⚠️ No se pudo subir la imagen (timeout o error). La cancha se guardará sin foto.');
+                }
+            } catch (err) {
+                console.error('  ❌ Upload exception:', err);
+                setError('⚠️ Error al subir imagen. La cancha se guardará sin foto.');
             }
         } else {
             console.log('  ℹ️ No image file selected');
@@ -126,7 +134,7 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
         setPrice(0);
         setCourtImageFile(null);
         setCourtImagePreview('');
-        setError('');
+        // Don't clear error here - let user see the warning
         setIsUploadingCourt(false);
         console.log('✅ [handleAddCourtToList] END');
     };
