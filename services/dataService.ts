@@ -97,7 +97,7 @@ export const getOwnerVenues = async (ownerId: string): Promise<Venue[]> => {
     }
 };
 
-export const createVenue = async (venueData: Omit<Venue, 'id' | 'courts' | 'created_at' | 'updated_at'>): Promise<Venue | null> => {
+export const createVenue = async (venueData: Omit<Venue, 'id' | 'courts' | 'created_at' | 'updated_at' | 'is_active'>): Promise<Venue | null> => {
     try {
         console.log('🏟️ Creating Venue with data:', venueData);
         // Payload is already snake_case if typing matches
@@ -137,7 +137,7 @@ export const createVenue = async (venueData: Omit<Venue, 'id' | 'courts' | 'crea
 type CourtInput = Omit<Court, 'id'> & { imageFile?: File };
 
 export const createVenueWithCourts = async (
-    venueData: Omit<Venue, 'id' | 'courts' | 'created_at' | 'updated_at'>,
+    venueData: Omit<Venue, 'id' | 'courts' | 'created_at' | 'updated_at' | 'is_active'>,
     newCourts: CourtInput[]
 ): Promise<boolean> => {
     try {
