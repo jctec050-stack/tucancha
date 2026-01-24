@@ -252,17 +252,34 @@ export const uploadCourtImage = async (file: File, courtId: string): Promise<str
 // BOOKINGS
 // ============================================
 
-export const getBookings = async (): Promise<Booking[]> => {
+export const getBookings = async (ownerId?: string): Promise<Booking[]> => {
     try {
-        const { data, error } = await supabase
-            .from('bookings')
-            .select(`
-                *,
-                profiles:player_id (full_name, email, phone),
-                venues:venue_id (name),
-                courts:court_id (name, type)
-            `)
-            .order('date', { ascending: false });
+        let query;
+
+        if (ownerId) {
+            query = supabase
+                .from('bookings')
+                .select(`
+                    *,
+                    profiles:player_id (full_name, email, phone),
+                    venues:venue_id!inner (name, owner_id),
+                    courts:court_id (name, type)
+                `)
+                .eq('venues.owner_id', ownerId)
+                .order('date', { ascending: false });
+        } else {
+            query = supabase
+                .from('bookings')
+                .select(`
+                    *,
+                    profiles:player_id (full_name, email, phone),
+                    venues:venue_id (name),
+                    courts:court_id (name, type)
+                `)
+                .order('date', { ascending: false });
+        }
+
+        const { data, error } = await query;
 
         if (error) throw error;
 
