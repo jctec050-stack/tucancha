@@ -97,7 +97,7 @@ export const getOwnerVenues = async (ownerId: string): Promise<Venue[]> => {
     }
 };
 
-export const createVenue = async (venueData: Omit<Venue, 'id' | 'courts'>): Promise<Venue | null> => {
+export const createVenue = async (venueData: Omit<Venue, 'id' | 'courts' | 'created_at' | 'updated_at'>): Promise<Venue | null> => {
     try {
         console.log('🏟️ Creating Venue with data:', venueData);
         // Payload is already snake_case if typing matches
@@ -137,7 +137,7 @@ export const createVenue = async (venueData: Omit<Venue, 'id' | 'courts'>): Prom
 type CourtInput = Omit<Court, 'id'> & { imageFile?: File };
 
 export const createVenueWithCourts = async (
-    venueData: Omit<Venue, 'id' | 'courts'>,
+    venueData: Omit<Venue, 'id' | 'courts' | 'created_at' | 'updated_at'>,
     newCourts: CourtInput[]
 ): Promise<boolean> => {
     try {
@@ -311,7 +311,7 @@ export const getVenueBookings = async (venueId: string, date: string): Promise<B
     }
 };
 
-export const createBooking = async (booking: Omit<Booking, 'id' | 'created_at'>): Promise<Booking | null> => {
+export const createBooking = async (booking: Omit<Booking, 'id' | 'created_at' | 'updated_at'>): Promise<Booking | null> => {
     try {
         const { data, error } = await supabase
             .from('bookings')
