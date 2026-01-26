@@ -300,21 +300,27 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
                                 onChange={(e) => {
                                     const file = e.target.files?.[0];
                                     if (file) {
-                                        // Validate file size (max 5MB)
-                                        if (file.size > 5 * 1024 * 1024) {
-                                            setError('La imagen es muy grande. Máximo 5MB.');
-                                            return;
+                                        try {
+                                            // Validate file size (max 5MB)
+                                            if (file.size > 5 * 1024 * 1024) {
+                                                setError('La imagen es muy grande. Máximo 5MB.');
+                                                return;
+                                            }
+
+                                            // Compress image before setting state
+                                            const compressedFile = await compressImage(file);
+                                            setVenueImageFile(compressedFile);
+
+                                            // Preview
+                                            const reader = new FileReader();
+                                            reader.onloadend = () => {
+                                                setImageUrl(reader.result as string);
+                                            };
+                                            reader.readAsDataURL(compressedFile);
+                                        } catch (err) {
+                                            console.error('Error compressing venue image:', err);
+                                            setError('Error al procesar la imagen.');
                                         }
-
-                                        // Store file for upload on save
-                                        setVenueImageFile(file);
-
-                                        // Preview
-                                        const reader = new FileReader();
-                                        reader.onloadend = () => {
-                                            setImageUrl(reader.result as string);
-                                        };
-                                        reader.readAsDataURL(file);
                                     }
                                 }}
                                 className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
