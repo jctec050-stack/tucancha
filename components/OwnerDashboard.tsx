@@ -67,31 +67,88 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ bookings, disabl
 
   const COLORS = ['#4F46E5', '#10B981', '#F59E0B', '#EF4444'];
 
-  // Memoize Schedule Items
+  // Memoize Schedule Items (Grouped)
   const scheduleItems = useMemo(() => {
-    return [
+    // 1. Convert bookings to a processable format
+    const rawItems = [
       ...dailyBookings.map(b => ({
         id: b.id,
         time: b.start_time,
+        // Assume end_time is 1 hour later if not provided (though backend usually provides start_time)
+        // Actually, let's use the logic that slots are 1 hour.
+        // We need to know the end time of each slot to check continuity.
+        // Since we don't have explicit end_time in Booking type in this component context (it's in DB but let's check props),
+        // we can infer it or use what's available.
+        // Let's assume 1 hour duration per booking record if not specified.
+        // Wait, looking at Booking type in other files, it might not have end_time.
+        // But the user wants ranges "18:00 a 20:00".
+        // We'll parse start_time.
+        startTimeMinutes: parseInt(b.start_time.split(':')[0]) * 60 + parseInt(b.start_time.split(':')[1]),
+        endTimeMinutes: parseInt(b.start_time.split(':')[0]) * 60 + parseInt(b.start_time.split(':')[1]) + 60, // Assume 1h
         courtName: b.court_name || 'Cancha',
         type: 'Reserva',
         status: b.status,
         details: b.player_name || 'Cliente',
-        price: b.price
+        price: b.price,
+        rawTime: b.start_time
       })),
-      ...(disabledSlots || []).map(s => {
-        const court = venue.courts.find(c => c.id === s.court_id);
+      ...(disabledSlots || []).map(s => ({
+        id: s.id,
+        time: s.time_slot,
+        startTimeMinutes: parseInt(s.time_slot.split(':')[0]) * 60 + parseInt(s.time_slot.split(':')[1]),
+        endTimeMinutes: parseInt(s.time_slot.split(':')[0]) * 60 + parseInt(s.time_slot.split(':')[1]) + 60,
+        courtName: venue.courts.find(c => c.id === s.court_id)?.name || 'Cancha',
+        type: 'Bloqueo',
+        status: 'DISABLED',
+        details: s.reason || 'Mantenimiento',
+        price: 0,
+        rawTime: s.time_slot
+      }))
+    ].sort((a, b) => a.startTimeMinutes - b.startTimeMinutes);
+
+    // 2. Group consecutive items
+    const groupedItems = [];
+    if (rawItems.length > 0) {
+        let currentGroup = { ...rawItems[0], count: 1, endTimeMinutes: rawItems[0].endTimeMinutes };
+
+        for (let i = 1; i < rawItems.length; i++) {
+            const item = rawItems[i];
+            
+            // Check if same group: Court, Type, Status, Details (Player), and Consecutive Time
+            const isConsecutive = item.startTimeMinutes === currentGroup.endTimeMinutes;
+            const isSameGroup = 
+                item.courtName === currentGroup.courtName &&
+                item.type === currentGroup.type &&
+                item.status === currentGroup.status &&
+                item.details === currentGroup.details;
+
+            if (isConsecutive && isSameGroup) {
+                currentGroup.endTimeMinutes = item.endTimeMinutes;
+                currentGroup.price += item.price;
+                currentGroup.count += 1;
+                // Keep the ID of the first one for key, or maybe combine? 
+                // For UI keys, first ID is fine.
+            } else {
+                groupedItems.push(currentGroup);
+                currentGroup = { ...item, count: 1, endTimeMinutes: item.endTimeMinutes };
+            }
+        }
+        groupedItems.push(currentGroup);
+    }
+
+    // 3. Format output
+    return groupedItems.map(item => {
+        const startHour = Math.floor(item.startTimeMinutes / 60).toString().padStart(2, '0');
+        const startMin = (item.startTimeMinutes % 60).toString().padStart(2, '0');
+        const endHour = Math.floor(item.endTimeMinutes / 60).toString().padStart(2, '0');
+        const endMin = (item.endTimeMinutes % 60).toString().padStart(2, '0');
+        
         return {
-          id: s.id,
-          time: s.time_slot,
-          courtName: court ? court.name : 'Cancha',
-          type: 'Bloqueo',
-          status: 'DISABLED',
-          details: s.reason || 'Mantenimiento',
-          price: 0
+            ...item,
+            timeRange: `${startHour}:${startMin} a ${endHour}:${endMin}`
         };
-      })
-    ].sort((a, b) => a.time.localeCompare(b.time));
+    });
+
   }, [dailyBookings, disabledSlots, venue.courts]);
 
   return (
@@ -225,7 +282,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ bookings, disabl
               {scheduleItems.length > 0 ? (
                 scheduleItems.map((item, index) => (
                   <tr key={`${item.id}-${index}`} className={`hover:bg-gray-50 transition ${item.status === 'CANCELLED' ? 'bg-red-50/50' : ''}`}>
-                    <td className="px-6 py-4 font-bold text-gray-900">{item.time}</td>
+                    <td className="px-6 py-4 font-bold text-gray-900">{item.timeRange}</td>
                     <td className="px-6 py-4 text-gray-600">{item.courtName}</td>
                     <td className="px-6 py-4">
                       <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${
@@ -271,7 +328,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ bookings, disabl
             <div key={`${item.id}-${index}`} className={`bg-white p-4 rounded-xl border border-gray-100 shadow-sm ${item.status === 'CANCELLED' ? 'bg-red-50/50' : ''}`}>
                 <div className="flex justify-between items-start mb-2">
                 <div>
-                    <span className="text-lg font-bold text-gray-900 block">{item.time}</span>
+                    <span className="text-lg font-bold text-gray-900 block">{item.timeRange}</span>
                     <span className="text-sm text-gray-500">{item.courtName}</span>
                 </div>
                 <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${

@@ -154,115 +154,49 @@ export default function BookingsPage() {
                         </div>
                     </div>
                 ) : (
-                    <>
-                        {/* Desktop Table */}
-                        <div className="hidden md:block bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left">
-                                    <thead>
-                                        <tr className="bg-gray-50 text-gray-500 text-xs uppercase font-bold">
-                                            <th className="px-6 py-4">Fecha</th>
-                                            <th className="px-6 py-4">Horario</th>
-                                            <th className="px-6 py-4">Lugar</th>
-                                            <th className="px-6 py-4">Precio</th>
-                                            <th className="px-6 py-4 text-center">Estado</th>
-                                            <th className="px-6 py-4 text-right">Acciones</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-100">
-                                        {groupedBookings.map(group => (
-                                            <tr key={group.id[0]} className="hover:bg-gray-50 transition">
-                                                <td className="px-6 py-4 font-bold text-gray-900 whitespace-nowrap">
-                                                    {group.date}
-                                                </td>
-                                                <td className="px-6 py-4 text-gray-700 whitespace-nowrap">
-                                                    {group.timeRange}
-                                                    {group.count > 1 && (
-                                                        <span className="ml-2 px-2 py-0.5 bg-indigo-50 text-indigo-700 text-xs rounded-full font-bold">
-                                                            {group.count} turnos
-                                                        </span>
-                                                    )}
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex flex-col">
-                                                        <span className="font-bold text-gray-900">{group.venueName}</span>
-                                                        <span className="text-xs text-gray-500">{group.courtName}</span>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4 font-bold text-gray-900">
-                                                    Gs. {group.price.toLocaleString('es-PY')}
-                                                </td>
-                                                <td className="px-6 py-4 text-center">
-                                                    <span className={`inline-block px-2 py-1 rounded text-xs font-bold uppercase ${
-                                                        group.status === 'COMPLETED' ? 'bg-blue-100 text-blue-700' :
-                                                        group.status === 'ACTIVE' ? 'bg-green-100 text-green-700' :
-                                                        'bg-red-100 text-red-700'
-                                                    }`}>
-                                                        {group.status === 'COMPLETED' ? 'Completada' : group.status === 'ACTIVE' ? 'Activa' : 'Cancelada'}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-4 text-right">
-                                                    {group.status === 'ACTIVE' && (
-                                                        <button
-                                                            onClick={() => handleCancelClick(group.id)}
-                                                            className="text-red-600 hover:text-red-800 font-bold text-sm hover:underline"
-                                                        >
-                                                            Cancelar
-                                                        </button>
-                                                    )}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                    groupedBookings.map(group => (
+                        <div key={group.id[0]} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                            <div>
+                                <div className="flex items-center gap-2 mb-1">
+                                    <p className="text-xs font-bold text-indigo-600 uppercase tracking-widest">{group.courtName}</p>
+                                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                                        group.status === 'COMPLETED' ? 'bg-blue-100 text-blue-700' :
+                                        group.status === 'ACTIVE' ? 'bg-green-100 text-green-700' :
+                                        'bg-red-100 text-red-700'
+                                    }`}>
+                                        {group.status === 'COMPLETED' ? 'Completada' : group.status === 'ACTIVE' ? 'Activa' : 'Cancelada'}
+                                    </span>
+                                </div>
+                                <h4 className="text-lg font-bold text-gray-900">{group.venueName}</h4>
+                                <div className="flex gap-4 mt-1 text-sm text-gray-500 font-medium">
+                                    <span className="flex items-center gap-1">
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                        {group.date}
+                                    </span>
+                                    <span className="flex items-center gap-1">
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                        {group.timeRange}
+                                        {group.count > 1 && (
+                                            <span className="ml-2 px-2 py-0.5 bg-indigo-50 text-indigo-700 text-xs rounded-full">
+                                                {group.count} turnos
+                                            </span>
+                                        )}
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-4 w-full md:w-auto">
+                                <span className="text-lg font-bold text-gray-900">Gs. {group.price.toLocaleString('es-PY')}</span>
+                                {group.status === 'ACTIVE' && (
+                                    <button
+                                        onClick={() => handleCancelClick(group.id)}
+                                        className="flex-1 md:flex-none px-6 py-2 border border-red-100 text-red-600 font-bold rounded-xl hover:bg-red-50 transition"
+                                    >
+                                        Cancelar
+                                    </button>
+                                )}
                             </div>
                         </div>
-
-                        {/* Mobile Cards (Owner Dashboard Style) */}
-                        <div className="md:hidden space-y-4">
-                            {groupedBookings.map(group => (
-                                <div key={group.id[0]} className={`bg-white p-4 rounded-xl border border-gray-100 shadow-sm ${group.status === 'CANCELLED' ? 'bg-red-50/50' : ''}`}>
-                                    <div className="flex justify-between items-start mb-2">
-                                        <div>
-                                            <span className="text-lg font-bold text-gray-900 block">{group.timeRange}</span>
-                                            <span className="text-sm text-gray-500">{group.date}</span>
-                                        </div>
-                                        <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${
-                                            group.status === 'COMPLETED' ? 'bg-blue-100 text-blue-700' :
-                                            group.status === 'ACTIVE' ? 'bg-green-100 text-green-700' :
-                                            'bg-red-100 text-red-700'
-                                        }`}>
-                                            {group.status === 'COMPLETED' ? 'Completada' : group.status === 'ACTIVE' ? 'Activa' : 'Cancelada'}
-                                        </span>
-                                    </div>
-                                    <div className="mb-3">
-                                        <span className="font-bold text-gray-900 block">{group.venueName}</span>
-                                        <span className="text-xs text-gray-500">{group.courtName}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-50">
-                                        <div className="flex items-center gap-2">
-                                            <span className={`w-2 h-2 rounded-full ${
-                                                group.status === 'ACTIVE' ? 'bg-green-500' :
-                                                group.status === 'COMPLETED' ? 'bg-blue-500' :
-                                                'bg-red-500'
-                                            }`}></span>
-                                            <span className="font-bold text-gray-900">
-                                                Gs. {group.price.toLocaleString('es-PY')}
-                                            </span>
-                                        </div>
-                                        {group.status === 'ACTIVE' && (
-                                            <button
-                                                onClick={() => handleCancelClick(group.id)}
-                                                className="text-red-600 font-bold text-sm"
-                                            >
-                                                Cancelar
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </>
+                    ))
                 )}
             </div>
 
