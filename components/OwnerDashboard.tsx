@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { Booking, Venue, DisabledSlot } from '../types';
 
@@ -13,75 +13,86 @@ interface OwnerDashboardProps {
 }
 
 export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ bookings, disabledSlots, venue, selectedDate, onDateChange }) => {
-  // Internal state removed, using props now
+  // Memoize daily stats
+  const { dailyBookings, dailyActiveBookings, dailyRevenue } = useMemo(() => {
+    const dailyBookings = bookings.filter(b => b.date === selectedDate);
+    const dailyActiveBookings = dailyBookings.filter(b => b.status === 'ACTIVE' || b.status === 'COMPLETED');
+    const dailyRevenue = dailyActiveBookings.reduce((sum, b) => sum + b.price, 0);
+    return { dailyBookings, dailyActiveBookings, dailyRevenue };
+  }, [bookings, selectedDate]);
 
-  // Filter bookings for the specific selected date
-  const dailyBookings = bookings.filter(b => b.date === selectedDate);
-  const dailyActiveBookings = dailyBookings.filter(b => b.status === 'ACTIVE' || b.status === 'COMPLETED');
-  const dailyRevenue = dailyActiveBookings.reduce((sum, b) => sum + b.price, 0);
+  // Memoize previous day stats
+  const { revenueGrowth } = useMemo(() => {
+    const prevDateObj = new Date(selectedDate);
+    prevDateObj.setDate(prevDateObj.getDate() - 1);
+    const prevDate = prevDateObj.toISOString().split('T')[0];
 
-  // Calculate comparisons (vs previous day)
-  const prevDateObj = new Date(selectedDate);
-  prevDateObj.setDate(prevDateObj.getDate() - 1);
-  const prevDate = prevDateObj.toISOString().split('T')[0];
+    const prevDayBookings = bookings.filter(b => b.date === prevDate && (b.status === 'ACTIVE' || b.status === 'COMPLETED'));
+    const prevDayRevenue = prevDayBookings.reduce((sum, b) => sum + b.price, 0);
 
-  const prevDayBookings = bookings.filter(b => b.date === prevDate && (b.status === 'ACTIVE' || b.status === 'COMPLETED'));
-  const prevDayRevenue = prevDayBookings.reduce((sum, b) => sum + b.price, 0);
+    const growth = prevDayRevenue === 0 ? 100 : ((dailyRevenue - prevDayRevenue) / prevDayRevenue) * 100;
+    return { revenueGrowth: growth };
+  }, [bookings, selectedDate, dailyRevenue]);
 
-  const revenueGrowth = prevDayRevenue === 0 ? 100 : ((dailyRevenue - prevDayRevenue) / prevDayRevenue) * 100;
+  // Memoize Chart Data
+  const chartData = useMemo(() => {
+    const data = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(selectedDate);
+      d.setDate(d.getDate() - i);
+      const dStr = d.toISOString().split('T')[0];
 
-  // Chart Data: Last 7 days ending on selected date
-  const chartData = [];
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(selectedDate);
-    d.setDate(d.getDate() - i);
-    const dStr = d.toISOString().split('T')[0];
+      const dayRevenue = bookings
+        .filter(b => b.date === dStr && (b.status === 'ACTIVE' || b.status === 'COMPLETED'))
+        .reduce((sum, b) => sum + b.price, 0);
 
-    const dayRevenue = bookings
-      .filter(b => b.date === dStr && (b.status === 'ACTIVE' || b.status === 'COMPLETED'))
-      .reduce((sum, b) => sum + b.price, 0);
-
-    chartData.push({ name: dStr, revenue: dayRevenue });
-  }
-
-  // Pie Chart: Distribution for the selected date
-  const sportDistribution = dailyActiveBookings.reduce((acc: any[], b) => {
-    const sport = (b.court_name || '').includes('Beach') ? 'Beach Tennis' : 'Padel';
-    const existing = acc.find(item => item.name === sport);
-    if (existing) {
-      existing.value += 1;
-    } else {
-      acc.push({ name: sport, value: 1 });
+      data.push({ name: dStr, revenue: dayRevenue });
     }
-    return acc;
-  }, []);
+    return data;
+  }, [bookings, selectedDate]);
+
+  // Memoize Sport Distribution
+  const sportDistribution = useMemo(() => {
+    return dailyActiveBookings.reduce((acc: any[], b) => {
+      const sport = (b.court_name || '').includes('Beach') ? 'Beach Tennis' : 'Padel';
+      const existing = acc.find(item => item.name === sport);
+      if (existing) {
+        existing.value += 1;
+      } else {
+        acc.push({ name: sport, value: 1 });
+      }
+      return acc;
+    }, []);
+  }, [dailyActiveBookings]);
 
   const COLORS = ['#4F46E5', '#10B981', '#F59E0B', '#EF4444'];
 
-  // Combine bookings and disabled slots for the schedule table
-  const scheduleItems = [
-    ...dailyActiveBookings.map(b => ({
-      id: b.id,
-      time: b.start_time,
-      courtName: b.court_name || 'Cancha',
-      type: 'Reserva',
-      status: b.status,
-      details: b.player_name || 'Cliente',
-      price: b.price
-    })),
-    ...(disabledSlots || []).map(s => {
-      const court = venue.courts.find(c => c.id === s.court_id);
-      return {
-        id: s.id,
-        time: s.time_slot,
-        courtName: court ? court.name : 'Cancha',
-        type: 'Bloqueo',
-        status: 'DISABLED',
-        details: s.reason || 'Mantenimiento',
-        price: 0
-      };
-    })
-  ].sort((a, b) => a.time.localeCompare(b.time));
+  // Memoize Schedule Items
+  const scheduleItems = useMemo(() => {
+    return [
+      ...dailyActiveBookings.map(b => ({
+        id: b.id,
+        time: b.start_time,
+        courtName: b.court_name || 'Cancha',
+        type: 'Reserva',
+        status: b.status,
+        details: b.player_name || 'Cliente',
+        price: b.price
+      })),
+      ...(disabledSlots || []).map(s => {
+        const court = venue.courts.find(c => c.id === s.court_id);
+        return {
+          id: s.id,
+          time: s.time_slot,
+          courtName: court ? court.name : 'Cancha',
+          type: 'Bloqueo',
+          status: 'DISABLED',
+          details: s.reason || 'Mantenimiento',
+          price: 0
+        };
+      })
+    ].sort((a, b) => a.time.localeCompare(b.time));
+  }, [dailyActiveBookings, disabledSlots, venue.courts]);
 
   return (
     <div className="space-y-6">

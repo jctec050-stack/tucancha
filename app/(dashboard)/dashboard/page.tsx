@@ -15,6 +15,7 @@ export default function DashboardPage() {
     const [disabledSlots, setDisabledSlots] = useState<DisabledSlot[]>([]);
     const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
     const [loadingData, setLoadingData] = useState(true);
+    const [loadingSlots, setLoadingSlots] = useState(false);
 
     useEffect(() => {
         if (!isLoading && !user) {
@@ -27,33 +28,49 @@ export default function DashboardPage() {
         }
     }, [user, isLoading, router]);
 
-    const fetchData = useCallback(async () => {
-        if (!user) return;
-        try {
-            setLoadingData(true);
-            const fetchedVenues = await getVenues(user.id);
-            setVenues(fetchedVenues);
-            
-            // TODO: Optimize fetching by date range
-            const fetchedBookings = await getBookings(user.id);
-            setBookings(fetchedBookings);
-
-            if (fetchedVenues.length > 0) {
-                const fetchedDisabledSlots = await getDisabledSlots(fetchedVenues[0].id, selectedDate);
-                setDisabledSlots(fetchedDisabledSlots);
-            }
-        } catch (error) {
-            console.error('Error fetching dashboard data:', error);
-        } finally {
-            setLoadingData(false);
-        }
-    }, [user, selectedDate]);
-
+    // Initial fetch for Venues and Bookings (Run once)
     useEffect(() => {
+        const fetchInitialData = async () => {
+            if (!user) return;
+            try {
+                setLoadingData(true);
+                const fetchedVenues = await getVenues(user.id);
+                setVenues(fetchedVenues);
+                
+                // TODO: Optimize fetching by date range if dataset grows
+                const fetchedBookings = await getBookings(user.id);
+                setBookings(fetchedBookings);
+            } catch (error) {
+                console.error('Error fetching dashboard data:', error);
+            } finally {
+                setLoadingData(false);
+            }
+        };
+
         if (user?.role === 'OWNER') {
-            fetchData();
+            fetchInitialData();
         }
-    }, [fetchData, user?.role]);
+    }, [user]);
+
+    // Fetch Disabled Slots when Date or Venue changes
+    useEffect(() => {
+        const fetchDisabledSlots = async () => {
+            if (venues.length === 0) return;
+            try {
+                setLoadingSlots(true);
+                // Currently fetching for first venue. 
+                // Future: If we add venue selector, use selectedVenue.id
+                const fetchedDisabledSlots = await getDisabledSlots(venues[0].id, selectedDate);
+                setDisabledSlots(fetchedDisabledSlots);
+            } catch (error) {
+                console.error('Error fetching disabled slots:', error);
+            } finally {
+                setLoadingSlots(false);
+            }
+        };
+
+        fetchDisabledSlots();
+    }, [selectedDate, venues]);
 
     if (isLoading || loadingData) {
         return (
