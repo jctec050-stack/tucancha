@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase';
-import { Venue, Court, Booking, DisabledSlot, Profile } from '@/types';
+import { Venue, Court, Booking, DisabledSlot, Profile, Subscription } from '@/types';
 
 // NOTE: Removed legacy adapters import. 
 // We now map directly to snake_case matching types.ts and DB.
@@ -501,19 +501,100 @@ export const getUserProfile = async (userId: string): Promise<Profile | null> =>
             .eq('id', userId)
             .single();
 
-        if (error) {
-            if (error.code === 'PGRST116') return null;
-            throw error;
-        }
+        if (error) throw error;
         return data as Profile;
-    } catch (error: any) {
-        if (error.name === 'AbortError' || error.message?.includes('AbortError')) {
-            return null;
-        }
+    } catch (error) {
         console.error('❌ Error fetching profile:', error);
         return null;
     }
 };
+
+// ============================================
+// ADMIN DASHBOARD
+// ============================================
+
+export interface AdminVenueData extends Venue {
+    owner: Profile;
+    subscription?: Subscription;
+    total_revenue: number;
+    total_bookings: number;
+    revenue_by_court: Record<string, number>;
+}
+
+export const getAdminDashboardData = async (): Promise<AdminVenueData[]> => {
+    try {
+        // 1. Fetch all venues with their owners and courts
+        const { data: venuesData, error: venuesError } = await supabase
+            .from('venues')
+            .select(`
+                *,
+                owner:profiles!owner_id (*),
+                courts (*)
+            `)
+            .order('created_at', { ascending: false });
+
+        if (venuesError) throw venuesError;
+        if (!venuesData) return [];
+
+        const venues = venuesData as unknown as (Venue & { owner: Profile })[];
+
+        // 2. Fetch all subscriptions
+        const { data: subscriptionsData, error: subsError } = await supabase
+            .from('subscriptions')
+            .select('*');
+
+        if (subsError) console.error('Error fetching subscriptions:', subsError);
+        const subscriptions = subscriptionsData || [];
+
+        // 3. Fetch all bookings (summary)
+        // Note: For a real app, this should be paginated or aggregated via RPC/View
+        const { data: bookingsData, error: bookingsError } = await supabase
+            .from('bookings')
+            .select('id, venue_id, court_id, price, status, payment_status')
+            .neq('status', 'CANCELLED'); // Only count active/completed
+
+        if (bookingsError) console.error('Error fetching bookings:', bookingsError);
+        const bookings = bookingsData || [];
+
+        // 4. Aggregate data
+        const adminData: AdminVenueData[] = venues.map(venue => {
+            // Find subscription
+            const sub = subscriptions.find(s => s.owner_id === venue.owner_id && s.status === 'ACTIVE') || 
+                        subscriptions.find(s => s.owner_id === venue.owner_id); // Fallback to any sub
+
+            // Filter bookings for this venue
+            const venueBookings = bookings.filter(b => b.venue_id === venue.id);
+            
+            // Calculate total revenue
+            const totalRevenue = venueBookings.reduce((sum, b) => sum + (b.price || 0), 0);
+
+            // Calculate revenue per court
+            const revenueByCourt: Record<string, number> = {};
+            venue.courts?.forEach(court => {
+                const courtRevenue = venueBookings
+                    .filter(b => b.court_id === court.id)
+                    .reduce((sum, b) => sum + (b.price || 0), 0);
+                revenueByCourt[court.id] = courtRevenue;
+            });
+
+            return {
+                ...venue,
+                owner: venue.owner,
+                subscription: sub,
+                total_revenue: totalRevenue,
+                total_bookings: venueBookings.length,
+                revenue_by_court: revenueByCourt
+            };
+        });
+
+        return adminData;
+    } catch (error) {
+        console.error('❌ Error fetching admin data:', error);
+        return [];
+    }
+};
+
+
 
 export const updateUserProfile = async (userId: string, updates: Partial<Profile>): Promise<boolean> => {
     try {

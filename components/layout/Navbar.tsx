@@ -29,14 +29,24 @@ export const Navbar = () => {
     if (!user) return null;
 
     // Define navigation items based on role
-    const navItems = user.role === 'OWNER' ? [
-        { label: '📊 Dashboard', href: '/dashboard' },
-        { label: '📅 Horarios', href: '/dashboard/schedule' },
-        { label: '🏭 Mis Complejos', href: '/dashboard/venues' },
-    ] : [
-        { label: '🔍 Buscar Cancha', href: '/' },
-        { label: '📅 Mis Reservas', href: '/bookings' },
-    ];
+    let navItems: { label: string; href: string }[] = [];
+    
+    if (user.role === 'ADMIN') {
+        navItems = [
+            { label: '👮 Panel Admin', href: '/admin/dashboard' },
+        ];
+    } else if (user.role === 'OWNER') {
+        navItems = [
+            { label: '📊 Dashboard', href: '/dashboard' },
+            { label: '📅 Horarios', href: '/dashboard/schedule' },
+            { label: '🏭 Mis Complejos', href: '/dashboard/venues' },
+        ];
+    } else {
+        navItems = [
+            { label: '🔍 Buscar Cancha', href: '/' },
+            { label: '📅 Mis Reservas', href: '/bookings' },
+        ];
+    }
 
     return (
         <nav className="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-sm">
