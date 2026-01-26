@@ -327,7 +327,8 @@ export const getVenueBookings = async (venueId: string, date: string): Promise<B
             ...b,
             start_time: b.start_time?.substring(0, 5),
             end_time: b.end_time?.substring(0, 5),
-            player_name: (b.profiles as any)?.full_name
+            player_name: (b.profiles as any)?.full_name,
+            player_phone: (b.profiles as any)?.phone
         })) as Booking[];
     } catch (error) {
         console.error('❌ Error fetching bookings:', error);

@@ -88,6 +88,8 @@ export interface Booking {
   venue_id: string;
   court_id: string;
   player_id: string;
+  player_name?: string;
+  player_phone?: string;
   date: string; // DATE format: YYYY-MM-DD
   start_time: string; // TIME format: HH:mm:ss
   end_time: string; // TIME format: HH:mm:ss
@@ -102,7 +104,6 @@ export interface Booking {
   venue_name?: string;
   court_name?: string;
   court_type?: SportType;
-  player_name?: string;
 }
 
 // ============================================
@@ -192,6 +193,7 @@ export interface User {
   name: string;
   email: string;
   role: UserRole;
+  phone?: string;
 }
 
 export interface AuthUser extends User {

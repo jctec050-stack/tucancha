@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase';
 interface AuthContextType {
     user: User | null;
     login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-    register: (name: string, email: string, password: string, role: UserRole) => Promise<{ success: boolean; error?: string }>;
+    register: (name: string, email: string, phone: string, password: string, role: UserRole) => Promise<{ success: boolean; error?: string }>;
     resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
     logout: () => void;
     isLoading: boolean;
@@ -62,7 +62,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     id: userId,
                     email: email,
                     name: data.full_name,
-                    role: data.role as UserRole
+                    role: data.role as UserRole,
+                    phone: data.phone
                 });
             } else {
                 // Profile doesn't exist (likely an old user from before DB reset)
@@ -179,7 +180,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return { success: true };
     };
 
-    const register = async (name: string, email: string, password: string, role: UserRole): Promise<{ success: boolean; error?: string }> => {
+    const register = async (name: string, email: string, phone: string, password: string, role: UserRole): Promise<{ success: boolean; error?: string }> => {
         console.log('Attempting to register user:', { name, email, role });
 
         // Sign up with metadata so the trigger (schema.sql) can populate the profiles table
@@ -189,7 +190,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             options: {
                 data: {
                     full_name: name,
-                    role: role
+                    role: role,
+                    phone: phone
                 },
                 emailRedirectTo: process.env.NEXT_PUBLIC_APP_URL || window.location.origin
             }

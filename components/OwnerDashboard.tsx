@@ -4,6 +4,22 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Booking, Venue, DisabledSlot } from '../types';
 
 
+interface ScheduleItem {
+  id: string;
+  time: string;
+  startTimeMinutes: number;
+  endTimeMinutes: number;
+  courtName: string;
+  type: string;
+  status: string;
+  details: string;
+  phone?: string;
+  price: number;
+  rawTime: string;
+  count?: number;
+  timeRange?: string;
+}
+
 interface OwnerDashboardProps {
   bookings: Booking[];
   disabledSlots?: DisabledSlot[];
@@ -70,7 +86,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ bookings, disabl
   // Memoize Schedule Items (Grouped)
   const scheduleItems = useMemo(() => {
     // 1. Convert bookings to a processable format
-    const rawItems = [
+    const rawItems: ScheduleItem[] = [
       ...dailyBookings.map(b => ({
         id: b.id,
         time: b.start_time,
@@ -107,7 +123,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ bookings, disabl
     ].sort((a, b) => a.startTimeMinutes - b.startTimeMinutes);
 
     // 2. Group consecutive items
-    const groupedItems = [];
+    const groupedItems: ScheduleItem[] = [];
     if (rawItems.length > 0) {
         let currentGroup = { ...rawItems[0], count: 1, endTimeMinutes: rawItems[0].endTimeMinutes };
 
@@ -346,9 +362,14 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ bookings, disabl
                             item.status === 'CANCELLED' ? 'bg-red-500' :
                             item.status === 'DISABLED' ? 'bg-orange-500' : 'bg-gray-300'
                         }`}></span>
-                        <span className={`font-medium text-sm ${item.status === 'CANCELLED' ? 'text-gray-400 line-through' : 'text-gray-700'}`}>
+                        <div className={`font-medium text-sm ${item.status === 'CANCELLED' ? 'text-gray-400 line-through' : 'text-gray-700'}`}>
                             {item.details}
-                        </span>
+                            {item.phone && (
+                                <div className="text-xs text-gray-500 font-normal mt-0.5">
+                                    📞 {item.phone}
+                                </div>
+                            )}
+                        </div>
                     </div>
                     <span className="font-bold text-gray-900">
                         {item.price > 0 ? `Gs. ${item.price.toLocaleString('es-PY')}` : '-'}

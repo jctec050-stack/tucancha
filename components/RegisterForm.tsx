@@ -4,13 +4,14 @@ import { UserRole } from '../types';
 import { SuccessModal } from './SuccessModal';
 
 interface RegisterFormProps {
-    onRegister: (name: string, email: string, password: string, role: UserRole) => Promise<{ success: boolean; error?: string }>;
+    onRegister: (name: string, email: string, phone: string, password: string, role: UserRole) => Promise<{ success: boolean; error?: string }>;
     onSwitchToLogin: () => void;
 }
 
 export const RegisterForm: React.FC<RegisterFormProps> = ({ onRegister, onSwitchToLogin }) => {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
+    const [phone, setPhone] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [role, setRole] = useState<UserRole>('PLAYER');
@@ -33,6 +34,11 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onRegister, onSwitch
             return;
         }
 
+        if (!phone.trim()) {
+            setError('Por favor ingresa un número de teléfono');
+            return;
+        }
+
         if (password.length < 6) {
             setError('La contraseña debe tener al menos 6 caracteres');
             return;
@@ -44,7 +50,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onRegister, onSwitch
         }
 
         setLoading(true);
-        const result = await onRegister(name, email, password, role);
+        const result = await onRegister(name, email, phone, password, role);
         setLoading(false);
 
         if (!result.success) {
@@ -102,6 +108,20 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onRegister, onSwitch
                             onChange={(e) => setEmail(e.target.value)}
                             className="w-full px-4 py-3.5 md:py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition text-base"
                             placeholder="tu@email.com"
+                        />
+                    </div>
+
+                    <div>
+                        <label htmlFor="phone" className="block text-sm font-bold text-gray-700 mb-2">
+                            Teléfono
+                        </label>
+                        <input
+                            id="phone"
+                            type="tel"
+                            value={phone}
+                            onChange={(e) => setPhone(e.target.value)}
+                            className="w-full px-4 py-3.5 md:py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition text-base"
+                            placeholder="09xx xxx xxx"
                         />
                     </div>
 
