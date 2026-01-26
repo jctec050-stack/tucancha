@@ -19,9 +19,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
-    const fetchProfile = async (userId: string, email: string) => {
+    const fetchProfile = async (userId: string, email: string, retryCount = 0) => {
         try {
-            console.log('👤 Fetching profile for user:', userId);
+            console.log(`👤 Fetching profile for user: ${userId} (Attempt ${retryCount + 1})`);
             const { data, error } = await supabase
                 .from('profiles')
                 .select('*')
@@ -46,6 +46,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 // Profile doesn't exist (likely an old user from before DB reset)
                 console.log('⚠️ Profile not found for user:', userId, '- Attempting to create one...');
 
+                if (retryCount >= 2) {
+                    console.error('🛑 Max retries reached. Could not create/fetch profile.');
+                    return;
+                }
+
                 // Try to insert a default profile
                 const { error: insertError } = await supabase
                     .from('profiles')
@@ -60,8 +65,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     console.error('❌ Failed to create missing profile:', insertError);
                 } else {
                     console.log('✅ Missing profile created successfully. Retrying fetch...');
-                    // Retry fetch
-                    await fetchProfile(userId, email);
+                    // Retry fetch with incremented counter
+                    await fetchProfile(userId, email, retryCount + 1);
                 }
             }
         } catch (e: any) {
@@ -126,7 +131,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }, []);
 
     const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabase.auth.signInWithPassword({
             email,
             password
         });
@@ -137,6 +142,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 return { success: false, error: 'Usuario no registrado o contraseña incorrecta' };
             }
             return { success: false, error: error.message };
+        }
+
+        if (data.user) {
+            // Await profile fetch to ensure user state is ready before resolving
+            await fetchProfile(data.user.id, data.user.email!);
         }
 
         return { success: true };
