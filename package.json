@@ -1,7 +1,7 @@
 {
   "name": "tucancha",
   "private": true,
-  "version": "1.0.37",
+  "version": "1.0.38",
   "scripts": {
     "dev": "next dev",
     "prebuild": "node update-version.js",

@@ -297,7 +297,7 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
                             <input
                                 type="file"
                                 accept="image/*"
-                                onChange={(e) => {
+                                onChange={async (e) => {
                                     const file = e.target.files?.[0];
                                     if (file) {
                                         try {
