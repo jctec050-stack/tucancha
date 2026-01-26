@@ -204,8 +204,8 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ bookings, disabl
         </div>
       </div>
 
-      {/* Schedule Table */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      {/* Schedule Table (Desktop) */}
+      <div className="hidden md:block bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="p-6 border-b border-gray-100">
           <h3 className="text-lg font-bold text-gray-800">Detalle de Actividad ({selectedDate})</h3>
         </div>
@@ -261,6 +261,49 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ bookings, disabl
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Mobile Schedule List */}
+      <div className="md:hidden space-y-4">
+        <h3 className="text-lg font-bold text-gray-800 px-2">Detalle de Actividad ({selectedDate})</h3>
+        {scheduleItems.length > 0 ? (
+            scheduleItems.map((item, index) => (
+            <div key={`${item.id}-${index}`} className={`bg-white p-4 rounded-xl border border-gray-100 shadow-sm ${item.status === 'CANCELLED' ? 'bg-red-50/50' : ''}`}>
+                <div className="flex justify-between items-start mb-2">
+                <div>
+                    <span className="text-lg font-bold text-gray-900 block">{item.time}</span>
+                    <span className="text-sm text-gray-500">{item.courtName}</span>
+                </div>
+                <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${
+                    item.status === 'CANCELLED' ? 'bg-gray-200 text-gray-500 line-through' :
+                    item.type === 'Reserva' ? 'bg-indigo-50 text-indigo-600' : 'bg-red-50 text-red-600'
+                }`}>
+                    {item.type}
+                </span>
+                </div>
+                <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-50">
+                    <div className="flex items-center gap-2">
+                        <span className={`w-2 h-2 rounded-full ${
+                            item.status === 'ACTIVE' ? 'bg-green-500' :
+                            item.status === 'COMPLETED' ? 'bg-blue-500' :
+                            item.status === 'CANCELLED' ? 'bg-red-500' :
+                            item.status === 'DISABLED' ? 'bg-orange-500' : 'bg-gray-300'
+                        }`}></span>
+                        <span className={`font-medium text-sm ${item.status === 'CANCELLED' ? 'text-gray-400 line-through' : 'text-gray-700'}`}>
+                            {item.details}
+                        </span>
+                    </div>
+                    <span className="font-bold text-gray-900">
+                        {item.price > 0 ? `Gs. ${item.price.toLocaleString('es-PY')}` : '-'}
+                    </span>
+                </div>
+            </div>
+            ))
+        ) : (
+            <div className="text-center py-8 text-gray-400 bg-white rounded-xl border border-gray-100">
+                No hay actividad registrada
+            </div>
+        )}
       </div>
 
     </div>

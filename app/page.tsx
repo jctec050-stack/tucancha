@@ -287,38 +287,52 @@ export default function HomePage() {
 
                         <div className="p-8">
                             {/* Date Picker & Info */}
-                            <div className="flex flex-col md:flex-row items-center justify-between mb-8 pb-8 border-b border-gray-100 gap-4">
-                                <div className="text-center md:text-left">
-                                    <p className="text-xs font-bold text-gray-400 uppercase mb-1">Fecha Seleccionada</p>
-                                    <div className="flex items-center gap-2">
+                            <div className="flex flex-col md:flex-row items-center justify-between mb-8 pb-8 border-b border-gray-100 gap-6 md:gap-4">
+                                <div className="text-center md:text-left w-full md:w-auto">
+                                    <div className="flex items-center justify-between md:justify-start gap-2 mb-1">
+                                        <p className="text-xs font-bold text-gray-400 uppercase">Fecha Seleccionada</p>
+                                        <button 
+                                            onClick={() => setSelectedDate(new Date().toISOString().split('T')[0])}
+                                            className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded hover:bg-indigo-100 transition"
+                                        >
+                                            HOY
+                                        </button>
+                                    </div>
+                                    <div className="flex items-center justify-center md:justify-start gap-4 bg-gray-50 md:bg-transparent p-2 md:p-0 rounded-xl">
                                          <button
                                             onClick={() => {
                                                 const d = new Date(selectedDate);
                                                 d.setDate(d.getDate() - 1);
                                                 setSelectedDate(d.toISOString().split('T')[0]);
                                             }}
-                                            className="p-1 hover:bg-gray-100 rounded text-gray-500"
-                                        >←</button>
-                                        <input
-                                            type="date"
-                                            value={selectedDate}
-                                            onChange={(e) => setSelectedDate(e.target.value)}
-                                            className="text-xl font-bold text-indigo-600 bg-transparent outline-none cursor-pointer"
-                                        />
+                                            className="p-3 hover:bg-white md:hover:bg-gray-100 rounded-lg text-gray-500 transition shadow-sm md:shadow-none"
+                                        >
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
+                                        </button>
+                                        <div className="relative">
+                                            <input
+                                                type="date"
+                                                value={selectedDate}
+                                                onChange={(e) => setSelectedDate(e.target.value)}
+                                                className="text-xl font-bold text-indigo-600 bg-transparent outline-none cursor-pointer text-center md:text-left w-full"
+                                            />
+                                        </div>
                                          <button
                                             onClick={() => {
                                                 const d = new Date(selectedDate);
                                                 d.setDate(d.getDate() + 1);
                                                 setSelectedDate(d.toISOString().split('T')[0]);
                                             }}
-                                            className="p-1 hover:bg-gray-100 rounded text-gray-500"
-                                        >→</button>
+                                            className="p-3 hover:bg-white md:hover:bg-gray-100 rounded-lg text-gray-500 transition shadow-sm md:shadow-none"
+                                        >
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
+                                        </button>
                                     </div>
                                 </div>
-                                <div className="flex gap-4">
-                                    <div className="text-center bg-gray-50 px-6 py-3 rounded-2xl border border-gray-100">
-                                        <p className="text-[10px] font-bold text-gray-400 uppercase">Apertura</p>
-                                        <p className="text-lg font-bold text-gray-800">{selectedVenue.opening_hours.split(' - ')[0]}</p>
+                                <div className="flex gap-4 w-full md:w-auto">
+                                    <div className="text-center bg-gray-50 px-6 py-4 rounded-2xl border border-gray-100 w-full md:w-auto">
+                                        <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Apertura</p>
+                                        <p className="text-xl font-bold text-gray-800">{selectedVenue.opening_hours.split(' - ')[0]}</p>
                                     </div>
                                 </div>
                             </div>
@@ -363,7 +377,7 @@ export default function HomePage() {
                                             </span>
                                         </div>
 
-                                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
+                                        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
                                             {TIME_SLOTS.map(slot => {
                                                 const isBooked = bookings.some(b =>
                                                     b.venue_id === selectedVenue.id &&
@@ -396,7 +410,7 @@ export default function HomePage() {
                                                                     : 'bg-white border-2 border-indigo-100 text-indigo-600 hover:border-indigo-600 hover:bg-indigo-50 shadow-sm active:scale-95'}
                                                     `}
                                                     >
-                                                        {slot} a {parseInt(slot.split(':')[0]) + 1}:00
+                                                        {slot} - {parseInt(slot.split(':')[0]) + 1}:00
                                                     </button>
                                                 );
                                             })}
