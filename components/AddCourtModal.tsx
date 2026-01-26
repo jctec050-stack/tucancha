@@ -113,9 +113,9 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
                     console.warn('  ⚠️ Image upload failed or timed out');
                     setError('⚠️ No se pudo subir la imagen (timeout o error). La cancha se guardará sin foto.');
                 }
-            } catch (err) {
+            } catch (err: any) {
                 console.error('  ❌ Upload exception:', err);
-                setError('⚠️ Error al subir imagen. La cancha se guardará sin foto.');
+                setError(`⚠️ Error al subir imagen: ${err.message || 'Error desconocido'}. La cancha se guardará sin foto.`);
             }
         } else {
             console.log('  ℹ️ No image file selected');
