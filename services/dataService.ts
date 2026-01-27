@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase';
-import { Venue, Court, Booking, DisabledSlot, Profile, Subscription } from '@/types';
+import { Venue, Court, Booking, DisabledSlot, Profile, Subscription, Payment, AdminVenueData, AdminProfileData, AdminSubscriptionData, AdminPaymentData } from '@/types';
 
 // NOTE: Removed legacy adapters import. 
 // We now map directly to snake_case matching types.ts and DB.
@@ -513,14 +513,6 @@ export const getUserProfile = async (userId: string): Promise<Profile | null> =>
 // ADMIN DASHBOARD
 // ============================================
 
-export interface AdminVenueData extends Venue {
-    owner: Profile;
-    subscription?: Subscription;
-    total_revenue: number;
-    total_bookings: number;
-    revenue_by_court: Record<string, number>;
-}
-
 export const getAdminDashboardData = async (): Promise<AdminVenueData[]> => {
     try {
         // 1. Fetch all venues with their owners and courts
@@ -595,6 +587,59 @@ export const getAdminDashboardData = async (): Promise<AdminVenueData[]> => {
 };
 
 
+
+export const getAdminClientsData = async (): Promise<AdminProfileData[]> => {
+    try {
+        const { data: profiles, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return profiles || [];
+    } catch (error) {
+        console.error('❌ Error fetching admin clients:', error);
+        return [];
+    }
+};
+
+export const getAdminSubscriptionsData = async (): Promise<AdminSubscriptionData[]> => {
+    try {
+        const { data: subs, error } = await supabase
+            .from('subscriptions')
+            .select(`
+                *,
+                owner:profiles!owner_id (*)
+            `)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return subs as AdminSubscriptionData[] || [];
+    } catch (error) {
+        console.error('❌ Error fetching admin subscriptions:', error);
+        return [];
+    }
+};
+
+export const getAdminPaymentsData = async (): Promise<AdminPaymentData[]> => {
+    try {
+        const { data: payments, error } = await supabase
+            .from('payments')
+            .select(`
+                *,
+                payer:profiles!payer_id (*)
+            `)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        
+        // Enrich data if needed (e.g. resolve booking/sub details) - doing simple return for now
+        return payments as AdminPaymentData[] || [];
+    } catch (error) {
+        console.error('❌ Error fetching admin payments:', error);
+        return [];
+    }
+};
 
 export const updateUserProfile = async (userId: string, updates: Partial<Profile>): Promise<boolean> => {
     try {

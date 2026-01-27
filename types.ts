@@ -199,3 +199,29 @@ export interface User {
 export interface AuthUser extends User {
   password: string; // In a real app, this would be hashed
 }
+
+// ============================================
+// ADMIN DASHBOARD TYPES
+// ============================================
+export interface AdminVenueData extends Venue {
+    owner: Profile;
+    subscription?: Subscription;
+    total_revenue: number;
+    total_bookings: number;
+    revenue_by_court: Record<string, number>;
+}
+
+export interface AdminProfileData extends Profile {
+    total_bookings?: number;
+    total_spent?: number;
+    owned_venues_count?: number;
+}
+
+export interface AdminSubscriptionData extends Subscription {
+    owner: Profile;
+}
+
+export interface AdminPaymentData extends Payment {
+    payer?: Profile;
+    related_entity?: string; // Booking or Subscription ID/Name
+}

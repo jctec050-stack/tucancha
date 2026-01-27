@@ -3,12 +3,22 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/AuthContext';
 import { useRouter } from 'next/navigation';
-import { AdminVenueData, getAdminDashboardData } from '@/services/dataService';
+import { AdminVenueData, AdminProfileData, AdminSubscriptionData, AdminPaymentData } from '@/types';
+import { getAdminDashboardData, getAdminClientsData, getAdminSubscriptionsData, getAdminPaymentsData } from '@/services/dataService';
 
 const AdminDashboard = () => {
     const { user, isLoading: authLoading } = useAuth();
     const router = useRouter();
-    const [data, setData] = useState<AdminVenueData[]>([]);
+    
+    // Tab State
+    const [activeTab, setActiveTab] = useState<'venues' | 'clients' | 'subscriptions' | 'payments'>('venues');
+
+    // Data States
+    const [venueData, setVenueData] = useState<AdminVenueData[]>([]);
+    const [clientData, setClientData] = useState<AdminProfileData[]>([]);
+    const [subscriptionData, setSubscriptionData] = useState<AdminSubscriptionData[]>([]);
+    const [paymentData, setPaymentData] = useState<AdminPaymentData[]>([]);
+    
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -24,9 +34,24 @@ const AdminDashboard = () => {
 
     const loadData = async () => {
         setIsLoading(true);
-        const dashboardData = await getAdminDashboardData();
-        setData(dashboardData);
-        setIsLoading(false);
+        try {
+            // Load all data in parallel for simplicity (or split by tab if optimizing)
+            const [venues, clients, subs, payments] = await Promise.all([
+                getAdminDashboardData(),
+                getAdminClientsData(),
+                getAdminSubscriptionsData(),
+                getAdminPaymentsData()
+            ]);
+
+            setVenueData(venues);
+            setClientData(clients);
+            setSubscriptionData(subs);
+            setPaymentData(payments);
+        } catch (error) {
+            console.error("Error loading admin data", error);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const formatCurrency = (amount: number) => {
@@ -70,83 +95,112 @@ const AdminDashboard = () => {
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                         <p className="text-sm font-medium text-gray-500 mb-1">Total Complejos</p>
-                        <p className="text-3xl font-bold text-gray-900">{data.length}</p>
+                        <p className="text-3xl font-bold text-gray-900">{venueData.length}</p>
                     </div>
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                         <p className="text-sm font-medium text-gray-500 mb-1">Total Reservas</p>
                         <p className="text-3xl font-bold text-gray-900">
-                            {data.reduce((acc, curr) => acc + curr.total_bookings, 0)}
+                            {venueData.reduce((acc, curr) => acc + curr.total_bookings, 0)}
                         </p>
                     </div>
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                         <p className="text-sm font-medium text-gray-500 mb-1">Ingresos Totales (Plataforma)</p>
                         <p className="text-3xl font-bold text-indigo-600">
-                            {formatCurrency(data.reduce((acc, curr) => acc + curr.total_revenue, 0))}
+                            {formatCurrency(venueData.reduce((acc, curr) => acc + curr.total_revenue, 0))}
                         </p>
                         <p className="text-xs text-gray-400 mt-2">* Suma de todas las reservas</p>
                     </div>
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                         <p className="text-sm font-medium text-gray-500 mb-1">Suscripciones Activas</p>
                         <p className="text-3xl font-bold text-green-600">
-                            {data.filter(v => v.subscription?.status === 'ACTIVE').length}
+                            {subscriptionData.filter(s => s.status === 'ACTIVE').length}
                         </p>
                     </div>
                 </div>
 
-                {/* Main Table */}
+                {/* Tabs */}
+                <div className="mb-6 border-b border-gray-200">
+                    <nav className="-mb-px flex space-x-8" aria-label="Tabs">
+                        <button
+                            onClick={() => setActiveTab('venues')}
+                            className={`${
+                                activeTab === 'venues'
+                                    ? 'border-indigo-500 text-indigo-600'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+                        >
+                            Complejos
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('clients')}
+                            className={`${
+                                activeTab === 'clients'
+                                    ? 'border-indigo-500 text-indigo-600'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+                        >
+                            Clientes
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('subscriptions')}
+                            className={`${
+                                activeTab === 'subscriptions'
+                                    ? 'border-indigo-500 text-indigo-600'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+                        >
+                            Suscripciones
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('payments')}
+                            className={`${
+                                activeTab === 'payments'
+                                    ? 'border-indigo-500 text-indigo-600'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+                        >
+                            Facturación y Pagos
+                        </button>
+                    </nav>
+                </div>
+
+                {/* Tab Content */}
+                {activeTab === 'venues' && (
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                     <div className="p-6 border-b border-gray-200">
                         <h2 className="text-xl font-bold text-gray-900">Detalle de Complejos</h2>
                     </div>
                     <div className="overflow-x-auto">
-                        <table className="w-full text-left">
-                            <thead className="bg-gray-50 text-gray-600 text-xs uppercase tracking-wider font-semibold">
+                        <table className="w-full text-sm text-left">
+                            <thead className="bg-gray-50 text-gray-500 font-medium border-b border-gray-100">
                                 <tr>
                                     <th className="px-6 py-4">Complejo / Dueño</th>
                                     <th className="px-6 py-4">Suscripción</th>
                                     <th className="px-6 py-4 text-center">Canchas</th>
-                                    <th className="px-6 py-4 text-right">Ingresos Totales</th>
+                                    <th className="px-6 py-4 text-right">Ingresos (Total)</th>
                                     <th className="px-6 py-4 text-right">Reservas</th>
                                     <th className="px-6 py-4 text-center">Estado</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
-                                {data.map((venue) => (
+                                {venueData.map((venue) => (
                                     <React.Fragment key={venue.id}>
                                         <tr className="hover:bg-gray-50 transition">
                                             <td className="px-6 py-4">
-                                                <div>
-                                                    <p className="font-bold text-gray-900">{venue.name}</p>
-                                                    <div className="flex items-center gap-2 mt-1">
-                                                        <span className="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-600">
-                                                            {venue.owner?.full_name || 'Sin nombre'}
-                                                        </span>
-                                                        {venue.owner?.phone && (
-                                                            <span className="text-xs text-gray-500">📞 {venue.owner.phone}</span>
-                                                        )}
-                                                    </div>
-                                                    <p className="text-xs text-gray-400 mt-0.5">{venue.owner?.email}</p>
+                                                <div className="font-bold text-gray-900">{venue.name}</div>
+                                                <div className="text-xs text-gray-500 mt-1">
+                                                    Dueño: {venue.owner?.full_name || 'Sin nombre'}<br/>
+                                                    {venue.owner?.email}<br/>
+                                                    {venue.owner?.phone}
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4">
                                                 {venue.subscription ? (
-                                                    <div>
-                                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                                            venue.subscription.plan_type === 'PREMIUM' || venue.subscription.plan_type === 'ENTERPRISE' 
-                                                                ? 'bg-purple-100 text-purple-800' 
-                                                                : venue.subscription.plan_type === 'BASIC'
-                                                                    ? 'bg-blue-100 text-blue-800'
-                                                                    : 'bg-gray-100 text-gray-800'
-                                                        }`}>
-                                                            {venue.subscription.plan_type}
-                                                        </span>
-                                                        <div className="mt-1 text-xs text-gray-500">
-                                                            {venue.subscription.status === 'ACTIVE' ? (
-                                                                <span className="text-green-600 flex items-center gap-1">
-                                                                    ● Activo
-                                                                </span>
-                                                            ) : (
-                                                                <span className="text-red-500 flex items-center gap-1">
+                                                    <div className="flex flex-col">
+                                                        <span className="font-medium text-indigo-600">{venue.subscription.plan_type}</span>
+                                                        <div className="text-xs text-gray-500 mt-1">
+                                                            {venue.subscription.status === 'ACTIVE' && (
+                                                                <span className="inline-flex items-center text-green-600">
                                                                     ● {venue.subscription.status}
                                                                 </span>
                                                             )}
@@ -189,7 +243,7 @@ const AdminDashboard = () => {
                                         </tr>
                                     </React.Fragment>
                                 ))}
-                                {data.length === 0 && (
+                                {venueData.length === 0 && (
                                     <tr>
                                         <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
                                             No hay complejos registrados aún.
@@ -200,6 +254,182 @@ const AdminDashboard = () => {
                         </table>
                     </div>
                 </div>
+                )}
+
+                {activeTab === 'clients' && (
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div className="p-6 border-b border-gray-200">
+                        <h2 className="text-xl font-bold text-gray-900">Lista de Clientes</h2>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm text-left">
+                            <thead className="bg-gray-50 text-gray-500 font-medium border-b border-gray-100">
+                                <tr>
+                                    <th className="px-6 py-4">Cliente</th>
+                                    <th className="px-6 py-4">Contacto</th>
+                                    <th className="px-6 py-4">Rol</th>
+                                    <th className="px-6 py-4">Fecha Registro</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                                {clientData.map((client) => (
+                                    <tr key={client.id} className="hover:bg-gray-50 transition">
+                                        <td className="px-6 py-4">
+                                            <div className="font-bold text-gray-900">{client.full_name || 'Sin nombre'}</div>
+                                            <div className="text-xs text-gray-500">{client.id}</div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="text-gray-900">{client.email}</div>
+                                            <div className="text-gray-500 text-xs">{client.phone || 'Sin teléfono'}</div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                                client.role === 'OWNER' ? 'bg-purple-100 text-purple-800' : 
+                                                client.role === 'ADMIN' ? 'bg-gray-800 text-white' : 
+                                                'bg-blue-100 text-blue-800'
+                                            }`}>
+                                                {client.role}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 text-gray-500">
+                                            {new Date(client.created_at).toLocaleDateString('es-PY')}
+                                        </td>
+                                    </tr>
+                                ))}
+                                {clientData.length === 0 && (
+                                    <tr>
+                                        <td colSpan={4} className="px-6 py-12 text-center text-gray-500">
+                                            No hay clientes registrados.
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                )}
+
+                {activeTab === 'subscriptions' && (
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div className="p-6 border-b border-gray-200">
+                        <h2 className="text-xl font-bold text-gray-900">Gestión de Suscripciones</h2>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm text-left">
+                            <thead className="bg-gray-50 text-gray-500 font-medium border-b border-gray-100">
+                                <tr>
+                                    <th className="px-6 py-4">Dueño</th>
+                                    <th className="px-6 py-4">Plan</th>
+                                    <th className="px-6 py-4">Estado</th>
+                                    <th className="px-6 py-4">Periodo</th>
+                                    <th className="px-6 py-4 text-right">Precio/Mes</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                                {subscriptionData.map((sub) => (
+                                    <tr key={sub.id} className="hover:bg-gray-50 transition">
+                                        <td className="px-6 py-4">
+                                            <div className="font-bold text-gray-900">{sub.owner?.full_name || 'Desconocido'}</div>
+                                            <div className="text-xs text-gray-500">{sub.owner?.email}</div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className="font-medium text-indigo-600">{sub.plan_type}</span>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                                sub.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 
+                                                sub.status === 'EXPIRED' ? 'bg-orange-100 text-orange-800' :
+                                                'bg-red-100 text-red-800'
+                                            }`}>
+                                                {sub.status}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 text-gray-500">
+                                            {new Date(sub.start_date).toLocaleDateString('es-PY')} 
+                                            {sub.end_date ? ` - ${new Date(sub.end_date).toLocaleDateString('es-PY')}` : ' (Indefinido)'}
+                                        </td>
+                                        <td className="px-6 py-4 text-right font-medium">
+                                            {formatCurrency(sub.price_per_month)}
+                                        </td>
+                                    </tr>
+                                ))}
+                                {subscriptionData.length === 0 && (
+                                    <tr>
+                                        <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                                            No hay suscripciones registradas.
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                )}
+
+                {activeTab === 'payments' && (
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div className="p-6 border-b border-gray-200">
+                        <h2 className="text-xl font-bold text-gray-900">Historial de Pagos</h2>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm text-left">
+                            <thead className="bg-gray-50 text-gray-500 font-medium border-b border-gray-100">
+                                <tr>
+                                    <th className="px-6 py-4">Fecha</th>
+                                    <th className="px-6 py-4">Pagador</th>
+                                    <th className="px-6 py-4">Tipo</th>
+                                    <th className="px-6 py-4">Método</th>
+                                    <th className="px-6 py-4">Estado</th>
+                                    <th className="px-6 py-4 text-right">Monto</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                                {paymentData.map((payment) => (
+                                    <tr key={payment.id} className="hover:bg-gray-50 transition">
+                                        <td className="px-6 py-4 text-gray-500">
+                                            {new Date(payment.created_at).toLocaleDateString('es-PY')}
+                                            <div className="text-xs text-gray-400">
+                                                {new Date(payment.created_at).toLocaleTimeString('es-PY')}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="font-bold text-gray-900">{payment.payer?.full_name || 'Desconocido'}</div>
+                                            <div className="text-xs text-gray-500">{payment.payer?.email}</div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                                                {payment.payment_type}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 text-gray-600">
+                                            {payment.payment_method}
+                                        </td>
+                                        <td className="px-6 py-4">
+                                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                                payment.status === 'COMPLETED' ? 'bg-green-100 text-green-800' : 
+                                                payment.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                                                'bg-red-100 text-red-800'
+                                            }`}>
+                                                {payment.status}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 text-right font-bold text-gray-900">
+                                            {formatCurrency(payment.amount)}
+                                        </td>
+                                    </tr>
+                                ))}
+                                {paymentData.length === 0 && (
+                                    <tr>
+                                        <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                                            No hay pagos registrados.
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                )}
             </div>
         </div>
     );
