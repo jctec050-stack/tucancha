@@ -172,11 +172,18 @@ export default function BookingsPage() {
                                 </div>
                                 <h4 className="text-lg font-bold text-gray-900">{group.venueName}</h4>
                                 {group.venueAddress && (
-                                    <p className="text-sm text-gray-500">{group.venueAddress}</p>
+                                    <a 
+                                        href={`https://www.google.com/maps/search/?api=1&query=${group.venueLatitude && group.venueLongitude ? `${group.venueLatitude},${group.venueLongitude}` : encodeURIComponent(group.venueAddress)}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-sm text-gray-500 hover:text-indigo-600 hover:underline block"
+                                    >
+                                        {group.venueAddress}
+                                    </a>
                                 )}
-                                {group.venueLatitude && group.venueLongitude && (
+                                {((group.venueLatitude && group.venueLongitude) || group.venueAddress) && (
                                     <a
-                                        href={`https://www.google.com/maps/search/?api=1&query=${group.venueLatitude},${group.venueLongitude}`}
+                                        href={`https://www.google.com/maps/search/?api=1&query=${group.venueLatitude && group.venueLongitude ? `${group.venueLatitude},${group.venueLongitude}` : encodeURIComponent(group.venueAddress || '')}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 font-medium mt-1"
