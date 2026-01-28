@@ -60,6 +60,8 @@ export default function VenuesPage() {
         imageUrl: string,
         amenities: string[],
         contactInfo: string,
+        latitude: number | undefined,
+        longitude: number | undefined,
         newCourts: Omit<Court, 'id'>[],
         courtsToDelete: string[] = []
     ) => {
@@ -80,7 +82,9 @@ export default function VenuesPage() {
                     opening_hours: openingHours,
                     image_url: imageUrl,
                     amenities: amenities,
-                    contact_info: contactInfo
+                    contact_info: contactInfo,
+                    latitude: latitude,
+                    longitude: longitude
                 };
 
                 const success = await updateVenue(venueToEdit.id, updates);
@@ -105,7 +109,9 @@ export default function VenuesPage() {
                         image_url: imageUrl,
                         opening_hours: openingHours,
                         amenities: amenities,
-                        contact_info: contactInfo
+                        contact_info: contactInfo,
+                        latitude: latitude,
+                        longitude: longitude
                     },
                     newCourts
                 );
@@ -164,6 +170,8 @@ export default function VenuesPage() {
                     currentImageUrl={venueToEdit?.image_url || ''}
                     currentAmenities={venueToEdit?.amenities || []}
                     currentContactInfo={venueToEdit?.contact_info || ''}
+                    currentLatitude={venueToEdit?.latitude}
+                    currentLongitude={venueToEdit?.longitude}
                     currentCourts={venueToEdit?.courts || []}
                     onClose={() => setShowAddCourtModal(false)}
                     onSave={handleSaveVenue}

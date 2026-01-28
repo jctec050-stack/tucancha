@@ -103,6 +103,9 @@ export interface Booking {
   updated_at: string;
   // Populated fields (from joins)
   venue_name?: string;
+  venue_address?: string;
+  venue_latitude?: number;
+  venue_longitude?: number;
   court_name?: string;
   court_type?: SportType;
 }

@@ -11,6 +11,8 @@ interface AddCourtModalProps {
     currentImageUrl: string;
     currentAmenities?: string[];
     currentContactInfo?: string;
+    currentLatitude?: number;
+    currentLongitude?: number;
     currentCourts?: Court[];
     onClose: () => void;
     onSave: (
@@ -20,6 +22,8 @@ interface AddCourtModalProps {
         imageUrl: string,
         amenities: string[],
         contactInfo: string,
+        latitude: number | undefined,
+        longitude: number | undefined,
         newCourts: Omit<Court, 'id'>[],
         courtsToDelete: string[]
     ) => Promise<void>;
@@ -32,6 +36,8 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
     currentImageUrl,
     currentAmenities = [],
     currentContactInfo = '',
+    currentLatitude,
+    currentLongitude,
     currentCourts = [],
     onClose,
     onSave
@@ -39,6 +45,8 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
     // Venue State
     const [venueName, setVenueName] = useState(currentVenueName);
     const [venueAddress, setVenueAddress] = useState(currentVenueAddress);
+    const [latitude, setLatitude] = useState<string>(currentLatitude?.toString() || '');
+    const [longitude, setLongitude] = useState<string>(currentLongitude?.toString() || '');
 
     // Parse initial hours (e.g. "08:00 - 22:00")
     const [startHour, setStartHour] = useState(currentOpeningHours.split(' - ')[0] || '08:00');
@@ -207,7 +215,18 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
             }
 
             const fullOpeningHours = `${startHour} - ${endHour}`;
-            await onSave(venueName, venueAddress, fullOpeningHours, finalVenueImageUrl, amenities, contactPhone, pendingCourts, courtsToDelete);
+            await onSave(
+                venueName,
+                venueAddress,
+                fullOpeningHours,
+                finalVenueImageUrl,
+                amenities,
+                contactPhone,
+                latitude ? parseFloat(latitude) : undefined,
+                longitude ? parseFloat(longitude) : undefined,
+                pendingCourts,
+                courtsToDelete
+            );
             onClose();
         } catch (err) {
             console.error('Error saving venue:', err);
@@ -260,6 +279,35 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
                                     onChange={(e) => setVenueAddress(e.target.value)}
                                     className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
                                 />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-100">
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-2">Latitud (Opcional)</label>
+                                <input
+                                    type="number"
+                                    step="any"
+                                    value={latitude}
+                                    onChange={(e) => setLatitude(e.target.value)}
+                                    placeholder="Ej: -25.2867"
+                                    className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-2">Longitud (Opcional)</label>
+                                <input
+                                    type="number"
+                                    step="any"
+                                    value={longitude}
+                                    onChange={(e) => setLongitude(e.target.value)}
+                                    placeholder="Ej: -57.6470"
+                                    className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
+                                />
+                            </div>
+                            <div className="md:col-span-2">
+                                <p className="text-xs text-gray-500">
+                                    💡 Tip: Puedes obtener estas coordenadas desde Google Maps haciendo clic derecho en la ubicación y seleccionando los números que aparecen al principio.
+                                </p>
                             </div>
                         </div>
                     </div>

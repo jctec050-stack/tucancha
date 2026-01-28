@@ -235,7 +235,21 @@ export default function HomePage() {
                                 </div>
                                 <div className="p-6">
                                     <h3 className="text-xl font-bold text-gray-900">{v.name}</h3>
-                                    <p className="text-gray-500 text-sm mt-1 mb-4">{v.address}</p>
+                                    <div className="flex items-start justify-between gap-2 mt-1 mb-4">
+                                        <p className="text-gray-500 text-sm line-clamp-2">{v.address}</p>
+                                        {v.latitude && v.longitude && (
+                                            <a
+                                                href={`https://www.google.com/maps/search/?api=1&query=${v.latitude},${v.longitude}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                onClick={(e) => e.stopPropagation()}
+                                                className="text-indigo-600 hover:text-indigo-800 shrink-0 bg-indigo-50 p-1.5 rounded-lg hover:bg-indigo-100 transition"
+                                                title="Ver en mapa"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                            </a>
+                                        )}
+                                    </div>
                                     <div className="flex items-center gap-2 mb-6">
                                         {Array.from(new Set(v.courts.map(c => c.type))).map(type => (
                                             <span key={type} className="px-2 py-1 bg-gray-100 text-gray-600 text-[10px] font-bold rounded uppercase tracking-tighter">
@@ -282,6 +296,18 @@ export default function HomePage() {
                             <div className="absolute bottom-6 left-8 text-white">
                                 <h2 className="text-4xl font-extrabold">{selectedVenue.name}</h2>
                                 <p className="opacity-80 font-medium">{selectedVenue.address}</p>
+                                {selectedVenue.latitude && selectedVenue.longitude && (
+                                    <a
+                                        href={`https://www.google.com/maps/search/?api=1&query=${selectedVenue.latitude},${selectedVenue.longitude}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1 text-xs bg-white/20 hover:bg-white/30 px-2 py-1 rounded-lg text-white mt-2 transition backdrop-blur-sm"
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                        Ver en Google Maps
+                                    </a>
+                                )}
                             </div>
                         </div>
 
