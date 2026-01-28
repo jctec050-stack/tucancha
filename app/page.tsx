@@ -144,7 +144,12 @@ export default function HomePage() {
     if (authLoading || (isLoadingData && venues.length === 0)) { // Show loading only if no data yet (SWR stale-while-revalidate)
          return (
              <div className="min-h-screen flex items-center justify-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+                <div className="flex flex-col items-center gap-4">
+                    <div className="relative w-20 h-20">
+                        <img src="/logo.png" alt="TuCancha" className="w-full h-full object-contain" />
+                        <div className="absolute inset-0 rounded-full border-4 border-indigo-200 border-t-indigo-600 animate-spin opacity-50"></div>
+                    </div>
+                </div>
             </div>
         );
     }
