@@ -67,9 +67,8 @@ export const Navbar = () => {
                     </button>
 
                     {/* Logo */}
-                    <Link href={user.role === 'OWNER' ? '/dashboard' : '/'} className="flex items-center gap-2 md:gap-3 cursor-pointer">
-                        <img src="/logo.png" alt="TuCancha" className="w-8 h-8 md:w-12 md:h-12 object-contain" />
-                        <span className="font-bold text-lg md:text-2xl text-gray-900 tracking-tight">TuCancha!</span>
+                    <Link href={user.role === 'OWNER' ? '/dashboard' : '/'} className="flex items-center cursor-pointer">
+                        <img src="/logo.png" alt="TuCancha" className="w-12 h-12 md:w-16 md:h-16 object-contain" />
                     </Link>
 
                     {/* Desktop Navigation */}
