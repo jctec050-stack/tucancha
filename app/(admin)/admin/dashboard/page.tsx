@@ -213,6 +213,10 @@ const AdminDashboard = () => {
         }).format(amount);
     };
 
+    const formatNumber = (num: number) => {
+        return new Intl.NumberFormat('es-PY').format(num);
+    };
+
     const getDaysRemaining = (dateStr?: string) => {
         if (!dateStr) return -1;
         const end = new Date(dateStr);
@@ -642,10 +646,14 @@ const AdminDashboard = () => {
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Precio Mensual (Gs)</label>
                                 <input 
-                                    type="number"
-                                    value={subForm.price}
-                                    onChange={(e) => setSubForm({...subForm, price: Number(e.target.value)})}
+                                    type="text"
+                                    value={subForm.price === 0 ? '' : formatNumber(subForm.price)}
+                                    onChange={(e) => {
+                                        const rawValue = e.target.value.replace(/\D/g, '');
+                                        setSubForm({...subForm, price: Number(rawValue)});
+                                    }}
                                     className="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    placeholder="0"
                                 />
                             </div>
 

@@ -36,6 +36,10 @@ export const RecurringBookingModal: React.FC<RecurringBookingModalProps> = ({
     const [price, setPrice] = useState<number>(courts[0]?.price_per_hour || 0);
     const [error, setError] = useState<string | null>(null);
 
+    const formatNumber = (num: number) => {
+        return new Intl.NumberFormat('es-PY').format(num);
+    };
+
     useEffect(() => {
         const getOwnerId = async () => {
             const { data: { user } } = await supabase.auth.getUser();
@@ -249,16 +253,19 @@ export const RecurringBookingModal: React.FC<RecurringBookingModalProps> = ({
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Precio Total (Paquete Mensual)</label>
                         <input
-                            type="number"
+                            type="text"
                             required
-                            min="0"
-                            value={price}
-                            onChange={(e) => setPrice(parseInt(e.target.value) || 0)}
+                            value={price === 0 ? '' : formatNumber(price)}
+                            onChange={(e) => {
+                                const rawValue = e.target.value.replace(/\D/g, '');
+                                setPrice(Number(rawValue));
+                            }}
                             className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
+                            placeholder="0"
                         />
                         <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
                             <span className="font-medium text-indigo-600">{turnCount} fechas</span> 
-                            <span>x ${(price / (turnCount || 1)).toFixed(2)} c/u</span>
+                            <span>x Gs. {formatNumber(Math.floor(price / (turnCount || 1)))} c/u</span>
                         </p>
                     </div>
 
