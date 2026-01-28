@@ -24,7 +24,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const fetchProfile = async (userId: string, email: string, retryCount = 0) => {
         // Prevent concurrent fetches for the same user (only for initial attempt)
         if (retryCount === 0 && fetchingProfileRef.current === userId) {
-            console.log('🔄 Profile fetch already in progress for', userId);
             return;
         }
 
@@ -33,8 +32,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
 
         try {
-            console.log(`👤 Fetching profile for user: ${userId} (Attempt ${retryCount + 1})`);
-            
             // Add timeout to prevent hanging indefinitely
             const timeoutPromise = new Promise((_, reject) => 
                 setTimeout(() => reject(new Error('Profile fetch timed out')), 8000)
@@ -57,7 +54,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             }
 
             if (data) {
-                console.log('✅ Profile loaded:', data.full_name);
                 setUser({
                     id: userId,
                     email: email,
@@ -67,8 +63,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 });
             } else {
                 // Profile doesn't exist (likely an old user from before DB reset)
-                console.log('⚠️ Profile not found for user:', userId, '- Attempting to create one...');
-
                 if (retryCount >= 2) {
                     console.error('🛑 Max retries reached. Could not create/fetch profile.');
                     return;
@@ -87,7 +81,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 if (insertError) {
                     console.error('❌ Failed to create missing profile:', insertError);
                 } else {
-                    console.log('✅ Missing profile created successfully. Retrying fetch...');
                     // Retry fetch with incremented counter
                     await fetchProfile(userId, email, retryCount + 1);
                 }
@@ -95,7 +88,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         } catch (e: any) {
             // Ignore AbortError (common when switching tabs or rapid navigation)
             if (e.name === 'AbortError' || e.message?.includes('AbortError')) {
-                console.log('ℹ️ Fetch profile aborted');
                 return;
             }
             console.error('❌ Exception fetching profile:', e);
@@ -111,14 +103,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // Check active session
         const initSession = async () => {
             try {
-                console.log('🔐 Initializing session...');
                 const { data: { session }, error } = await supabase.auth.getSession();
 
                 if (error) {
                     console.error('❌ Session error:', error);
                     // Handle invalid refresh token by clearing session
                     if (error.message.includes('Refresh Token Not Found') || error.message.includes('Invalid Refresh Token')) {
-                        console.log('⚠️ Token inválido/expirado detectado. Limpiando sesión...');
                         await supabase.auth.signOut();
                         setUser(null);
                     }
@@ -127,17 +117,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 }
 
                 if (session?.user?.email) {
-                    console.log('✅ Session found, fetching profile...');
                     await fetchProfile(session.user.id, session.user.email);
-                } else {
-                    console.log('ℹ️ No active session');
                 }
             } catch (error) {
                 console.error('❌ Exception during session init:', error);
             } finally {
                 // Always set loading to false, even if there's an error
                 setIsLoading(false);
-                console.log('✅ Session initialization complete');
             }
         };
 
@@ -145,7 +131,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         // Listen for auth changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            console.log('🔄 Auth state changed:', event);
             if (event === 'SIGNED_IN' && session?.user?.email) {
                 await fetchProfile(session.user.id, session.user.email);
             } else if (event === 'SIGNED_OUT') {
@@ -181,8 +166,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
 
     const register = async (name: string, email: string, phone: string, password: string, role: UserRole): Promise<{ success: boolean; error?: string }> => {
-        console.log('Attempting to register user:', { name, email, role });
-
         // Sign up with metadata so the trigger (schema.sql) can populate the profiles table
         const { data, error } = await supabase.auth.signUp({
             email,
@@ -196,8 +179,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 emailRedirectTo: process.env.NEXT_PUBLIC_APP_URL || window.location.origin
             }
         });
-
-        console.log('Supabase signUp response:', { data, error });
 
         if (error) {
             console.error('Registration error:', error);
@@ -229,8 +210,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             return { success: false, error: 'Error al crear la cuenta. Por favor intenta nuevamente.' };
         }
 
-        console.log('Registration successful, user created:', data.user.id);
-        return { success: true };
+        if (data.user) {
+            return { success: true };
+        }
+        
+        return { success: false, error: 'Error desconocido' };
     };
 
     const resetPassword = async (email: string): Promise<{ success: boolean; error?: string }> => {
@@ -248,7 +232,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const logout = async () => {
         // Optimistic logout: clear state immediately for instant UI response
-        console.log('🚪 Logging out...');
         setUser(null);
 
         // Sign out in background
@@ -257,12 +240,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             if (error) {
                 // Ignore session missing error as we are logging out anyway
                 if (error.message?.includes('session missing') || error.status === 403) {
-                    console.log('ℹ️ Session already expired or missing during logout.');
+                    // Session already expired or missing
                 } else {
                     console.warn('⚠️ Logout warning:', error.message);
                 }
-            } else {
-                console.log('✅ Logout successful');
             }
         } catch (error) {
             console.warn('⚠️ Exception during logout (background):', error);

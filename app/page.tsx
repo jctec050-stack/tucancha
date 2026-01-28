@@ -237,18 +237,16 @@ export default function HomePage() {
                                     <h3 className="text-xl font-bold text-gray-900">{v.name}</h3>
                                     <div className="flex items-start justify-between gap-2 mt-1 mb-4">
                                         <p className="text-gray-500 text-sm line-clamp-2">{v.address}</p>
-                                        {v.latitude && v.longitude && (
-                                            <a
-                                                href={`https://www.google.com/maps/search/?api=1&query=${v.latitude},${v.longitude}`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                onClick={(e) => e.stopPropagation()}
-                                                className="text-indigo-600 hover:text-indigo-800 shrink-0 bg-indigo-50 p-1.5 rounded-lg hover:bg-indigo-100 transition"
-                                                title="Ver en mapa"
-                                            >
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                                            </a>
-                                        )}
+                                        <a
+                                            href={`https://www.google.com/maps/search/?api=1&query=${v.latitude && v.longitude ? `${v.latitude},${v.longitude}` : encodeURIComponent(v.address)}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            onClick={(e) => e.stopPropagation()}
+                                            className="text-indigo-600 hover:text-indigo-800 shrink-0 bg-indigo-50 p-1.5 rounded-lg hover:bg-indigo-100 transition"
+                                            title="Ver en mapa"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                        </a>
                                     </div>
                                     <div className="flex items-center gap-2 mb-6">
                                         {Array.from(new Set(v.courts.map(c => c.type))).map(type => (

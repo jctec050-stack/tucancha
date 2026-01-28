@@ -13,9 +13,6 @@ export const uploadImage = async (
     path: string
 ): Promise<string | null> => {
     try {
-        console.log(`📤 Uploading image to ${bucket}/${path}`);
-        console.log(`ℹ️ File details: type=${file.type}, size=${file.size} bytes`);
-
         // Create a timeout promise (15 seconds)
         const timeoutPromise = new Promise((_, reject) =>
             setTimeout(() => reject(new Error('Upload request timed out (15s)')), 15000)
@@ -43,7 +40,6 @@ export const uploadImage = async (
             .from(bucket)
             .getPublicUrl(path);
 
-        console.log('✅ Image uploaded successfully:', publicUrl);
         return publicUrl;
     } catch (error) {
         console.error('❌ Exception uploading image:', error);
@@ -93,7 +89,6 @@ export const getOwnerVenues = async (ownerId: string): Promise<Venue[]> => {
         return data as Venue[];
     } catch (error: any) {
         if (error.name === 'AbortError' || error.message?.includes('AbortError')) {
-            console.log('ℹ️ Fetch owner venues aborted');
             return [];
         }
         console.error('❌ Error fetching owner venues:', error);
@@ -103,7 +98,6 @@ export const getOwnerVenues = async (ownerId: string): Promise<Venue[]> => {
 
 export const createVenue = async (venueData: Omit<Venue, 'id' | 'courts' | 'created_at' | 'updated_at' | 'is_active'>): Promise<Venue | null> => {
     try {
-        console.log('🏟️ Creating Venue with data:', venueData);
         // Payload is already snake_case if typing matches
         // Explicit mapping to be safe
         const payload = {
@@ -130,7 +124,6 @@ export const createVenue = async (venueData: Omit<Venue, 'id' | 'courts' | 'crea
             throw error;
         }
 
-        console.log('✅ Venue created via API:', data);
         return data as Venue;
     } catch (error) {
         console.error('❌ Exception in createVenue:', error);
@@ -190,34 +183,40 @@ export const deleteVenue = async (id: string): Promise<boolean> => {
 
 export const addCourts = async (venueId: string, courts: CourtInput[]) => {
     try {
-        const courtsToInsert = await Promise.all(courts.map(async (court, index) => {
-            console.log(`Processing court ${index + 1}/${courts.length}: ${court.name}`);
-
-            let finalImageUrl = court.image_url || '';
+        const courtsWithVenueId = [];
+        
+        for (let index = 0; index < courts.length; index++) {
+            const court = courts[index];
+            
+            let imageUrl = court.image_url;
             const imageFile = court.imageFile;
 
             if (imageFile) {
-                console.log(`📸 Uploading image for court ${court.name}...`);
                 const cleanFileName = imageFile.name.replace(/[^a-zA-Z0-9.-]/g, '_');
                 const path = `courts/${venueId}/${Date.now()}_${cleanFileName}`;
 
                 const uploadedUrl = await uploadImage(imageFile, 'venue-images', path);
-                if (uploadedUrl) finalImageUrl = uploadedUrl;
+                if (uploadedUrl) imageUrl = uploadedUrl;
             }
-
-            return {
+            
+            courtsWithVenueId.push({
                 venue_id: venueId,
                 name: court.name,
                 type: court.type,
                 price_per_hour: court.price_per_hour,
-                is_active: court.is_active ?? true,
-                image_url: finalImageUrl
-            };
-        }));
+                image_url: imageUrl,
+                is_active: court.is_active ?? true
+            });
+        }
 
-        const { error } = await supabase.from('courts').insert(courtsToInsert);
+        const { data, error } = await supabase
+            .from('courts')
+            .insert(courtsWithVenueId)
+            .select();
+
         if (error) throw error;
-        console.log('✅ Courts inserted successfully');
+        
+        return data as Court[];
     } catch (error) {
         console.error('❌ Error adding courts:', error);
         throw error;
@@ -472,10 +471,8 @@ export const toggleSlotAvailability = async (
             .maybeSingle(); // FIX: Avoid 406 error
 
         if (data) {
-            console.log(`✅ Slot occupied (${data.id}). Re-enabling...`);
             return await deleteDisabledSlot(data.id);
         } else {
-            console.log(`🚫 Slot free. Disabling...`);
             await createDisabledSlot({
                 venue_id: venueId,
                 court_id: courtId,
