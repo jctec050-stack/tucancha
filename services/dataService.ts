@@ -402,27 +402,47 @@ export const createRecurringBookings = async (
     let failures = 0;
     const start = new Date(startDate);
     const end = new Date(endDate);
+    const datesToBook: string[] = [];
     
-    // Iterate through dates
+    // 1. Calculate valid dates first
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
         if (d.getDay() === dayOfWeek) {
-            const dateStr = d.toISOString().split('T')[0];
-            
-            // Check if slot is free (simple check, backend RLS/constraints might also catch this)
-            // But for bulk, we try to insert.
-            const booking = {
-                ...bookingTemplate,
-                date: dateStr
-            };
-            
-            const result = await createBooking(booking);
-            if (result) {
-                success++;
-            } else {
-                failures++;
-            }
+            datesToBook.push(d.toISOString().split('T')[0]);
         }
     }
+
+    if (datesToBook.length === 0) {
+        return { success: 0, failures: 0 };
+    }
+
+    // 2. Calculate price per booking (Total / Count) with remainder distribution
+    // This ensures the sum of all booking prices equals exactly the total price provided
+    const totalCount = datesToBook.length;
+    const basePrice = Math.floor(bookingTemplate.price / totalCount);
+    const remainder = bookingTemplate.price % totalCount;
+
+    // 3. Create Bookings
+    for (let i = 0; i < totalCount; i++) {
+        const dateStr = datesToBook[i];
+        
+        // Distribute remainder among the first few bookings
+        // e.g. 100 / 3 => 33.33... => 34, 33, 33 (Sum: 100)
+        const finalPrice = i < remainder ? basePrice + 1 : basePrice;
+
+        const booking = {
+            ...bookingTemplate,
+            price: finalPrice,
+            date: dateStr
+        };
+        
+        const result = await createBooking(booking);
+        if (result) {
+            success++;
+        } else {
+            failures++;
+        }
+    }
+
     return { success, failures };
 };
 

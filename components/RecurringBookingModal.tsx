@@ -45,6 +45,21 @@ export const RecurringBookingModal: React.FC<RecurringBookingModalProps> = ({
         { value: 6, label: 'Sábado' },
     ];
 
+    const calculateTurnCount = () => {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        let count = 0;
+        // Clone start to avoid modifying state reference if it were an object (it's a string here but good practice for Date loop)
+        const current = new Date(start);
+        while (current <= end) {
+            if (current.getDay() === dayOfWeek) count++;
+            current.setDate(current.getDate() + 1);
+        }
+        return count;
+    };
+    
+    const turnCount = calculateTurnCount();
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
@@ -206,15 +221,19 @@ export const RecurringBookingModal: React.FC<RecurringBookingModalProps> = ({
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Precio por Turno</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Precio Total (Paquete Mensual)</label>
                         <input
                             type="number"
                             required
                             min="0"
                             value={price}
-                            onChange={(e) => setPrice(parseInt(e.target.value))}
+                            onChange={(e) => setPrice(parseInt(e.target.value) || 0)}
                             className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
                         />
+                        <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                            <span className="font-medium text-indigo-600">{turnCount} fechas</span> 
+                            <span>x ${(price / (turnCount || 1)).toFixed(2)} c/u</span>
+                        </p>
                     </div>
 
                     <div className="pt-4 flex gap-3">
