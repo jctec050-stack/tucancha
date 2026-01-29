@@ -31,8 +31,6 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Refresh session if expired - required for Server Components
-  // https://supabase.com/docs/guides/auth/server-side/nextjs
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -43,21 +41,30 @@ export async function middleware(request: NextRequest) {
   if (user) {
     if (path.startsWith('/login') || path.startsWith('/register')) {
       const role = user.user_metadata?.role || 'PLAYER'
+      let redirectUrl = '/'
       
       if (role === 'ADMIN') {
-        return NextResponse.redirect(new URL('/admin/dashboard', request.url))
+        redirectUrl = '/admin/dashboard'
       } else if (role === 'OWNER') {
-        return NextResponse.redirect(new URL('/dashboard', request.url))
-      } else {
-        return NextResponse.redirect(new URL('/', request.url))
+        redirectUrl = '/dashboard'
       }
+      
+      const redirectResponse = NextResponse.redirect(new URL(redirectUrl, request.url))
+      // Copy cookies from response (which might have refreshed tokens) to redirectResponse
+      // Note: This is crucial for keeping the session valid after redirect
+      const setCookieHeader = response.headers.get('set-cookie')
+      if (setCookieHeader) {
+         redirectResponse.headers.set('set-cookie', setCookieHeader)
+      }
+      return redirectResponse
     }
   }
 
   // 2. Protect Admin Routes
   if (path.startsWith('/admin')) {
     if (!user) {
-      return NextResponse.redirect(new URL('/login', request.url))
+      const redirectResponse = NextResponse.redirect(new URL('/login', request.url))
+      return redirectResponse
     }
     const role = user.user_metadata?.role
     if (role !== 'ADMIN') {
@@ -85,6 +92,7 @@ export async function middleware(request: NextRequest) {
 
   return response
 }
+
 
 export const config = {
   matcher: [
