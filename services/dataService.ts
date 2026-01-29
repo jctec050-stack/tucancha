@@ -148,6 +148,17 @@ export const getOwnerVenues = async (ownerId: string): Promise<Venue[]> => {
 
 export const createVenue = async (venueData: Omit<Venue, 'id' | 'courts' | 'created_at' | 'updated_at' | 'is_active'>): Promise<Venue | null> => {
     try {
+        // 1. Check for duplicates (Name check - Case Insensitive)
+        const { data: existingVenue } = await supabase
+            .from('venues')
+            .select('id')
+            .ilike('name', venueData.name)
+            .maybeSingle();
+
+        if (existingVenue) {
+            throw new Error('DUPLICATE_VENUE_NAME');
+        }
+
         // Payload is already snake_case if typing matches
         // Explicit mapping to be safe
         const payload = {
@@ -196,14 +207,31 @@ export const createVenueWithCourts = async (
             await addCourts(createdVenue.id, newCourts);
         }
         return true;
-    } catch (error) {
+    } catch (error: any) {
         console.error('❌ Error in createVenueWithCourts:', error);
+        if (error.message === 'DUPLICATE_VENUE_NAME') {
+            throw error;
+        }
         return false;
     }
 };
 
 export const updateVenue = async (id: string, updates: Partial<Venue>): Promise<boolean> => {
     try {
+        if (updates.name) {
+            // Check if another venue (not this one) has the same name
+            const { data: existingVenue } = await supabase
+                .from('venues')
+                .select('id')
+                .ilike('name', updates.name)
+                .neq('id', id)
+                .maybeSingle();
+
+            if (existingVenue) {
+                throw new Error('DUPLICATE_VENUE_NAME');
+            }
+        }
+
         const { error } = await supabase
             .from('venues')
             .update(updates)
@@ -211,8 +239,11 @@ export const updateVenue = async (id: string, updates: Partial<Venue>): Promise<
 
         if (error) throw error;
         return true;
-    } catch (error) {
+    } catch (error: any) {
         console.error('❌ Error updating venue:', error);
+        if (error.message === 'DUPLICATE_VENUE_NAME') {
+            throw error;
+        }
         return false;
     }
 };

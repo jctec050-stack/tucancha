@@ -101,9 +101,13 @@ export default function VenuesPage() {
                     throw new Error('Failed to create venue');
                 }
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error saving venue:', error);
-            setToast({ message: 'Error al guardar el complejo.', type: 'error' });
+            if (error.message === 'DUPLICATE_VENUE_NAME') {
+                setToast({ message: 'Ya existe un complejo con ese nombre.', type: 'error' });
+            } else {
+                setToast({ message: 'Error al guardar el complejo.', type: 'error' });
+            }
         }
         setShowAddCourtModal(false); // Close modal
     };
