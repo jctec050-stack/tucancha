@@ -46,7 +46,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onSwitchToRegiste
             <div className="bg-white p-8 md:p-10 rounded-3xl shadow-2xl">
                 <div className="mb-6 text-center">
                     <div className="inline-block mb-4">
-                        <img src="/logo.png" alt="TuCancha" className="w-40 h-40 object-contain" />
+                        <img src="/logo.png" alt="TuCancha" className="w-56 h-56 object-contain" />
                     </div>
                     <h2 className="text-3xl font-extrabold text-gray-900 mb-2">Bienvenido</h2>
                 </div>
