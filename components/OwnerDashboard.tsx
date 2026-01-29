@@ -255,10 +255,17 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ bookings, disabl
             {revenueGrowth >= 0 ? '↑' : '↓'} {Math.abs(revenueGrowth).toFixed(1)}% vs ayer
           </span>
         </div>
-        <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100">
-          <p className="text-gray-500 text-xs md:text-sm font-medium">Reservas Activas</p>
+        <div 
+          onClick={() => setShowActiveBookingsModal(true)}
+          className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100 cursor-pointer hover:shadow-md transition group"
+        >
+          <p className="text-gray-500 text-xs md:text-sm font-medium group-hover:text-indigo-600 transition">Reservas Activas</p>
           <h4 className="text-xl md:text-3xl font-bold text-gray-900 mt-1">{dailyActiveBookings.length}</h4>
           <span className="text-blue-500 text-[10px] md:text-xs font-semibold">Para el {selectedDate}</span>
+          <div className="mt-2 text-[10px] text-gray-400 flex items-center gap-1">
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+            Ver detalles
+          </div>
         </div>
         <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100">
           <p className="text-gray-500 text-xs md:text-sm font-medium">Cancelaciones</p>
@@ -452,6 +459,89 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ bookings, disabl
           </div>
         </div>
       </div>
+
+      {/* Active Bookings Modal */}
+      {showActiveBookingsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowActiveBookingsModal(false)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200" onClick={e => e.stopPropagation()}>
+            <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">Reservas Activas</h3>
+                <p className="text-sm text-gray-500">{selectedDate} • {dailyActiveBookings.length} reservas</p>
+              </div>
+              <button onClick={() => setShowActiveBookingsModal(false)} className="p-2 hover:bg-gray-200 rounded-full transition text-gray-400 hover:text-gray-600">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            
+            <div className="p-4 border-b border-gray-100 bg-white flex justify-end">
+              <button 
+                onClick={handleDownloadPDF}
+                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium text-sm shadow-sm hover:shadow"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                Descargar Reporte PDF
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-auto p-0">
+              <table className="w-full text-left">
+                <thead className="bg-gray-50 sticky top-0 z-10">
+                  <tr className="text-xs uppercase font-bold text-gray-500 border-b border-gray-200">
+                    <th className="px-6 py-3">Hora</th>
+                    <th className="px-6 py-3">Cancha</th>
+                    <th className="px-6 py-3">Cliente</th>
+                    <th className="px-6 py-3 text-right">Precio</th>
+                    <th className="px-6 py-3 text-center">Estado</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {dailyActiveBookings.length > 0 ? (
+                    dailyActiveBookings.map((booking, idx) => (
+                      <tr key={idx} className="hover:bg-gray-50 transition">
+                        <td className="px-6 py-4 font-bold text-gray-900 whitespace-nowrap">
+                          {booking.start_time.substring(0, 5)} - {booking.end_time ? booking.end_time.substring(0, 5) : '??:??'}
+                        </td>
+                        <td className="px-6 py-4 text-gray-600">{booking.court_name || 'Cancha'}</td>
+                        <td className="px-6 py-4">
+                          <div className="font-medium text-gray-900">{booking.player_name || 'Cliente'}</div>
+                          <div className="text-xs text-gray-500">{booking.player_phone || '-'}</div>
+                        </td>
+                        <td className="px-6 py-4 text-right font-bold text-gray-900">
+                          Gs. {booking.price.toLocaleString('es-PY')}
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                           <span className={`inline-block px-2 py-1 rounded-full text-xs font-bold ${
+                            booking.status === 'ACTIVE' ? 'bg-green-100 text-green-700' :
+                            booking.status === 'COMPLETED' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'
+                           }`}>
+                             {booking.status}
+                           </span>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-12 text-center text-gray-400">
+                        No hay reservas activas para esta fecha.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+                <tfoot className="bg-gray-50 font-bold text-gray-900 sticky bottom-0 border-t border-gray-200">
+                  <tr>
+                    <td colSpan={3} className="px-6 py-3 text-right">Total:</td>
+                    <td className="px-6 py-3 text-right">
+                      Gs. {dailyActiveBookings.reduce((sum, b) => sum + b.price, 0).toLocaleString('es-PY')}
+                    </td>
+                    <td></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
