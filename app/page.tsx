@@ -210,9 +210,9 @@ export default function HomePage() {
                                     </div>
                                 </div>
                                 <div className="p-4 md:p-6">
-                                    <h3 className="text-xl font-bold text-gray-900">{v.name}</h3>
+                                    <h3 className="text-lg font-bold text-gray-900">{v.name}</h3>
                                     <div className="flex items-start justify-between gap-2 mt-1 mb-4">
-                                        <p className="text-gray-500 text-sm line-clamp-2">{v.address}</p>
+                                        <p className="text-gray-500 text-xs line-clamp-2">{v.address}</p>
                                         <a
                                             href={`https://www.google.com/maps/search/?api=1&query=${v.latitude && v.longitude ? `${v.latitude},${v.longitude}` : encodeURIComponent(v.address)}`}
                                             target="_blank"
