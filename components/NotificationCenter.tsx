@@ -10,7 +10,7 @@ interface NotificationCenterProps {
 
 export const NotificationCenter: React.FC<NotificationCenterProps> = ({ notifications, onClose, onClear }) => {
   return (
-    <div className="absolute top-16 right-4 w-80 bg-white shadow-2xl rounded-xl border border-gray-100 z-50 overflow-hidden">
+    <div className="fixed top-16 left-4 right-4 md:absolute md:top-full md:right-0 md:left-auto md:w-80 md:mx-0 bg-white shadow-2xl rounded-xl border border-gray-100 z-50 overflow-hidden mt-2">
       <div className="p-4 bg-indigo-600 text-white flex justify-between items-center">
         <h3 className="font-bold">Notificaciones</h3>
         <div className="flex gap-2">
@@ -20,7 +20,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({ notifica
           </button>
         </div>
       </div>
-      <div className="max-h-96 overflow-y-auto">
+      <div className="max-h-[60vh] md:max-h-96 overflow-y-auto">
         {notifications.length === 0 ? (
           <div className="p-8 text-center text-gray-400 text-sm">No tienes notificaciones nuevas</div>
         ) : (
