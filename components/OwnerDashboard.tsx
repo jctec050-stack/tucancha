@@ -82,13 +82,55 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ bookings, disabl
         .filter(b => b.status === 'ACTIVE' || b.status === 'COMPLETED')
         .reduce((sum, b) => sum + b.price, 0);
 
+    // Group consecutive bookings
+    const sortedForGrouping = [...monthlyBookings].sort((a, b) => {
+        if (a.date !== b.date) return a.date.localeCompare(b.date);
+        return a.start_time.localeCompare(b.start_time);
+    });
+
+    const groupedHistory: any[] = [];
+    
+    if (sortedForGrouping.length > 0) {
+        // Helper to ensure end_time
+        const getEndTime = (b: Booking) => {
+            if (b.end_time) return b.end_time;
+            const [h, m] = b.start_time.split(':').map(Number);
+            return `${(h+1).toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:00`;
+        };
+
+        let current = { ...sortedForGrouping[0], end_time: getEndTime(sortedForGrouping[0]) };
+
+        for (let i = 1; i < sortedForGrouping.length; i++) {
+            const next = { ...sortedForGrouping[i], end_time: getEndTime(sortedForGrouping[i]) };
+
+            const currentEnd = current.end_time.substring(0, 5);
+            const nextStart = next.start_time.substring(0, 5);
+
+            const isConsecutive = currentEnd === nextStart;
+            const isSameDate = current.date === next.date;
+            const isSamePlayer = (current.player_id && current.player_id === next.player_id) || (!current.player_id && current.player_name === next.player_name);
+            const isSameCourt = current.court_id === next.court_id;
+            const isSameStatus = current.status === next.status;
+
+            if (isSameDate && isSamePlayer && isSameCourt && isSameStatus && isConsecutive) {
+                // Merge
+                current.end_time = next.end_time;
+                current.price += next.price;
+            } else {
+                groupedHistory.push(current);
+                current = next;
+            }
+        }
+        groupedHistory.push(current);
+    }
+
     // Sort by date descending, then time descending
-    const sortedHistory = [...monthlyBookings].sort((a, b) => {
+    const finalHistory = groupedHistory.sort((a, b) => {
         if (a.date !== b.date) return b.date.localeCompare(a.date);
         return b.start_time.localeCompare(a.start_time);
     });
 
-    return { monthlyHistory: sortedHistory, monthlyRevenue: totalRevenue };
+    return { monthlyHistory: finalHistory, monthlyRevenue: totalRevenue };
   }, [bookings, selectedDate]);
 
   // Memoize Schedule Items (Grouped)
@@ -380,7 +422,9 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ bookings, disabl
                                     <span className="text-xs font-bold text-gray-700 bg-white px-2 py-0.5 rounded border border-gray-200">
                                         {booking.date.split('-')[2]}/{booking.date.split('-')[1]}
                                     </span>
-                                    <span className="text-xs text-gray-500 font-medium">{booking.start_time}</span>
+                                    <span className="text-xs text-gray-500 font-medium">
+                                        {booking.start_time?.substring(0, 5)} {booking.end_time ? `- ${booking.end_time.substring(0, 5)}` : ''}
+                                    </span>
                                 </div>
                                 <p className="text-sm font-bold text-gray-800 line-clamp-1">{booking.player_name || 'Cliente'}</p>
                                 <p className="text-xs text-gray-500">{booking.court_name || 'Cancha'}</p>
