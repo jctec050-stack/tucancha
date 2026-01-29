@@ -202,28 +202,28 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ bookings, disabl
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-          <p className="text-gray-500 text-sm font-medium">Ingresos ({selectedDate})</p>
-          <h4 className="text-3xl font-bold text-gray-900 mt-1">Gs. {dailyRevenue.toLocaleString('es-PY')}</h4>
-          <span className={`text-xs font-semibold ${revenueGrowth >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100">
+          <p className="text-gray-500 text-xs md:text-sm font-medium">Ingresos ({selectedDate})</p>
+          <h4 className="text-xl md:text-3xl font-bold text-gray-900 mt-1">Gs. {dailyRevenue.toLocaleString('es-PY')}</h4>
+          <span className={`text-[10px] md:text-xs font-semibold ${revenueGrowth >= 0 ? 'text-green-500' : 'text-red-500'}`}>
             {revenueGrowth >= 0 ? '↑' : '↓'} {Math.abs(revenueGrowth).toFixed(1)}% vs ayer
           </span>
         </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-          <p className="text-gray-500 text-sm font-medium">Reservas Activas</p>
-          <h4 className="text-3xl font-bold text-gray-900 mt-1">{dailyActiveBookings.length}</h4>
-          <span className="text-blue-500 text-xs font-semibold">Para el {selectedDate}</span>
+        <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100">
+          <p className="text-gray-500 text-xs md:text-sm font-medium">Reservas Activas</p>
+          <h4 className="text-xl md:text-3xl font-bold text-gray-900 mt-1">{dailyActiveBookings.length}</h4>
+          <span className="text-blue-500 text-[10px] md:text-xs font-semibold">Para el {selectedDate}</span>
         </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-          <p className="text-gray-500 text-sm font-medium">Cancelaciones</p>
-          <h4 className="text-3xl font-bold text-gray-900 mt-1">{dailyBookings.filter(b => b.status === 'CANCELLED').length}</h4>
-          <span className="text-red-500 text-xs font-semibold">En este día</span>
+        <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100">
+          <p className="text-gray-500 text-xs md:text-sm font-medium">Cancelaciones</p>
+          <h4 className="text-xl md:text-3xl font-bold text-gray-900 mt-1">{dailyBookings.filter(b => b.status === 'CANCELLED').length}</h4>
+          <span className="text-red-500 text-[10px] md:text-xs font-semibold">En este día</span>
         </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-          <p className="text-gray-500 text-sm font-medium">Canchas</p>
-          <h4 className="text-3xl font-bold text-gray-900 mt-1">{venue.courts.length}</h4>
-          <span className="text-gray-400 text-xs">{venue.name}</span>
+        <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100">
+          <p className="text-gray-500 text-xs md:text-sm font-medium">Canchas</p>
+          <h4 className="text-xl md:text-3xl font-bold text-gray-900 mt-1">{venue.courts.length}</h4>
+          <span className="text-gray-400 text-[10px] md:text-xs">{venue.name}</span>
         </div>
       </div>
 

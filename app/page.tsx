@@ -205,11 +205,11 @@ export default function HomePage() {
                                              </div>
                                          );
                                      })()}
-                                    <div className="absolute top-4 right-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-indigo-600 uppercase tracking-wider">
+                                    <div className="absolute top-4 right-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-indigo-600 uppercase tracking-wider shadow-sm">
                                         Abierto: {v.opening_hours}
                                     </div>
                                 </div>
-                                <div className="p-6">
+                                <div className="p-4 md:p-6">
                                     <h3 className="text-xl font-bold text-gray-900">{v.name}</h3>
                                     <div className="flex items-start justify-between gap-2 mt-1 mb-4">
                                         <p className="text-gray-500 text-sm line-clamp-2">{v.address}</p>
@@ -218,20 +218,20 @@ export default function HomePage() {
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             onClick={(e) => e.stopPropagation()}
-                                            className="text-indigo-600 hover:text-indigo-800 shrink-0 bg-indigo-50 p-1.5 rounded-lg hover:bg-indigo-100 transition"
+                                            className="text-indigo-600 hover:text-indigo-800 shrink-0 bg-indigo-50 p-2 rounded-lg hover:bg-indigo-100 transition active:scale-95 touch-manipulation"
                                             title="Ver en mapa"
                                         >
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                                         </a>
                                     </div>
-                                    <div className="flex items-center gap-2 mb-6">
+                                    <div className="flex items-center gap-2 mb-6 flex-wrap">
                                         {Array.from(new Set(v.courts.map(c => c.type))).map(type => (
                                             <span key={type} className="px-2 py-1 bg-gray-100 text-gray-600 text-[10px] font-bold rounded uppercase tracking-tighter">
                                                 {type}
                                             </span>
                                         ))}
                                     </div>
-                                    <button className="w-full py-3 bg-indigo-50 text-indigo-600 font-bold rounded-xl hover:bg-indigo-600 hover:text-white transition">
+                                    <button className="w-full py-3 bg-indigo-50 text-indigo-600 font-bold rounded-xl hover:bg-indigo-600 hover:text-white transition active:scale-95 touch-manipulation">
                                         Ver Disponibilidad
                                     </button>
                                 </div>
@@ -412,7 +412,7 @@ export default function HomePage() {
                                             </span>
                                         </div>
 
-                                        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
+                                        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2 md:gap-3">
                                             {TIME_SLOTS.map(slot => {
                                                 const isBooked = bookings.some(b =>
                                                     b.venue_id === selectedVenue.id &&
@@ -437,15 +437,15 @@ export default function HomePage() {
                                                         disabled={isUnavailable}
                                                         onClick={() => handleSlotSelect(selectedVenue, court, slot)}
                                                         className={`
-                                                        py-3 rounded-xl font-bold text-sm transition-all
+                                                        py-3 rounded-xl font-bold text-xs md:text-sm transition-all active:scale-95 touch-manipulation
                                                         ${isUnavailable
                                                                 ? 'bg-gray-100 text-gray-300 cursor-not-allowed border border-gray-200 line-through'
                                                                 : isSelected
                                                                     ? 'bg-indigo-600 text-white shadow-lg scale-105 ring-2 ring-indigo-300'
-                                                                    : 'bg-white border-2 border-indigo-100 text-indigo-600 hover:border-indigo-600 hover:bg-indigo-50 shadow-sm active:scale-95'}
+                                                                    : 'bg-white border-2 border-indigo-100 text-indigo-600 hover:border-indigo-600 hover:bg-indigo-50 shadow-sm'}
                                                     `}
                                                     >
-                                                        {slot} - {parseInt(slot.split(':')[0]) + 1}:00
+                                                        {slot}
                                                     </button>
                                                 );
                                             })}

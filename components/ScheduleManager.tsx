@@ -216,7 +216,7 @@ export const ScheduleManager: React.FC<ScheduleManagerProps> = ({
                                     </span>
                                 </div>
 
-                                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
+                                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2 md:gap-3">
                                     {TIME_SLOTS.map(slot => {
                                         const status = getSlotStatus(court.id, slot);
                                         const loadingKey = `${court.id}-${slot}`;
@@ -228,7 +228,7 @@ export const ScheduleManager: React.FC<ScheduleManagerProps> = ({
                                                 disabled={status === 'booked' || isLoading}
                                                 onClick={() => handleSlotClick(court.id, slot, court.name)}
                                                 className={`
-                                                    py-3 rounded-xl font-bold text-sm transition-all relative
+                                                    py-3 rounded-xl font-bold text-xs md:text-sm transition-all relative touch-manipulation
                                                     ${status === 'available'
                                                         ? 'bg-green-50 border-2 border-green-500 text-green-700 hover:bg-green-100 active:scale-95'
                                                         : status === 'disabled'
@@ -246,7 +246,7 @@ export const ScheduleManager: React.FC<ScheduleManagerProps> = ({
                                                     </div>
                                                 ) : null}
                                                 <span className={isLoading ? 'opacity-0' : ''}>
-                                                    {slot} a {parseInt(slot.split(':')[0]) + 1}:00
+                                                    {slot}
                                                 </span>
                                             </button>
                                         );
