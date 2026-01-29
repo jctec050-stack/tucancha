@@ -532,7 +532,10 @@ export const getVenueBookings = async (venueId: string, date: string): Promise<B
     }
 };
 
-export const createBooking = async (booking: Omit<Booking, 'id' | 'created_at' | 'updated_at'>): Promise<{ success: boolean; data?: Booking; error?: string }> => {
+export const createBooking = async (
+    booking: Omit<Booking, 'id' | 'created_at' | 'updated_at'>,
+    shouldNotify: boolean = true
+): Promise<{ success: boolean; data?: Booking; error?: string }> => {
     try {
         const { data, error } = await supabase
             .from('bookings')
@@ -550,28 +553,30 @@ export const createBooking = async (booking: Omit<Booking, 'id' | 'created_at' |
         // --------------------------------------------
         // NOTIFY OWNER
         // --------------------------------------------
-        try {
-            // Get Venue Name and Owner ID
-            const { data: venue } = await supabase
-                .from('venues')
-                .select('name, owner_id')
-                .eq('id', booking.venue_id)
-                .single();
+        if (shouldNotify) {
+            try {
+                // Get Venue Name and Owner ID
+                const { data: venue } = await supabase
+                    .from('venues')
+                    .select('name, owner_id')
+                    .eq('id', booking.venue_id)
+                    .single();
 
-            if (venue && venue.owner_id) {
-                const dateFormatted = new Date(booking.date).toLocaleDateString('es-PY');
-                const startTime = booking.start_time?.substring(0, 5) || '??:??';
-                
-                await createNotification(
-                    venue.owner_id,
-                    'Nueva Reserva Recibida',
-                    `Nueva reserva en ${venue.name} para el ${dateFormatted} a las ${startTime}hs`,
-                    'BOOKING',
-                    { booking_id: data.id, venue_id: booking.venue_id }
-                );
+                if (venue && venue.owner_id) {
+                    const dateFormatted = new Date(booking.date).toLocaleDateString('es-PY');
+                    const startTime = booking.start_time?.substring(0, 5) || '??:??';
+                    
+                    await createNotification(
+                        venue.owner_id,
+                        'Nueva Reserva Recibida',
+                        `Nueva reserva en ${venue.name} para el ${dateFormatted} a las ${startTime}hs`,
+                        'BOOKING',
+                        { booking_id: data.id, venue_id: booking.venue_id }
+                    );
+                }
+            } catch (notifError) {
+                console.error('Error sending notification (non-blocking):', notifError);
             }
-        } catch (notifError) {
-            console.error('Error sending notification (non-blocking):', notifError);
         }
 
         // Return with time trimmed logic
@@ -587,6 +592,51 @@ export const createBooking = async (booking: Omit<Booking, 'id' | 'created_at' |
     } catch (error) {
         console.error('❌ Error creating booking:', error);
         return { success: false, error: 'ERROR_DESCONOCIDO' };
+    }
+};
+
+export const notifyOwnerOfBookingBatch = async (
+    venueId: string,
+    date: string,
+    bookings: Booking[]
+) => {
+    try {
+        // Get Venue Name and Owner ID
+        const { data: venue } = await supabase
+            .from('venues')
+            .select('name, owner_id')
+            .eq('id', venueId)
+            .single();
+
+        if (!venue || !venue.owner_id) return;
+
+        if (bookings.length === 0) return;
+
+        // Sort bookings by time
+        const sorted = [...bookings].sort((a, b) => a.start_time.localeCompare(b.start_time));
+        const start = sorted[0].start_time.substring(0, 5);
+        const last = sorted[sorted.length - 1];
+        
+        // Calculate end time of last booking (assuming 1h slots if not provided, but usually provided)
+        let end = last.end_time?.substring(0, 5);
+        if (!end) {
+            const [h, m] = last.start_time.split(':').map(Number);
+            end = `${(h+1).toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+        }
+
+        // Format Date
+        const dateFormatted = new Date(date).toLocaleDateString('es-PY');
+
+        await createNotification(
+            venue.owner_id,
+            'Nueva Reserva Recibida',
+            `Nueva reserva en ${venue.name} para el ${dateFormatted} de ${start} a ${end}hs`,
+            'BOOKING',
+            { booking_id: sorted[0].id, venue_id: venueId } // Link to first booking
+        );
+
+    } catch (error) {
+        console.error('❌ Error sending batch notification:', error);
     }
 };
 

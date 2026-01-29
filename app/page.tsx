@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/AuthContext';
 import { useRouter } from 'next/navigation';
 import { Venue, Court } from '@/types';
-import { createBooking } from '@/services/dataService';
+import { createBooking, notifyOwnerOfBookingBatch } from '@/services/dataService';
 import { TIME_SLOTS } from '@/constants';
 import { CourtCard } from '@/components/CourtCard';
 import { Toast } from '@/components/Toast';
@@ -128,6 +128,7 @@ export default function HomePage() {
         let successCount = 0;
         let failCount = 0;
         let lastError = '';
+        const successfulBookings: any[] = [];
 
         for (const slot of selectedSlots) {
             const result = await createBooking({
@@ -140,10 +141,11 @@ export default function HomePage() {
                 price: slot.price,
                 status: 'ACTIVE',
                 payment_status: 'PENDING'
-            });
+            }, false); // Don't notify yet
             
-            if (result.success) {
+            if (result.success && result.data) {
                 successCount++;
+                successfulBookings.push(result.data);
             } else {
                 failCount++;
                 if (result.error === 'HORARIO_OCUPADO') {
@@ -159,6 +161,21 @@ export default function HomePage() {
         }
 
         if (successCount > 0) {
+            // Send batch notification
+            // Group by Court to be safe, though usually same court.
+            // But if user selected multiple courts, we should probably group by court or send multiple notifications.
+            // For simplicity and typical use case (single court multiple hours), let's group by court.
+            
+            const bookingsByCourt: { [key: string]: any[] } = {};
+            successfulBookings.forEach(b => {
+                if (!bookingsByCourt[b.court_id]) bookingsByCourt[b.court_id] = [];
+                bookingsByCourt[b.court_id].push(b);
+            });
+
+            for (const courtId in bookingsByCourt) {
+                await notifyOwnerOfBookingBatch(selectedVenue.id, selectedDate, bookingsByCourt[courtId]);
+            }
+
             setToast({ message: `¡${successCount} reserva(s) confirmada(s)!`, type: 'success' });
             setSelectedSlots([]);
         }
