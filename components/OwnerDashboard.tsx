@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Booking, Venue, DisabledSlot } from '../types';
 
 
@@ -67,21 +67,29 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ bookings, disabl
     return data;
   }, [bookings, selectedDate]);
 
-  // Memoize Sport Distribution
-  const sportDistribution = useMemo(() => {
-    return dailyActiveBookings.reduce((acc: any[], b) => {
-      const sport = (b.court_name || '').includes('Beach') ? 'Beach Tennis' : 'Padel';
-      const existing = acc.find(item => item.name === sport);
-      if (existing) {
-        existing.value += 1;
-      } else {
-        acc.push({ name: sport, value: 1 });
-      }
-      return acc;
-    }, []);
-  }, [dailyActiveBookings]);
+  // Memoize Monthly History and Revenue
+  const { monthlyHistory, monthlyRevenue } = useMemo(() => {
+    const [year, month] = selectedDate.split('-').map(Number);
+    
+    // Filter bookings for the selected month and year
+    const monthlyBookings = bookings.filter(b => {
+        const [bYear, bMonth] = b.date.split('-').map(Number);
+        return bYear === year && bMonth === month;
+    });
 
-  const COLORS = ['#4F46E5', '#10B981', '#F59E0B', '#EF4444'];
+    // Calculate total revenue for the month (only ACTIVE or COMPLETED)
+    const totalRevenue = monthlyBookings
+        .filter(b => b.status === 'ACTIVE' || b.status === 'COMPLETED')
+        .reduce((sum, b) => sum + b.price, 0);
+
+    // Sort by date descending, then time descending
+    const sortedHistory = [...monthlyBookings].sort((a, b) => {
+        if (a.date !== b.date) return b.date.localeCompare(a.date);
+        return b.start_time.localeCompare(a.start_time);
+    });
+
+    return { monthlyHistory: sortedHistory, monthlyRevenue: totalRevenue };
+  }, [bookings, selectedDate]);
 
   // Memoize Schedule Items (Grouped)
   const scheduleItems = useMemo(() => {
@@ -335,7 +343,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ bookings, disabl
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+        <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100">
           <h5 className="text-lg font-bold text-gray-800 mb-6">Ingresos (Últimos 7 días hasta {selectedDate})</h5>
           <div className="h-64">
             <ResponsiveContainer width="99%" height="100%">
@@ -350,36 +358,58 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ bookings, disabl
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-          <h5 className="text-lg font-bold text-gray-800 mb-6">Distribución por Deporte ({selectedDate})</h5>
-          <div className="h-64 flex flex-col items-center">
-            {sportDistribution.length > 0 ? (
-              <>
-                <ResponsiveContainer width="99%" height={256}>
-                  <PieChart>
-                    <Pie data={sportDistribution} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
-                      {sportDistribution.map((entry: any, index: number) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="flex gap-4 mt-2">
-                  {sportDistribution.map((entry: any, index: number) => (
-                    <div key={entry.name} className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
-                      <span className="text-xs text-gray-600 font-medium">{entry.name}</span>
-                    </div>
-                  ))}
+        <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col h-[380px]">
+          <div className="flex items-center justify-between mb-4">
+             <div>
+                <h5 className="text-lg font-bold text-gray-800">Historial del Mes</h5>
+                <p className="text-xs text-gray-500 capitalize">{new Date(selectedDate).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}</p>
+             </div>
+             <div className="text-right">
+                <p className="text-xs text-gray-500 font-medium">Total Ingresos</p>
+                <p className="text-xl font-bold text-green-600">Gs. {monthlyRevenue.toLocaleString('es-PY')}</p>
+             </div>
+          </div>
+          
+          <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+            {monthlyHistory.length > 0 ? (
+                <div className="space-y-3">
+                    {monthlyHistory.map((booking) => (
+                        <div key={booking.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
+                            <div>
+                                <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-xs font-bold text-gray-700 bg-white px-2 py-0.5 rounded border border-gray-200">
+                                        {booking.date.split('-')[2]}/{booking.date.split('-')[1]}
+                                    </span>
+                                    <span className="text-xs text-gray-500 font-medium">{booking.start_time}</span>
+                                </div>
+                                <p className="text-sm font-bold text-gray-800 line-clamp-1">{booking.player_name || 'Cliente'}</p>
+                                <p className="text-xs text-gray-500">{booking.court_name || 'Cancha'}</p>
+                            </div>
+                            <div className="text-right">
+                                <span className={`text-xs font-bold px-2 py-1 rounded-full ${
+                                    booking.status === 'ACTIVE' ? 'bg-green-100 text-green-700' :
+                                    booking.status === 'COMPLETED' ? 'bg-blue-100 text-blue-700' :
+                                    booking.status === 'CANCELLED' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'
+                                }`}>
+                                    {booking.status === 'CANCELLED' ? 'Cancelado' : 
+                                     booking.status === 'ACTIVE' ? 'Activo' : 
+                                     booking.status === 'COMPLETED' ? 'Completado' : booking.status}
+                                </span>
+                                <p className={`text-sm font-bold mt-1 ${booking.status === 'CANCELLED' ? 'text-gray-400 line-through' : 'text-gray-900'}`}>
+                                    Gs. {booking.price.toLocaleString('es-PY')}
+                                </p>
+                            </div>
+                        </div>
+                    ))}
                 </div>
-              </>
             ) : (
-              <div className="flex items-center justify-center h-full text-gray-400">
-                No hay datos para este día
-              </div>
+                <div className="h-full flex flex-col items-center justify-center text-gray-400">
+                    <svg className="w-12 h-12 mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                    <p className="text-sm">Sin movimientos este mes</p>
+                </div>
             )}
-
           </div>
         </div>
       </div>
