@@ -43,6 +43,14 @@ export const ScheduleManager: React.FC<ScheduleManagerProps> = ({
         );
     };
 
+    const isClosedDay = () => {
+        if (!venue.closed_days || venue.closed_days.length === 0) return false;
+        // Parse date reliably for day of week
+        const [year, month, day] = selectedDate.split('-').map(Number);
+        const dateObj = new Date(year, month - 1, day);
+        return venue.closed_days.includes(dateObj.getDay());
+    };
+
     const isSlotDisabled = (courtId: string, timeSlot: string) => {
         return disabledSlots.some(ds =>
             ds.court_id === courtId &&
@@ -52,6 +60,7 @@ export const ScheduleManager: React.FC<ScheduleManagerProps> = ({
     };
 
     const getSlotStatus = (courtId: string, timeSlot: string) => {
+        if (isClosedDay()) return 'closed';
         if (isSlotBooked(courtId, timeSlot)) return 'booked';
         if (isSlotDisabled(courtId, timeSlot)) return 'disabled';
         return 'available';
@@ -59,6 +68,8 @@ export const ScheduleManager: React.FC<ScheduleManagerProps> = ({
 
     const handleSlotClick = async (courtId: string, timeSlot: string, courtName: string) => {
         const currentStatus = getSlotStatus(courtId, timeSlot);
+
+        if (currentStatus === 'closed') return; // Do nothing if closed day
 
         if (currentStatus === 'available') {
             // Open modal to ask for reason
@@ -157,10 +168,32 @@ export const ScheduleManager: React.FC<ScheduleManagerProps> = ({
                                 <div className="w-4 h-4 bg-gray-100 border-2 border-gray-300 rounded line-through"></div>
                                 <span className="text-xs font-medium text-gray-600">Reservado</span>
                             </div>
+                            {isClosedDay() && (
+                                <div className="flex items-center gap-2">
+                                    <div className="w-4 h-4 bg-gray-200 border-2 border-gray-300 rounded"></div>
+                                    <span className="text-xs font-medium text-gray-600">Cerrado</span>
+                                </div>
+                            )}
                         </div>
                     </div>
 
                     <div className="p-6 space-y-8">
+                        {isClosedDay() && (
+                            <div className="bg-orange-50 border-l-4 border-orange-500 p-4 mb-4">
+                                <div className="flex">
+                                    <div className="flex-shrink-0">
+                                        <svg className="h-5 w-5 text-orange-400" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                        </svg>
+                                    </div>
+                                    <div className="ml-3">
+                                        <p className="text-sm text-orange-700">
+                                            El complejo está cerrado este día.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                         {courtsToDisplay.map(court => (
                             <div key={court.id}>
                                 <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-2">
@@ -200,7 +233,9 @@ export const ScheduleManager: React.FC<ScheduleManagerProps> = ({
                                                         ? 'bg-green-50 border-2 border-green-500 text-green-700 hover:bg-green-100 active:scale-95'
                                                         : status === 'disabled'
                                                             ? 'bg-red-50 border-2 border-red-500 text-red-700 hover:bg-red-100 active:scale-95'
-                                                            : 'bg-gray-100 text-gray-300 cursor-not-allowed border-2 border-gray-300 line-through'
+                                                            : status === 'closed'
+                                                                ? 'bg-gray-200 text-gray-400 cursor-not-allowed border-2 border-gray-300'
+                                                                : 'bg-gray-100 text-gray-300 cursor-not-allowed border-2 border-gray-300 line-through'
                                                     }
                                                     ${isLoading ? 'opacity-50 cursor-wait' : ''}
                                                 `}

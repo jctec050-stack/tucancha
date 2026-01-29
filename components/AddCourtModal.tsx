@@ -8,6 +8,7 @@ interface AddCourtModalProps {
     currentVenueName: string;
     currentVenueAddress: string;
     currentOpeningHours: string;
+    currentClosedDays?: number[];
     currentImageUrl: string;
     currentAmenities?: string[];
     currentContactInfo?: string;
@@ -17,6 +18,7 @@ interface AddCourtModalProps {
         venueName: string,
         venueAddress: string,
         openingHours: string,
+        closedDays: number[],
         imageUrl: string,
         amenities: string[],
         contactInfo: string,
@@ -29,6 +31,7 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
     currentVenueName,
     currentVenueAddress,
     currentOpeningHours,
+    currentClosedDays = [],
     currentImageUrl,
     currentAmenities = [],
     currentContactInfo = '',
@@ -43,6 +46,9 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
     // Parse initial hours (e.g. "08:00 - 22:00")
     const [startHour, setStartHour] = useState(currentOpeningHours.split(' - ')[0] || '08:00');
     const [endHour, setEndHour] = useState(currentOpeningHours.split(' - ')[1] || '22:00');
+    
+    // Closed Days
+    const [closedDays, setClosedDays] = useState<number[]>(currentClosedDays);
 
     const [imageUrl, setImageUrl] = useState(currentImageUrl);
     const [venueImageFile, setVenueImageFile] = useState<File | null>(null);
@@ -206,6 +212,7 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
                 venueAddress,
                 fullOpeningHours,
                 finalVenueImageUrl,
+                closedDays,
                 amenities,
                 contactPhone,
                 pendingCourts,
@@ -290,6 +297,43 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
                                     className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
                                 />
                             </div>
+                        </div>
+                        
+                        <div className="mt-4">
+                            <label className="block text-sm font-bold text-gray-700 mb-2">Días Cerrados (No se abre)</label>
+                            <div className="flex flex-wrap gap-2">
+                                {[
+                                    { id: 1, label: 'Lun' },
+                                    { id: 2, label: 'Mar' },
+                                    { id: 3, label: 'Mié' },
+                                    { id: 4, label: 'Jue' },
+                                    { id: 5, label: 'Vie' },
+                                    { id: 6, label: 'Sáb' },
+                                    { id: 0, label: 'Dom' }
+                                ].map((day) => (
+                                    <button
+                                        key={day.id}
+                                        type="button"
+                                        onClick={() => {
+                                            if (closedDays.includes(day.id)) {
+                                                setClosedDays(closedDays.filter(d => d !== day.id));
+                                            } else {
+                                                setClosedDays([...closedDays, day.id]);
+                                            }
+                                        }}
+                                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                                            closedDays.includes(day.id)
+                                                ? 'bg-red-500 text-white shadow-md'
+                                                : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+                                        }`}
+                                    >
+                                        {day.label}
+                                    </button>
+                                ))}
+                            </div>
+                            <p className="text-xs text-gray-500 mt-2">
+                                Selecciona los días que el complejo permanece CERRADO.
+                            </p>
                         </div>
                     </div>
 

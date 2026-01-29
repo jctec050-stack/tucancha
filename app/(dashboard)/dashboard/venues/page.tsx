@@ -38,6 +38,7 @@ export default function VenuesPage() {
         venueName: string,
         venueAddress: string,
         openingHours: string,
+        closedDays: number[],
         imageUrl: string,
         amenities: string[],
         contactInfo: string,
@@ -59,6 +60,7 @@ export default function VenuesPage() {
                     name: venueName,
                     address: venueAddress,
                     opening_hours: openingHours,
+                    closed_days: closedDays,
                     image_url: imageUrl,
                     amenities: amenities,
                     contact_info: contactInfo
@@ -85,6 +87,7 @@ export default function VenuesPage() {
                         address: venueAddress,
                         image_url: imageUrl,
                         opening_hours: openingHours,
+                        closed_days: closedDays,
                         amenities: amenities,
                         contact_info: contactInfo
                     },
@@ -142,6 +145,7 @@ export default function VenuesPage() {
                     currentVenueName={venueToEdit?.name || ''}
                     currentVenueAddress={venueToEdit?.address || ''}
                     currentOpeningHours={venueToEdit?.opening_hours || '08:00 - 22:00'}
+                    currentClosedDays={venueToEdit?.closed_days || []}
                     currentImageUrl={venueToEdit?.image_url || ''}
                     currentAmenities={venueToEdit?.amenities || []}
                     currentContactInfo={venueToEdit?.contact_info || ''}

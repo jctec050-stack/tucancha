@@ -50,6 +50,7 @@ CREATE TABLE venues (
     amenities TEXT[],
     contact_info TEXT,
     image_url TEXT,
+    closed_days INTEGER[] DEFAULT ARRAY[]::INTEGER[],
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()

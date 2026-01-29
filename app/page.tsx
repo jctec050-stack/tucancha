@@ -61,6 +61,14 @@ export default function HomePage() {
         }
     }, []);
 
+    const isClosedDay = useMemo(() => {
+        if (!selectedVenue || !selectedVenue.closed_days || selectedVenue.closed_days.length === 0) return false;
+        // Parse date reliably for day of week
+        const [year, month, day] = selectedDate.split('-').map(Number);
+        const dateObj = new Date(year, month - 1, day);
+        return selectedVenue.closed_days.includes(dateObj.getDay());
+    }, [selectedVenue, selectedDate]);
+
     const sortedVenues = useMemo(() => {
         if (!userLocation || venues.length === 0) return venues;
         const { calculateDistance } = require('@/lib/geocoding'); // Dynamic import if possible or just use if available
@@ -344,13 +352,32 @@ export default function HomePage() {
                                     <h4 className="font-bold text-gray-900 mb-6 flex items-center gap-2 text-xl">
                                         Elegí tu Cancha
                                     </h4>
+                                    {isClosedDay && (
+                                        <div className="bg-orange-50 border-l-4 border-orange-500 p-4 mb-6 rounded-r-xl">
+                                            <div className="flex">
+                                                <div className="flex-shrink-0">
+                                                    <svg className="h-5 w-5 text-orange-400" viewBox="0 0 20 20" fill="currentColor">
+                                                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                                    </svg>
+                                                </div>
+                                                <div className="ml-3">
+                                                    <p className="text-sm text-orange-700 font-bold">
+                                                        El complejo está cerrado este día.
+                                                    </p>
+                                                    <p className="text-xs text-orange-600 mt-1">
+                                                        Por favor selecciona otra fecha para realizar tu reserva.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                         {selectedVenue.courts.map(court => (
                                             <CourtCard
                                                 key={court.id}
                                                 court={court}
                                                 isSelected={false}
-                                                onSelect={() => setSelectedPlayerCourtId(court.id)}
+                                                onSelect={() => !isClosedDay && setSelectedPlayerCourtId(court.id)}
                                             />
                                         ))}
                                     </div>

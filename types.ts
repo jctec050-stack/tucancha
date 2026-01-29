@@ -57,6 +57,7 @@ export interface Venue {
   latitude?: number;
   longitude?: number;
   opening_hours: string;
+  closed_days: number[];
   amenities: string[];
   contact_info?: string;
   image_url?: string;

@@ -106,6 +106,7 @@ export const createVenue = async (venueData: Omit<Venue, 'id' | 'courts' | 'crea
             address: venueData.address,
             image_url: venueData.image_url,
             opening_hours: venueData.opening_hours,
+            closed_days: venueData.closed_days || [],
             amenities: venueData.amenities,
             contact_info: venueData.contact_info,
             latitude: venueData.latitude,
