@@ -173,7 +173,7 @@ export default function HomePage() {
                             <div key={v.id} className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition group cursor-pointer" onClick={() => setSelectedVenue(v)}>
                                 <div className="relative h-48">
                                     {v.image_url ? (
-                                        <img src={v.image_url} alt={v.name} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+                                        <img src={v.image_url} alt={v.name} className="w-full h-full object-contain bg-gray-50 p-4 group-hover:scale-105 transition duration-500" />
                                     ) : (
                                         <div className="w-full h-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center">
                                             <svg className="w-16 h-16 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -241,9 +241,9 @@ export default function HomePage() {
                     
                     <div className="bg-white rounded-3xl overflow-hidden shadow-xl border border-gray-100">
                         {/* Header Image */}
-                        <div className="h-64 relative">
+                        <div className="h-64 relative bg-gray-50">
                             {selectedVenue.image_url ? (
-                                <img src={selectedVenue.image_url} alt={selectedVenue.name} className="w-full h-full object-cover" />
+                                <img src={selectedVenue.image_url} alt={selectedVenue.name} className="w-full h-full object-contain p-4" />
                             ) : (
                                 <div className="w-full h-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center">
                                     <svg className="w-20 h-20 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
