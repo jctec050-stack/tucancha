@@ -334,6 +334,114 @@ export const uploadCourtImage = async (file: File, courtId: string): Promise<str
 };
 
 // ============================================
+// NOTIFICATIONS
+// ============================================
+
+export const createNotification = async (
+    userId: string,
+    title: string,
+    message: string,
+    type: 'BOOKING' | 'PAYMENT' | 'SYSTEM' | 'PROMOTION',
+    metadata?: any
+): Promise<boolean> => {
+    try {
+        const { error } = await supabase
+            .from('notifications')
+            .insert({
+                user_id: userId,
+                title,
+                message,
+                type,
+                metadata
+            });
+
+        if (error) throw error;
+        return true;
+    } catch (error) {
+        console.error('❌ Error creating notification:', error);
+        return false;
+    }
+};
+
+export const getUserNotifications = async (userId: string): Promise<any[]> => {
+    try {
+        const { data, error } = await supabase
+            .from('notifications')
+            .select('*')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false })
+            .limit(50);
+
+        if (error) throw error;
+        return data || [];
+    } catch (error) {
+        console.error('❌ Error fetching notifications:', error);
+        return [];
+    }
+};
+
+export const markNotificationAsRead = async (id: string): Promise<boolean> => {
+    try {
+        const { error } = await supabase
+            .from('notifications')
+            .update({ is_read: true })
+            .eq('id', id);
+
+        if (error) throw error;
+        return true;
+    } catch (error) {
+        console.error('❌ Error marking notification as read:', error);
+        return false;
+    }
+};
+
+export const markAllNotificationsAsRead = async (userId: string): Promise<boolean> => {
+    try {
+        const { error } = await supabase
+            .from('notifications')
+            .update({ is_read: true })
+            .eq('user_id', userId)
+            .eq('is_read', false);
+
+        if (error) throw error;
+        return true;
+    } catch (error) {
+        console.error('❌ Error marking all notifications as read:', error);
+        return false;
+    }
+};
+
+export const deleteNotification = async (id: string): Promise<boolean> => {
+    try {
+        const { error } = await supabase
+            .from('notifications')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+        return true;
+    } catch (error) {
+        console.error('❌ Error deleting notification:', error);
+        return false;
+    }
+};
+
+export const clearAllNotifications = async (userId: string): Promise<boolean> => {
+    try {
+        const { error } = await supabase
+            .from('notifications')
+            .delete()
+            .eq('user_id', userId);
+
+        if (error) throw error;
+        return true;
+    } catch (error) {
+        console.error('❌ Error clearing notifications:', error);
+        return false;
+    }
+};
+
+// ============================================
 // BOOKINGS
 // ============================================
 
@@ -433,6 +541,33 @@ export const createBooking = async (booking: Omit<Booking, 'id' | 'created_at' |
             .single();
 
         if (error) throw error;
+
+        // --------------------------------------------
+        // NOTIFY OWNER
+        // --------------------------------------------
+        try {
+            // Get Venue Name and Owner ID
+            const { data: venue } = await supabase
+                .from('venues')
+                .select('name, owner_id')
+                .eq('id', booking.venue_id)
+                .single();
+
+            if (venue && venue.owner_id) {
+                const dateFormatted = new Date(booking.date).toLocaleDateString('es-PY');
+                const startTime = booking.start_time?.substring(0, 5) || '??:??';
+                
+                await createNotification(
+                    venue.owner_id,
+                    'Nueva Reserva Recibida',
+                    `Nueva reserva en ${venue.name} para el ${dateFormatted} a las ${startTime}hs`,
+                    'BOOKING',
+                    { booking_id: data.id, venue_id: booking.venue_id }
+                );
+            }
+        } catch (notifError) {
+            console.error('Error sending notification (non-blocking):', notifError);
+        }
 
         // Return with time trimmed logic
         const b = data;

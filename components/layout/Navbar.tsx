@@ -1,11 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/AuthContext';
 import { usePathname, useRouter } from 'next/navigation';
 import { NotificationCenter } from '@/components/NotificationCenter';
 import { Notification } from '@/types';
+import { getUserNotifications, markAllNotificationsAsRead, clearAllNotifications } from '@/services/dataService';
+import { supabase } from '@/lib/supabase';
 
 export const Navbar = () => {
     const { user, logout } = useAuth();
@@ -13,7 +15,53 @@ export const Navbar = () => {
     const router = useRouter();
     const [showNotifications, setShowNotifications] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const [notifications, setNotifications] = useState<Notification[]>([]); // TODO: Implement Notification Context
+    const [notifications, setNotifications] = useState<Notification[]>([]);
+
+    useEffect(() => {
+        if (!user) return;
+
+        // Fetch initial notifications
+        const fetchNotifications = async () => {
+            const data = await getUserNotifications(user.id);
+            setNotifications(data);
+        };
+
+        fetchNotifications();
+
+        // Subscribe to real-time changes
+        const subscription = supabase
+            .channel('notifications_channel')
+            .on(
+                'postgres_changes',
+                {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'notifications',
+                    filter: `user_id=eq.${user.id}`
+                },
+                (payload) => {
+                    const newNotification = payload.new as Notification;
+                    setNotifications(prev => [newNotification, ...prev]);
+                }
+            )
+            .subscribe();
+
+        return () => {
+            subscription.unsubscribe();
+        };
+    }, [user]);
+
+    const handleClearNotifications = async () => {
+        if (!user) return;
+        await clearAllNotifications(user.id);
+        setNotifications([]);
+    };
+
+    const handleCloseNotifications = () => {
+        setShowNotifications(false);
+        // Optional: Mark as read when closing
+        // if (user) markAllNotificationsAsRead(user.id);
+    };
 
     const handleLogout = async () => {
         try {
@@ -109,8 +157,8 @@ export const Navbar = () => {
                         {showNotifications && (
                             <NotificationCenter
                                 notifications={notifications}
-                                onClose={() => setShowNotifications(false)}
-                                onClear={() => setNotifications([])}
+                                onClose={handleCloseNotifications}
+                                onClear={handleClearNotifications}
                             />
                         )}
                     </div>
