@@ -127,9 +127,10 @@ export default function HomePage() {
 
         let successCount = 0;
         let failCount = 0;
+        let lastError = '';
 
         for (const slot of selectedSlots) {
-            const success = await createBooking({
+            const result = await createBooking({
                 venue_id: selectedVenue.id,
                 court_id: slot.courtId,
                 player_id: user.id,
@@ -140,18 +141,30 @@ export default function HomePage() {
                 status: 'ACTIVE',
                 payment_status: 'PENDING'
             });
-            if (success) successCount++;
-            else failCount++;
+            
+            if (result.success) {
+                successCount++;
+            } else {
+                failCount++;
+                if (result.error === 'HORARIO_OCUPADO') {
+                    lastError = 'Uno o más horarios seleccionados ya fueron reservados por otro usuario.';
+                } else {
+                    lastError = 'Ocurrió un error al procesar la reserva.';
+                }
+            }
+        }
+
+        if (successCount > 0 || failCount > 0) {
+            await mutateBookings(); // Refetch bookings to update availability
         }
 
         if (successCount > 0) {
-            await mutateBookings(); // Refetch bookings to update availability
             setToast({ message: `¡${successCount} reserva(s) confirmada(s)!`, type: 'success' });
             setSelectedSlots([]);
         }
 
         if (failCount > 0) {
-            setToast({ message: `Error al procesar ${failCount} reserva(s).`, type: 'error' });
+            setToast({ message: lastError || `Error al procesar ${failCount} reserva(s).`, type: 'error' });
         }
         setShowConfirmModal(false);
     };

@@ -34,7 +34,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         try {
             // Add timeout to prevent hanging indefinitely
             const timeoutPromise = new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Profile fetch timed out')), 8000)
+                setTimeout(() => reject(new Error('Profile fetch timed out')), 15000)
             );
 
             const fetchPromise = supabase

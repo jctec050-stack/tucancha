@@ -532,7 +532,7 @@ export const getVenueBookings = async (venueId: string, date: string): Promise<B
     }
 };
 
-export const createBooking = async (booking: Omit<Booking, 'id' | 'created_at' | 'updated_at'>): Promise<Booking | null> => {
+export const createBooking = async (booking: Omit<Booking, 'id' | 'created_at' | 'updated_at'>): Promise<{ success: boolean; data?: Booking; error?: string }> => {
     try {
         const { data, error } = await supabase
             .from('bookings')
@@ -540,7 +540,12 @@ export const createBooking = async (booking: Omit<Booking, 'id' | 'created_at' |
             .select()
             .single();
 
-        if (error) throw error;
+        if (error) {
+            if (error.code === '23505') { // Unique violation
+                return { success: false, error: 'HORARIO_OCUPADO' };
+            }
+            throw error;
+        }
 
         // --------------------------------------------
         // NOTIFY OWNER
@@ -572,13 +577,16 @@ export const createBooking = async (booking: Omit<Booking, 'id' | 'created_at' |
         // Return with time trimmed logic
         const b = data;
         return {
-            ...b,
-            start_time: b.start_time?.substring(0, 5),
-            end_time: b.end_time?.substring(0, 5)
-        } as Booking;
+            success: true,
+            data: {
+                ...b,
+                start_time: b.start_time?.substring(0, 5),
+                end_time: b.end_time?.substring(0, 5)
+            } as Booking
+        };
     } catch (error) {
         console.error('❌ Error creating booking:', error);
-        return null;
+        return { success: false, error: 'ERROR_DESCONOCIDO' };
     }
 };
 
@@ -656,7 +664,7 @@ export const createRecurringBookings = async (
         };
         
         const result = await createBooking(booking);
-        if (result) {
+        if (result.success) {
             success++;
         } else {
             failures++;
