@@ -176,7 +176,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onRegister, onSwitch
                                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                     }`}
                             >
-                                🏢 Dueño
+                                🏢 Complejo
                             </button>
                         </div>
                     </div>
