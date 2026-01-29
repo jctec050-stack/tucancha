@@ -212,6 +212,54 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ bookings, disabl
 
   }, [dailyBookings, disabledSlots, venue.courts]);
 
+  const handleDownloadPDF = () => {
+    const doc = new jsPDF();
+    
+    // Add Header
+    doc.setFontSize(18);
+    doc.text(`Reporte de Reservas Activas`, 14, 22);
+    
+    doc.setFontSize(12);
+    doc.text(`Fecha: ${selectedDate}`, 14, 30);
+    doc.text(`Complejo: ${venue.name}`, 14, 36);
+    
+    // Define columns
+    const columns = [
+      { header: 'Hora', dataKey: 'time' },
+      { header: 'Cancha', dataKey: 'court' },
+      { header: 'Cliente', dataKey: 'player' },
+      { header: 'Teléfono', dataKey: 'phone' },
+      { header: 'Precio', dataKey: 'price' },
+      { header: 'Estado', dataKey: 'status' }
+    ];
+    
+    // Prepare data
+    const tableData = dailyActiveBookings.map(booking => ({
+      time: `${booking.start_time.substring(0, 5)} - ${booking.end_time ? booking.end_time.substring(0, 5) : '??:??'}`,
+      court: booking.court_name || 'Cancha',
+      player: booking.player_name || 'Cliente',
+      phone: booking.player_phone || '-',
+      price: booking.price.toLocaleString('es-PY'),
+      status: booking.status
+    }));
+
+    // Add total revenue row
+    const totalRevenue = dailyActiveBookings.reduce((sum, b) => sum + b.price, 0);
+    
+    // Generate table
+    autoTable(doc, {
+      head: [columns.map(c => c.header)],
+      body: tableData.map(row => Object.values(row)),
+      startY: 45,
+      styles: { fontSize: 10, cellPadding: 3 },
+      headStyles: { fillColor: [79, 70, 229] }, // Indigo-600
+      foot: [['', '', '', 'Total', totalRevenue.toLocaleString('es-PY'), '']],
+      footStyles: { fillColor: [243, 244, 246], textColor: [0, 0, 0], fontStyle: 'bold' }
+    });
+
+    doc.save(`reservas-activas-${selectedDate}.pdf`);
+  };
+
   return (
     <div className="space-y-6">
       {/* Date Filter Header */}
