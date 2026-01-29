@@ -1,6 +1,8 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { Booking, Venue, DisabledSlot } from '../types';
 
 
@@ -29,6 +31,8 @@ interface OwnerDashboardProps {
 }
 
 export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ bookings, disabledSlots, venue, selectedDate, onDateChange }) => {
+  const [showActiveBookingsModal, setShowActiveBookingsModal] = useState(false);
+
   // Memoize daily stats
   const { dailyBookings, dailyActiveBookings, dailyRevenue } = useMemo(() => {
     const dailyBookings = bookings.filter(b => b.date === selectedDate);
@@ -140,15 +144,6 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ bookings, disabl
       ...dailyBookings.map(b => ({
         id: b.id,
         time: b.start_time,
-        // Assume end_time is 1 hour later if not provided (though backend usually provides start_time)
-        // Actually, let's use the logic that slots are 1 hour.
-        // We need to know the end time of each slot to check continuity.
-        // Since we don't have explicit end_time in Booking type in this component context (it's in DB but let's check props),
-        // we can infer it or use what's available.
-        // Let's assume 1 hour duration per booking record if not specified.
-        // Wait, looking at Booking type in other files, it might not have end_time.
-        // But the user wants ranges "18:00 a 20:00".
-        // We'll parse start_time.
         startTimeMinutes: parseInt(b.start_time.split(':')[0]) * 60 + parseInt(b.start_time.split(':')[1]),
         endTimeMinutes: parseInt(b.start_time.split(':')[0]) * 60 + parseInt(b.start_time.split(':')[1]) + 60, // Assume 1h
         courtName: b.court_name || 'Cancha',
