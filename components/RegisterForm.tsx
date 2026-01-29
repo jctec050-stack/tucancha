@@ -15,6 +15,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onRegister, onSwitch
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [role, setRole] = useState<UserRole>('PLAYER');
+    const [acceptedTerms, setAcceptedTerms] = useState(false);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -46,6 +47,11 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onRegister, onSwitch
 
         if (password !== confirmPassword) {
             setError('Las contraseñas no coinciden');
+            return;
+        }
+
+        if (!acceptedTerms) {
+            setError('Debes aceptar los términos y condiciones para registrarte');
             return;
         }
 
@@ -179,6 +185,31 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onRegister, onSwitch
                                 🏢 Complejo
                             </button>
                         </div>
+                    </div>
+
+                    <div className="flex items-start gap-3 py-2">
+                        <div className="flex items-center h-5">
+                            <input
+                                id="terms"
+                                type="checkbox"
+                                checked={acceptedTerms}
+                                onChange={(e) => setAcceptedTerms(e.target.checked)}
+                                className="w-5 h-5 border-gray-300 rounded focus:ring-indigo-500 text-indigo-600 cursor-pointer"
+                            />
+                        </div>
+                        <label htmlFor="terms" className="text-sm text-gray-600 cursor-pointer select-none">
+                            Acepto los{' '}
+                            <a 
+                                href="/terms" 
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="font-bold text-indigo-600 hover:underline"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                términos y condiciones
+                            </a>{' '}
+                            y la política de privacidad.
+                        </label>
                     </div>
 
                     <button
