@@ -25,7 +25,7 @@ export const Footer = () => {
                 <span className="hidden sm:inline"> • Actualizado: {buildTime}</span>
             </p>
             <p className="mt-1">
-                © {new Date().getFullYear()} TuCancha. Todos los derechos reservados.
+                © {new Date().getFullYear()} TuCancha!. Todos los derechos reservados.
             </p>
         </footer>
     );
