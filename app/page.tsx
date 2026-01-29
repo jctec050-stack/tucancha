@@ -8,6 +8,7 @@ import { createBooking } from '@/services/dataService';
 import { TIME_SLOTS } from '@/constants';
 import { CourtCard } from '@/components/CourtCard';
 import { Toast } from '@/components/Toast';
+import { ConfirmationModal } from '@/components/ConfirmationModal';
 import { useVenues, useBookings, useDisabledSlots } from '@/hooks/useData';
 
 export default function HomePage() {
@@ -30,6 +31,7 @@ export default function HomePage() {
 
     const [selectedSlots, setSelectedSlots] = useState<{ courtId: string, time: string, price: number, courtName: string }[]>([]);
     const [selectedPlayerCourtId, setSelectedPlayerCourtId] = useState<string | null>(null);
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
 
     // Combine loading states
     const isLoadingData = venuesLoading || bookingsLoading || (selectedVenue ? slotsLoading : false);
@@ -116,7 +118,11 @@ export default function HomePage() {
         }
     };
 
-    const handleConfirmBooking = async () => {
+    const handleConfirmBooking = () => {
+        setShowConfirmModal(true);
+    };
+
+    const executeBooking = async () => {
         if (!user || selectedSlots.length === 0 || !selectedVenue) return;
 
         let successCount = 0;
@@ -147,6 +153,7 @@ export default function HomePage() {
         if (failCount > 0) {
             setToast({ message: `Error al procesar ${failCount} reserva(s).`, type: 'error' });
         }
+        setShowConfirmModal(false);
     };
 
     if (authLoading || (isLoadingData && venues.length === 0)) { // Show loading only if no data yet (SWR stale-while-revalidate)
@@ -473,6 +480,17 @@ export default function HomePage() {
                     )}
                 </div>
             )}
+            
+            <ConfirmationModal
+                isOpen={showConfirmModal}
+                title="Confirmar Reserva"
+                message={`Estás a punto de reservar ${selectedSlots.length} turno(s) para el ${selectedDate}. \n\n⚠️ OBSERVACIÓN IMPORTANTE:\nSe puede cancelar la reserva hasta 3hs antes del horario reservado. Posterior a eso, se aplicará una multa en la próxima reserva.`}
+                onConfirm={executeBooking}
+                onCancel={() => setShowConfirmModal(false)}
+                confirmText="Aceptar y Reservar"
+                cancelText="Cancelar"
+            />
+
              {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </main>
     );
