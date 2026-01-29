@@ -1,8 +1,58 @@
 import { supabase } from '@/lib/supabase';
-import { Venue, Court, Booking, DisabledSlot, Profile, Subscription, Payment, AdminVenueData, AdminProfileData, AdminSubscriptionData, AdminPaymentData } from '@/types';
+import { Venue, Court, Booking, BookingStatus, DisabledSlot, Profile, Subscription, Payment, AdminVenueData, AdminProfileData, AdminSubscriptionData, AdminPaymentData } from '@/types';
 
 // NOTE: Removed legacy adapters import. 
 // We now map directly to snake_case matching types.ts and DB.
+
+// ============================================
+// HELPERS
+// ============================================
+
+const getDerivedStatus = (booking: any): BookingStatus => {
+    if (booking.status === 'CANCELLED') return 'CANCELLED';
+    if (booking.status === 'COMPLETED') return 'COMPLETED';
+    
+    // If manually completed, keep it.
+    // If status is ACTIVE, check if it should be COMPLETED based on time.
+    
+    const now = new Date();
+    
+    // Parse Booking Date/Time
+    // booking.date is YYYY-MM-DD
+    // booking.start_time is HH:mm or HH:mm:ss
+    // booking.end_time is HH:mm or HH:mm:ss
+    
+    try {
+        const datePart = booking.date;
+        let timePart = booking.end_time;
+        
+        // If no end_time, assume start_time + 1 hour
+        if (!timePart) {
+            const startTime = booking.start_time;
+            if (!startTime) return booking.status; // Cannot determine
+            
+            const [h, m] = startTime.split(':').map(Number);
+            const endH = h + 1;
+            timePart = `${endH.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+        }
+        
+        // Handle HH:mm:ss vs HH:mm
+        if (timePart.length > 5) timePart = timePart.substring(0, 5);
+        
+        const bookingEnd = new Date(`${datePart}T${timePart}`);
+        
+        // Check if date is valid
+        if (isNaN(bookingEnd.getTime())) return booking.status;
+        
+        if (now > bookingEnd) {
+            return 'COMPLETED';
+        }
+        
+        return 'ACTIVE';
+    } catch (e) {
+        return booking.status;
+    }
+};
 
 // ============================================
 // HELPER: Upload Image to Supabase Storage
@@ -292,6 +342,7 @@ export const getBookings = async (ownerId?: string): Promise<Booking[]> => {
             ...b,
             start_time: b.start_time?.substring(0, 5), // Trim seconds
             end_time: b.end_time?.substring(0, 5),
+            status: getDerivedStatus(b),
             // Flatten nested relations to match Booking interface if needed
             // Checking types.ts, Booking interface has player_name, venue_name via interface extension?
             // Yes, checking types.ts: populated fields are part of interface.
@@ -332,6 +383,7 @@ export const getVenueBookings = async (venueId: string, date: string): Promise<B
             ...b,
             start_time: b.start_time?.substring(0, 5),
             end_time: b.end_time?.substring(0, 5),
+            status: getDerivedStatus(b),
             player_name: (b.profiles as any)?.full_name,
             player_phone: (b.profiles as any)?.phone
         })) as Booking[];
