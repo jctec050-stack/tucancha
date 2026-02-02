@@ -55,7 +55,7 @@ export async function POST(request: Request) {
     }
 
     const info = await transporter.sendMail({
-      from: `"TuCancha" <${smtpUser}>`,
+      from: `"TuCancha" <${process.env.EMAIL_FROM || smtpUser}>`,
       to,
       subject,
       html,
@@ -65,9 +65,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, messageId: info.messageId });
   } catch (error: any) {
     console.error('❌ Error sending email:', error);
-    return NextResponse.json({ 
-      error: 'Failed to send email', 
-      details: error.message || error 
+    return NextResponse.json({
+      error: 'Failed to send email',
+      details: error.message || error
     }, { status: 500 });
   }
 }
