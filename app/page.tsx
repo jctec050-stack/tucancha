@@ -4,7 +4,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/AuthContext';
 import { useRouter } from 'next/navigation';
 import { Venue, Court } from '@/types';
-import { createBooking, notifyOwnerOfBookingBatch } from '@/services/dataService';
+import { createBooking, notifyOwnerOfBookingBatch, getUserProfile } from '@/services/dataService';
+import { generatePlayerBookingEmail, generateOwnerNotificationEmail } from '@/lib/email-templates';
 import { TIME_SLOTS } from '@/constants';
 import { CourtCard } from '@/components/CourtCard';
 import { Toast } from '@/components/Toast';
@@ -174,6 +175,63 @@ export default function HomePage() {
 
             for (const courtId in bookingsByCourt) {
                 await notifyOwnerOfBookingBatch(selectedVenue.id, selectedDate, bookingsByCourt[courtId]);
+            }
+
+            // EMAIL NOTIFICATIONS (Non-blocking)
+            try {
+                const bookingsForEmail = successfulBookings.map(b => ({
+                    date: b.date,
+                    time: b.start_time,
+                    courtName: b.court_name || selectedSlots.find(s => s.courtId === b.court_id)?.courtName || 'Cancha',
+                    price: b.price
+                }));
+
+                const totalPrice = bookingsForEmail.reduce((sum, b) => sum + b.price, 0);
+                const mapUrl = `https://www.google.com/maps/search/?api=1&query=${selectedVenue.latitude && selectedVenue.longitude ? `${selectedVenue.latitude},${selectedVenue.longitude}` : encodeURIComponent(selectedVenue.address)}`;
+
+                // 1. Send Player Email
+                const playerHtml = generatePlayerBookingEmail(
+                    selectedVenue.name,
+                    selectedVenue.address,
+                    mapUrl,
+                    bookingsForEmail,
+                    totalPrice
+                );
+
+                fetch('/api/send-email', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        to: user.email,
+                        subject: 'Confirmación de Reserva - TuCancha',
+                        html: playerHtml
+                    })
+                }).catch(err => console.error('Error sending player email:', err));
+
+                // 2. Send Owner Email
+                getUserProfile(selectedVenue.owner_id).then(ownerProfile => {
+                    if (ownerProfile && ownerProfile.email) {
+                        const ownerHtml = generateOwnerNotificationEmail(
+                            selectedVenue.name,
+                            user.name || 'Cliente',
+                            user.phone || 'Sin teléfono',
+                            bookingsForEmail
+                        );
+
+                        fetch('/api/send-email', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                to: ownerProfile.email,
+                                subject: 'Nueva Reserva Recibida - TuCancha',
+                                html: ownerHtml
+                            })
+                        }).catch(err => console.error('Error sending owner email:', err));
+                    }
+                }).catch(err => console.error('Error fetching owner profile for email:', err));
+
+            } catch (emailSetupError) {
+                console.error('Error setting up email data:', emailSetupError);
             }
 
             setToast({ message: `¡${successCount} reserva(s) confirmada(s)!`, type: 'success' });
