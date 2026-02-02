@@ -11,43 +11,43 @@ import { Venue, Court, Booking, BookingStatus, DisabledSlot, Profile, Subscripti
 const getDerivedStatus = (booking: any): BookingStatus => {
     if (booking.status === 'CANCELLED') return 'CANCELLED';
     if (booking.status === 'COMPLETED') return 'COMPLETED';
-    
+
     // If manually completed, keep it.
     // If status is ACTIVE, check if it should be COMPLETED based on time.
-    
+
     const now = new Date();
-    
+
     // Parse Booking Date/Time
     // booking.date is YYYY-MM-DD
     // booking.start_time is HH:mm or HH:mm:ss
     // booking.end_time is HH:mm or HH:mm:ss
-    
+
     try {
         const datePart = booking.date;
         let timePart = booking.end_time;
-        
+
         // If no end_time, assume start_time + 1 hour
         if (!timePart) {
             const startTime = booking.start_time;
             if (!startTime) return booking.status; // Cannot determine
-            
+
             const [h, m] = startTime.split(':').map(Number);
             const endH = h + 1;
             timePart = `${endH.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
         }
-        
+
         // Handle HH:mm:ss vs HH:mm
         if (timePart.length > 5) timePart = timePart.substring(0, 5);
-        
+
         const bookingEnd = new Date(`${datePart}T${timePart}`);
-        
+
         // Check if date is valid
         if (isNaN(bookingEnd.getTime())) return booking.status;
-        
+
         if (now > bookingEnd) {
             return 'COMPLETED';
         }
-        
+
         return 'ACTIVE';
     } catch (e) {
         return booking.status;
@@ -266,10 +266,10 @@ export const deleteVenue = async (id: string): Promise<boolean> => {
 export const addCourts = async (venueId: string, courts: CourtInput[]) => {
     try {
         const courtsWithVenueId = [];
-        
+
         for (let index = 0; index < courts.length; index++) {
             const court = courts[index];
-            
+
             let imageUrl = court.image_url;
             const imageFile = court.imageFile;
 
@@ -280,7 +280,7 @@ export const addCourts = async (venueId: string, courts: CourtInput[]) => {
                 const uploadedUrl = await uploadImage(imageFile, 'venue-images', path);
                 if (uploadedUrl) imageUrl = uploadedUrl;
             }
-            
+
             courtsWithVenueId.push({
                 venue_id: venueId,
                 name: court.name,
@@ -297,7 +297,7 @@ export const addCourts = async (venueId: string, courts: CourtInput[]) => {
             .select();
 
         if (error) throw error;
-        
+
         return data as Court[];
     } catch (error) {
         console.error('❌ Error adding courts:', error);
@@ -565,7 +565,7 @@ export const createBooking = async (
                 if (venue && venue.owner_id) {
                     const dateFormatted = new Date(booking.date).toLocaleDateString('es-PY');
                     const startTime = booking.start_time?.substring(0, 5) || '??:??';
-                    
+
                     await createNotification(
                         venue.owner_id,
                         'Nueva Reserva Recibida',
@@ -616,12 +616,12 @@ export const notifyOwnerOfBookingBatch = async (
         const sorted = [...bookings].sort((a, b) => a.start_time.localeCompare(b.start_time));
         const start = sorted[0].start_time.substring(0, 5);
         const last = sorted[sorted.length - 1];
-        
+
         // Calculate end time of last booking (assuming 1h slots if not provided, but usually provided)
         let end = last.end_time?.substring(0, 5);
         if (!end) {
             const [h, m] = last.start_time.split(':').map(Number);
-            end = `${(h+1).toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+            end = `${(h + 1).toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
         }
 
         // Format Date
@@ -681,7 +681,7 @@ export const createRecurringBookings = async (
     const start = new Date(startDate);
     const end = new Date(endDate);
     const datesToBook: string[] = [];
-    
+
     // 1. Calculate valid dates first
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
         if (d.getDay() === dayOfWeek) {
@@ -702,7 +702,7 @@ export const createRecurringBookings = async (
     // 3. Create Bookings
     for (let i = 0; i < totalCount; i++) {
         const dateStr = datesToBook[i];
-        
+
         // Distribute remainder among the first few bookings
         // e.g. 100 / 3 => 33.33... => 34, 33, 33 (Sum: 100)
         const finalPrice = i < remainder ? basePrice + 1 : basePrice;
@@ -712,7 +712,7 @@ export const createRecurringBookings = async (
             price: finalPrice,
             date: dateStr
         };
-        
+
         const result = await createBooking(booking);
         if (result.success) {
             success++;
@@ -888,10 +888,10 @@ export const getAdminDashboardData = async (): Promise<AdminVenueData[]> => {
         const subscriptions = subscriptionsData || [];
 
         // 3. Fetch all bookings (summary)
-        // Note: For a real app, this should be paginated or aggregated via RPC/View
+        // Includes start_time/end_time for commission calculation
         const { data: bookingsData, error: bookingsError } = await supabase
             .from('bookings')
-            .select('id, venue_id, court_id, price, status, payment_status')
+            .select('id, venue_id, court_id, price, status, payment_status, start_time, end_time')
             .neq('status', 'CANCELLED'); // Only count active/completed
 
         if (bookingsError) console.error('Error fetching bookings:', bookingsError);
@@ -900,14 +900,32 @@ export const getAdminDashboardData = async (): Promise<AdminVenueData[]> => {
         // 4. Aggregate data
         const adminData: AdminVenueData[] = venues.map(venue => {
             // Find subscription
-            const sub = subscriptions.find(s => s.owner_id === venue.owner_id && s.status === 'ACTIVE') || 
-                        subscriptions.find(s => s.owner_id === venue.owner_id); // Fallback to any sub
+            const sub = subscriptions.find(s => s.owner_id === venue.owner_id && s.status === 'ACTIVE') ||
+                subscriptions.find(s => s.owner_id === venue.owner_id); // Fallback to any sub
 
             // Filter bookings for this venue
             const venueBookings = bookings.filter(b => b.venue_id === venue.id);
-            
-            // Calculate total revenue
+
+            // Calculate total revenue (Owner earnings)
             const totalRevenue = venueBookings.reduce((sum, b) => sum + (b.price || 0), 0);
+
+            // Calculate Platform Commission: 5.000 Gs per Hour Booked
+            let totalCommission = 0;
+            venueBookings.forEach(b => {
+                if (b.start_time && b.end_time) {
+                    const [startH, startM] = b.start_time.split(':').map(Number);
+                    const [endH, endM] = b.end_time.split(':').map(Number);
+
+                    let duration = (endH + endM / 60) - (startH + startM / 60);
+                    // Minimal safeguard
+                    if (duration <= 0) duration = 1;
+
+                    totalCommission += duration * 5000;
+                } else {
+                    // Fallback to 1 hour (5000) if raw data is missing times
+                    totalCommission += 5000;
+                }
+            });
 
             // Calculate revenue per court
             const revenueByCourt: Record<string, number> = {};
@@ -924,6 +942,7 @@ export const getAdminDashboardData = async (): Promise<AdminVenueData[]> => {
                 subscription: sub,
                 total_revenue: totalRevenue,
                 total_bookings: venueBookings.length,
+                platform_commission: Math.round(totalCommission),
                 revenue_by_court: revenueByCourt
             };
         });
@@ -982,7 +1001,7 @@ export const getAdminPaymentsData = async (): Promise<AdminPaymentData[]> => {
             .order('created_at', { ascending: false });
 
         if (error) throw error;
-        
+
         // Enrich data if needed (e.g. resolve booking/sub details) - doing simple return for now
         return payments as AdminPaymentData[] || [];
     } catch (error) {
