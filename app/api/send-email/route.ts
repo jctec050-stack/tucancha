@@ -15,6 +15,14 @@ export async function POST(request: Request) {
     const smtpUser = process.env.SMTP_USER;
     const smtpPass = process.env.SMTP_PASS;
 
+    // DIAGNOSTIC LOGS (Safe to expose existence, not values)
+    console.log('--- Email Config Diagnosis ---');
+    console.log(`SMTP_HOST: ${smtpHost || 'MISSING'}`);
+    console.log(`SMTP_PORT: ${smtpPort || 'MISSING'}`);
+    console.log(`SMTP_USER: ${smtpUser ? 'PRESENT (Length: ' + smtpUser.length + ')' : 'MISSING'}`);
+    console.log(`SMTP_PASS: ${smtpPass ? 'PRESENT (Length: ' + smtpPass.length + ')' : 'MISSING'}`);
+    console.log('----------------------------');
+
     // MOCK MODE if no config
     if (!smtpHost || !smtpUser || !smtpPass) {
       console.log('⚠️ Email configuration missing. Mocking email send.');
