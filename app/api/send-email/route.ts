@@ -26,11 +26,15 @@ export async function POST(request: Request) {
     const transporter = nodemailer.createTransport({
       host: smtpHost,
       port: Number(smtpPort) || 587,
-      secure: Number(smtpPort) === 465, // true for 465, false for other ports
+      secure: false, // Force false for port 587 (STARTTLS)
       auth: {
         user: smtpUser,
         pass: smtpPass,
       },
+      tls: {
+        ciphers: 'SSLv3', // Sometimes needed for compatibility
+        rejectUnauthorized: true, // Keep true for security unless self-signed
+      }
     });
 
     // Verify connection config
