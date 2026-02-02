@@ -624,8 +624,9 @@ export const notifyOwnerOfBookingBatch = async (
             end = `${(h + 1).toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
         }
 
-        // Format Date
-        const dateFormatted = new Date(date).toLocaleDateString('es-PY');
+        // Format Date (Manual split to avoid timezone mismatches)
+        const [year, month, day] = date.split('-');
+        const dateFormatted = `${day}/${month}/${year}`;
 
         await createNotification(
             venue.owner_id,
