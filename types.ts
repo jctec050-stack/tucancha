@@ -187,7 +187,7 @@ export interface PlatformRevenue {
   owner_name: string;
   total_bookings: number;
   total_revenue: number;
-  platform_commission: number; // 10% de total_revenue
+  platform_commission: number; // 5.000 Gs per hour booked
   month: string; // Truncated to month
 }
 
@@ -210,24 +210,25 @@ export interface AuthUser extends User {
 // ADMIN DASHBOARD TYPES
 // ============================================
 export interface AdminVenueData extends Venue {
-    owner: Profile;
-    subscription?: Subscription;
-    total_revenue: number;
-    total_bookings: number;
-    revenue_by_court: Record<string, number>;
+  owner: Profile;
+  subscription?: Subscription;
+  total_revenue: number;
+  total_bookings: number;
+  platform_commission: number; // 5.000 Gs per hour booked
+  revenue_by_court: Record<string, number>;
 }
 
 export interface AdminProfileData extends Profile {
-    total_bookings?: number;
-    total_spent?: number;
-    owned_venues_count?: number;
+  total_bookings?: number;
+  total_spent?: number;
+  owned_venues_count?: number;
 }
 
 export interface AdminSubscriptionData extends Subscription {
-    owner: Profile;
+  owner: Profile;
 }
 
 export interface AdminPaymentData extends Payment {
-    payer?: Profile;
-    related_entity?: string; // Booking or Subscription ID/Name
+  payer?: Profile;
+  related_entity?: string; // Booking or Subscription ID/Name
 }
