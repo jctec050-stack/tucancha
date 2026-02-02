@@ -33,16 +33,29 @@ export async function POST(request: Request) {
       },
     });
 
-    await transporter.sendMail({
+    // Verify connection config
+    try {
+      await transporter.verify();
+      console.log('✅ SMTP Connection verified');
+    } catch (verifyError) {
+      console.error('❌ SMTP Connection failed:', verifyError);
+      return NextResponse.json({ error: 'SMTP Connection failed', details: verifyError }, { status: 500 });
+    }
+
+    const info = await transporter.sendMail({
       from: `"TuCancha" <${smtpUser}>`,
       to,
       subject,
       html,
     });
 
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('Error sending email:', error);
-    return NextResponse.json({ error: 'Failed to send email' }, { status: 500 });
+    console.log('✅ Email sent successfully:', info.messageId);
+    return NextResponse.json({ success: true, messageId: info.messageId });
+  } catch (error: any) {
+    console.error('❌ Error sending email:', error);
+    return NextResponse.json({ 
+      error: 'Failed to send email', 
+      details: error.message || error 
+    }, { status: 500 });
   }
 }
