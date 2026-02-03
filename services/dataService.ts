@@ -892,7 +892,7 @@ export const getAdminDashboardData = async (): Promise<AdminVenueData[]> => {
         // Includes start_time/end_time for commission calculation
         const { data: bookingsData, error: bookingsError } = await supabase
             .from('bookings')
-            .select('id, venue_id, court_id, price, status, payment_status, start_time, end_time')
+            .select('id, venue_id, court_id, price, status, payment_status, start_time, end_time, date')
             .neq('status', 'CANCELLED'); // Only count active/completed
 
         if (bookingsError) console.error('Error fetching bookings:', bookingsError);
@@ -904,8 +904,48 @@ export const getAdminDashboardData = async (): Promise<AdminVenueData[]> => {
             const sub = subscriptions.find(s => s.owner_id === venue.owner_id && s.status === 'ACTIVE') ||
                 subscriptions.find(s => s.owner_id === venue.owner_id); // Fallback to any sub
 
-            // Filter bookings for this venue
-            const venueBookings = bookings.filter(b => b.venue_id === venue.id);
+            // Calculate Billing Period
+            const now = new Date();
+            let billingStart = new Date(now.getFullYear(), now.getMonth(), 1); // Default to calendar month
+            
+            if (sub && sub.start_date) {
+                // Parse start date properly (YYYY-MM-DD)
+                const [sYear, sMonth, sDay] = sub.start_date.split('-').map(Number);
+                // Create a candidate date in the current month with the subscription start day
+                const candidateStart = new Date(now.getFullYear(), now.getMonth(), sDay);
+                
+                // If today is before the candidate start date, we are in the previous billing cycle
+                if (now < candidateStart) {
+                    candidateStart.setMonth(candidateStart.getMonth() - 1);
+                }
+                billingStart = candidateStart;
+            } else if (venue.created_at) {
+                // Fallback to venue creation day if no sub
+                const createdDate = new Date(venue.created_at);
+                const sDay = createdDate.getDate();
+                const candidateStart = new Date(now.getFullYear(), now.getMonth(), sDay);
+                 if (now < candidateStart) {
+                    candidateStart.setMonth(candidateStart.getMonth() - 1);
+                }
+                billingStart = candidateStart;
+            }
+
+            // Billing End is Start + 1 month
+            const billingEnd = new Date(billingStart);
+            billingEnd.setMonth(billingEnd.getMonth() + 1);
+
+            // Filter bookings for this venue AND this billing period AND status=COMPLETED
+            const venueBookings = bookings.filter(b => {
+                if (b.venue_id !== venue.id) return false;
+
+                // Check Status (using helper logic)
+                const status = getDerivedStatus(b);
+                if (status !== 'COMPLETED') return false;
+
+                // Check Date Range
+                const bookingDate = new Date(b.date);
+                return bookingDate >= billingStart && bookingDate < billingEnd;
+            });
 
             // Calculate total revenue (Owner earnings)
             const totalRevenue = venueBookings.reduce((sum, b) => sum + (b.price || 0), 0);

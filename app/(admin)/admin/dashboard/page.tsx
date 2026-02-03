@@ -261,17 +261,18 @@ const AdminDashboard = () => {
                         <p className="text-3xl font-bold text-gray-900">{venueData.length}</p>
                     </div>
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                        <p className="text-sm font-medium text-gray-500 mb-1">Total Reservas</p>
+                        <p className="text-sm font-medium text-gray-500 mb-1">Total Reservas Completadas</p>
                         <p className="text-3xl font-bold text-gray-900">
                             {venueData.reduce((acc, curr) => acc + curr.total_bookings, 0)}
                         </p>
+                        <p className="text-xs text-gray-400 mt-2">Mes actual de facturación</p>
                     </div>
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                         <p className="text-sm font-medium text-gray-500 mb-1">Comisiones (TuCancha)</p>
                         <p className="text-3xl font-bold text-indigo-600">
                             {formatCurrency(venueData.reduce((acc, curr) => acc + (curr.platform_commission || 0), 0))}
                         </p>
-                        <p className="text-xs text-gray-400 mt-2">* 5.000 Gs por hora reservada</p>
+                        <p className="text-xs text-gray-400 mt-2">* 5.000 Gs por hora reservada (Mes actual)</p>
                     </div>
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                         <p className="text-sm font-medium text-gray-500 mb-1">Suscripciones Activas</p>
