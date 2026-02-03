@@ -6,16 +6,72 @@ export const generatePlayerBookingEmail = (
   bookings: { date: string; time: string; courtName: string; price: number }[],
   totalPrice: number
 ) => {
-  const bookingRows = bookings
+  // Group bookings to merge consecutive slots
+  const groupedBookings: typeof bookings = [];
+  if (bookings.length > 0) {
+    // Sort by date then time
+    const sorted = [...bookings].sort((a, b) => {
+      if (a.date !== b.date) return a.date.localeCompare(b.date);
+      return a.time.localeCompare(b.time);
+    });
+
+    let current = { ...sorted[0], endTime: '' };
+    // Calculate initial end time (assume 1h if not provided or just next hour)
+    const [h, m] = current.time.split(':').map(Number);
+    current.endTime = `${(h + 1).toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+
+    for (let i = 1; i < sorted.length; i++) {
+      const next = sorted[i];
+      const nextEndTime = (() => {
+        const [nh, nm] = next.time.split(':').map(Number);
+        return `${(nh + 1).toString().padStart(2, '0')}:${nm.toString().padStart(2, '0')}`;
+      })();
+
+      const isSameDate = current.date === next.date;
+      const isSameCourt = current.courtName === next.courtName;
+      // Check if consecutive: current end time == next start time
+      // Note: time format is HH:mm or HH:mm:ss. We use substring(0,5) usually.
+      const currentEndSimple = current.endTime.substring(0, 5);
+      const nextStartSimple = next.time.substring(0, 5);
+      
+      if (isSameDate && isSameCourt && currentEndSimple === nextStartSimple) {
+        // Merge
+        current.endTime = nextEndTime;
+        current.price += next.price;
+      } else {
+        groupedBookings.push({
+          date: current.date,
+          time: `${current.time.substring(0, 5)} a ${current.endTime.substring(0, 5)}`,
+          courtName: current.courtName,
+          price: current.price
+        });
+        current = { ...next, endTime: nextEndTime };
+      }
+    }
+    groupedBookings.push({
+      date: current.date,
+      time: `${current.time.substring(0, 5)} a ${current.endTime.substring(0, 5)}`,
+      courtName: current.courtName,
+      price: current.price
+    });
+  }
+
+  const bookingRows = groupedBookings
     .map(
-      (b) => `
+      (b) => {
+        // Fix Date: Manually parse YYYY-MM-DD to avoid timezone issues
+        const [year, month, day] = b.date.split('-');
+        const dateFormatted = `${day}/${month}/${year}`;
+
+        return `
       <tr style="border-bottom: 1px solid #eee;">
-        <td style="padding: 10px;">${new Date(b.date).toLocaleDateString('es-PY')}</td>
+        <td style="padding: 10px;">${dateFormatted}</td>
         <td style="padding: 10px;">${b.time}</td>
         <td style="padding: 10px;">${b.courtName}</td>
         <td style="padding: 10px; text-align: right;">Gs. ${b.price.toLocaleString('es-PY')}</td>
       </tr>
     `
+      }
     )
     .join('');
 
@@ -50,7 +106,7 @@ export const generatePlayerBookingEmail = (
             <thead>
               <tr style="background-color: #f8fafc; text-align: left;">
                 <th style="padding: 10px;">Fecha</th>
-                <th style="padding: 10px;">Hora</th>
+                <th style="padding: 10px;">Horario</th>
                 <th style="padding: 10px;">Cancha</th>
                 <th style="padding: 10px; text-align: right;">Precio</th>
               </tr>
@@ -92,13 +148,59 @@ export const generateOwnerNotificationEmail = (
   playerPhone: string,
   bookings: { date: string; time: string; courtName: string }[]
 ) => {
-  const bookingRows = bookings
+  // Group bookings for owner email too
+  const groupedBookings: any[] = [];
+  if (bookings.length > 0) {
+    const sorted = [...bookings].sort((a, b) => {
+      if (a.date !== b.date) return a.date.localeCompare(b.date);
+      return a.time.localeCompare(b.time);
+    });
+
+    let current = { ...sorted[0], endTime: '' };
+    const [h, m] = current.time.split(':').map(Number);
+    current.endTime = `${(h + 1).toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+
+    for (let i = 1; i < sorted.length; i++) {
+      const next = sorted[i];
+      const nextEndTime = (() => {
+        const [nh, nm] = next.time.split(':').map(Number);
+        return `${(nh + 1).toString().padStart(2, '0')}:${nm.toString().padStart(2, '0')}`;
+      })();
+
+      const isSameDate = current.date === next.date;
+      const isSameCourt = current.courtName === next.courtName;
+      const currentEndSimple = current.endTime.substring(0, 5);
+      const nextStartSimple = next.time.substring(0, 5);
+      
+      if (isSameDate && isSameCourt && currentEndSimple === nextStartSimple) {
+        current.endTime = nextEndTime;
+      } else {
+        groupedBookings.push({
+          date: current.date,
+          time: `${current.time.substring(0, 5)} a ${current.endTime.substring(0, 5)}`,
+          courtName: current.courtName
+        });
+        current = { ...next, endTime: nextEndTime };
+      }
+    }
+    groupedBookings.push({
+      date: current.date,
+      time: `${current.time.substring(0, 5)} a ${current.endTime.substring(0, 5)}`,
+      courtName: current.courtName
+    });
+  }
+
+  const bookingRows = groupedBookings
     .map(
-      (b) => `
+      (b) => {
+        const [year, month, day] = b.date.split('-');
+        const dateFormatted = `${day}/${month}/${year}`;
+        return `
       <li>
-        <strong>${new Date(b.date).toLocaleDateString('es-PY')}</strong> a las <strong>${b.time}</strong> en <strong>${b.courtName}</strong>
+        <strong>${dateFormatted}</strong> de <strong>${b.time}</strong> en <strong>${b.courtName}</strong>
       </li>
     `
+      }
     )
     .join('');
 
