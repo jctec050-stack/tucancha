@@ -46,6 +46,10 @@ export default function HomePage() {
             router.push('/dashboard');
             return;
         }
+        if (!authLoading && user?.role === 'ADMIN') {
+            router.push('/admin/dashboard');
+            return;
+        }
     }, [user, authLoading, router]);
 
     // Geolocation
