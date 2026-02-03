@@ -4,7 +4,7 @@ export type UserRole = 'OWNER' | 'PLAYER' | 'ADMIN';
 export type BookingStatus = 'ACTIVE' | 'CANCELLED' | 'COMPLETED';
 export type PaymentStatus = 'PENDING' | 'COMPLETED' | 'FAILED' | 'REFUNDED';
 export type PaymentMethod = 'CASH' | 'CARD' | 'TRANSFER' | 'QR';
-export type SubscriptionPlan = 'FREE' | 'BASIC' | 'PREMIUM' | 'ENTERPRISE';
+export type SubscriptionPlan = 'FREE' | 'BASIC' | 'PREMIUM' | 'ENTERPRISE' | 'PRO';
 export type SubscriptionStatus = 'ACTIVE' | 'CANCELLED' | 'EXPIRED' | 'SUSPENDED' | 'PENDING_PAYMENT';
 export type NotificationType = 'BOOKING' | 'PAYMENT' | 'SYSTEM' | 'PROMOTION';
 

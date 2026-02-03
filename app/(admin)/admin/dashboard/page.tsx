@@ -631,13 +631,25 @@ const AdminDashboard = () => {
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Plan</label>
                                 <select
                                     value={subForm.plan}
-                                    onChange={(e) => setSubForm({ ...subForm, plan: e.target.value })}
+                                    onChange={(e) => {
+                                        const newPlan = e.target.value;
+                                        let newPrice = subForm.price;
+
+                                        if (newPlan === 'PRO' && editingSub) {
+                                            // Auto-calculate commissions for this owner
+                                            const ownerVenues = venueData.filter(v => v.owner_id === editingSub.owner_id);
+                                            const totalCommissions = ownerVenues.reduce((sum, v) => sum + (v.platform_commission || 0), 0);
+                                            newPrice = totalCommissions;
+                                        } else if (newPlan === 'FREE') {
+                                            newPrice = 0;
+                                        }
+
+                                        setSubForm({ ...subForm, plan: newPlan, price: newPrice });
+                                    }}
                                     className="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                                 >
                                     <option value="FREE">FREE</option>
-                                    <option value="BASIC">BASIC</option>
-                                    <option value="PREMIUM">PREMIUM</option>
-                                    <option value="ENTERPRISE">ENTERPRISE</option>
+                                    <option value="PRO">PRO</option>
                                 </select>
                             </div>
 
