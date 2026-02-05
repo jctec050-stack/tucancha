@@ -19,153 +19,123 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
-    // Cache to prevent unnecessary refetches if ID doesn't change
-    const profileCache = useRef<Map<string, User>>(new Map());
-    // Promise deduplication to prevent race conditions
-    const ongoingFetch = useRef<Promise<User | null> | null>(null);
+    const fetchingProfileRef = useRef<string | null>(null);
 
-    /**
-     * Robustly retrieves the user profile.
-     * Implements Request Deduplication and In-Memory Caching.
-     */
-    const fetchProfile = async (userId: string, email: string): Promise<User | null> => {
-        // 1. Check Memory Cache first
-        if (profileCache.current.has(userId)) {
-            const cachedUser = profileCache.current.get(userId)!;
-            // Auto-update email in cache if it differs
-            if (cachedUser.email !== email) {
-                cachedUser.email = email;
+    const fetchProfile = async (userId: string, email: string, retryCount = 0) => {
+        // Prevent concurrent fetches for the same user (only for initial attempt)
+        if (retryCount === 0 && fetchingProfileRef.current === userId) {
+            return;
+        }
+
+        if (retryCount === 0) {
+            fetchingProfileRef.current = userId;
+        }
+
+        try {
+            // Add timeout to prevent hanging indefinitely
+            const timeoutPromise = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Profile fetch timed out')), 15000)
+            );
+
+            const fetchPromise = supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', userId)
+                .maybeSingle();
+
+            // Cast to any because Promise.race type inference can be tricky with different return types
+            const result = await Promise.race([fetchPromise, timeoutPromise]) as any;
+            const { data, error } = result;
+
+            if (error) {
+                console.error('❌ Error fetching profile:', error);
+                console.error('Error details:', JSON.stringify(error, null, 2));
+                return;
             }
-            return cachedUser;
-        }
 
-        // 2. Request Deduplication
-        if (ongoingFetch.current) {
-            return ongoingFetch.current;
-        }
-
-        const fetchPromise = (async () => {
-            try {
-                // Fetch with a reasonable timeout (20s) to prevent infinite hangs
-                const timeoutPromise = new Promise((_, reject) => 
-                     setTimeout(() => reject(new Error('Profile fetch timed out')), 20000)
-                );
-
-                const dbPromise = supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('id', userId)
-                    .maybeSingle();
-
-                const { data, error } = await Promise.race([dbPromise, timeoutPromise]) as any;
-
-                if (error) throw error;
-
-                if (data) {
-                    const userProfile: User = {
-                        id: userId,
-                        email: email,
-                        name: data.full_name,
-                        role: data.role as UserRole,
-                        phone: data.phone
-                    };
-                    
-                    // Update Cache
-                    profileCache.current.set(userId, userProfile);
-                    return userProfile;
+            if (data) {
+                setUser({
+                    id: userId,
+                    email: email,
+                    name: data.full_name,
+                    role: data.role as UserRole,
+                    phone: data.phone
+                });
+            } else {
+                // Profile doesn't exist (likely an old user from before DB reset)
+                if (retryCount >= 2) {
+                    console.error('🛑 Max retries reached. Could not create/fetch profile.');
+                    return;
                 }
-                
-                // Handle case: User in Auth but missing Profile (Data inconsistency)
-                console.warn('⚠️ Profile missing for user, attempting auto-fix...');
-                
-                // Sub-optimal but functional: Create a default profile to unblock the user
+
+                // Try to insert a default profile
                 const { error: insertError } = await supabase
                     .from('profiles')
                     .insert({
                         id: userId,
                         email: email,
-                        full_name: email.split('@')[0],
-                        role: 'PLAYER' // Default safety role
+                        full_name: email.split('@')[0], // Fallback name
+                        role: 'OWNER' // Default to OWNER for now to be safe, or 'PLAYER'
                     });
 
                 if (insertError) {
-                    console.error('❌ Failed to auto-fix profile:', insertError);
-                    return null;
+                    console.error('❌ Failed to create missing profile:', insertError);
+                } else {
+                    // Retry fetch with incremented counter
+                    await fetchProfile(userId, email, retryCount + 1);
                 }
-                
-                // Return provisional user immediately
-                const provisionalUser: User = {
-                     id: userId,
-                     email: email,
-                     name: email.split('@')[0],
-                     role: 'PLAYER',
-                     phone: undefined
-                };
-                profileCache.current.set(userId, provisionalUser);
-                return provisionalUser;
-
-            } catch (error) {
-                console.error('❌ Error fetching profile:', error);
-                return null;
-            } finally {
-                ongoingFetch.current = null;
             }
-        })();
-
-        ongoingFetch.current = fetchPromise;
-        return fetchPromise;
-    };
-
-    const initializeAuth = async () => {
-        try {
-            // Get initial session
-            const { data: { session }, error } = await supabase.auth.getSession();
-            
-            if (error) {
-                console.warn('Session check failed:', error.message);
-                setUser(null);
+        } catch (e: any) {
+            // Ignore AbortError (common when switching tabs or rapid navigation)
+            if (e.name === 'AbortError' || e.message?.includes('AbortError')) {
                 return;
             }
-
-            if (session?.user?.email) {
-                const userProfile = await fetchProfile(session.user.id, session.user.email);
-                if (userProfile) {
-                    setUser(userProfile);
-                }
-            }
-        } catch (error) {
-            console.error('❌ Critical Auth Initialization Error:', error);
+            console.error('❌ Exception fetching profile:', e);
         } finally {
-            setIsLoading(false);
+            // Clear the lock only if this is the root call
+            if (retryCount === 0) {
+                fetchingProfileRef.current = null;
+            }
         }
     };
 
     useEffect(() => {
-        initializeAuth();
+        // Check active session
+        const initSession = async () => {
+            try {
+                const { data: { session }, error } = await supabase.auth.getSession();
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            // console.log(`🔐 Auth Event: ${event}`);
-
-            if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
-                if (session?.user?.email) {
-                    // Update user state smoothly
-                    const userProfile = await fetchProfile(session.user.id, session.user.email);
-                    if (userProfile) {
-                        setUser(prev => {
-                            // Only update state if JSON differs to avoid re-renders
-                            if (JSON.stringify(prev) !== JSON.stringify(userProfile)) {
-                                return userProfile;
-                            }
-                            return prev;
-                        });
+                if (error) {
+                    console.error('❌ Session error:', error);
+                    // Handle invalid refresh token by clearing session
+                    if (error.message.includes('Refresh Token Not Found') || error.message.includes('Invalid Refresh Token')) {
+                        await supabase.auth.signOut();
+                        setUser(null);
                     }
+                    setIsLoading(false);
+                    return;
                 }
+
+                if (session?.user?.email) {
+                    await fetchProfile(session.user.id, session.user.email);
+                }
+            } catch (error) {
+                console.error('❌ Exception during session init:', error);
+            } finally {
+                // Always set loading to false, even if there's an error
+                setIsLoading(false);
+            }
+        };
+
+        initSession();
+
+        // Listen for auth changes
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            if (event === 'SIGNED_IN' && session?.user?.email) {
+                await fetchProfile(session.user.id, session.user.email);
             } else if (event === 'SIGNED_OUT') {
                 setUser(null);
-                profileCache.current.clear();
             }
-            
-            setIsLoading(false);
         });
 
         return () => {
@@ -174,78 +144,109 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }, []);
 
     const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
-        try {
-            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email,
+            password
+        });
 
-            if (error) {
-                return { 
-                    success: false, 
-                    error: error.message.includes('Invalid login') 
-                        ? 'Usuario o contraseña incorrectos.' 
-                        : 'Error al iniciar sesión.'
-                };
+        if (error) {
+            // Check if it's an invalid credentials error (user doesn't exist or wrong password)
+            if (error.message.includes('Invalid login credentials') || error.message.includes('invalid_credentials')) {
+                return { success: false, error: 'Usuario no registrado o contraseña incorrecta' };
             }
-
-            if (data.user?.email) {
-                // Force fresh fetch on login
-                profileCache.current.delete(data.user.id);
-                const profile = await fetchProfile(data.user.id, data.user.email);
-                if (profile) setUser(profile);
-            }
-
-            return { success: true };
-        } catch (e) {
-            return { success: false, error: 'Error inesperado de red.' };
+            return { success: false, error: error.message };
         }
+
+        if (data.user) {
+            // Await profile fetch to ensure user state is ready before resolving
+            await fetchProfile(data.user.id, data.user.email!);
+        }
+
+        return { success: true };
     };
 
     const register = async (name: string, email: string, phone: string, password: string, role: UserRole): Promise<{ success: boolean; error?: string }> => {
-        try {
-             const { data, error } = await supabase.auth.signUp({
-                email,
-                password,
-                options: {
-                    data: {
-                        full_name: name,
-                        role: role,
-                        phone: phone
-                    },
-                    emailRedirectTo: process.env.NEXT_PUBLIC_APP_URL || window.location.origin
-                }
-            });
-
-            if (error) {
-                if (error.message.includes('already registered')) return { success: false, error: 'Este correo ya está registrado.' };
-                return { success: false, error: error.message };
+        // Sign up with metadata so the trigger (schema.sql) can populate the profiles table
+        const { data, error } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+                data: {
+                    full_name: name,
+                    role: role,
+                    phone: phone
+                },
+                emailRedirectTo: process.env.NEXT_PUBLIC_APP_URL || window.location.origin
             }
-            
-            if (data.user) return { success: true };
-            return { success: false, error: 'Error desconocido al registrar.' };
+        });
 
-        } catch (e) {
-             return { success: false, error: 'Error inesperado.' };
+        if (error) {
+            console.error('Registration error:', error);
+
+            // Check for common errors
+            if (error.message.includes('already registered') || error.message.includes('User already registered')) {
+                return { success: false, error: 'Este correo ya está registrado. Intenta iniciar sesión.' };
+            }
+
+            if (error.message.includes('Invalid email')) {
+                return { success: false, error: 'El formato del email no es válido.' };
+            }
+
+            if (error.message.includes('Password')) {
+                return { success: false, error: 'La contraseña no cumple con los requisitos mínimos.' };
+            }
+
+            // Generic database error
+            if (error.message.includes('Database') || error.message.includes('database')) {
+                return { success: false, error: 'Error al guardar en la base de datos. Por favor intenta nuevamente.' };
+            }
+
+            return { success: false, error: error.message };
         }
+
+        // Check if user was created successfully
+        if (!data.user) {
+            console.error('No user data returned after signup');
+            return { success: false, error: 'Error al crear la cuenta. Por favor intenta nuevamente.' };
+        }
+
+        if (data.user) {
+            return { success: true };
+        }
+        
+        return { success: false, error: 'Error desconocido' };
     };
 
     const resetPassword = async (email: string): Promise<{ success: boolean; error?: string }> => {
-        try {
-            const { error } = await supabase.auth.resetPasswordForEmail(email, {
-                redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || window.location.origin}/reset-password`,
-            });
-            if (error) throw error;
-            return { success: true };
-        } catch (e) {
-            return { success: false, error: 'Error al enviar email de recuperación.' };
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || window.location.origin}/reset-password`,
+        });
+
+        if (error) {
+            console.error('Password reset error:', error);
+            return { success: false, error: 'Error al enviar el email. Verifica que el correo sea correcto.' };
         }
+
+        return { success: true };
     };
 
     const logout = async () => {
+        // Optimistic logout: clear state immediately for instant UI response
         setUser(null);
-        profileCache.current.clear();
+
+        // Sign out in background
         try {
-            await supabase.auth.signOut();
-        } catch (e) {
-            // Ignore errors on logout
+            const { error } = await supabase.auth.signOut();
+            if (error) {
+                // Ignore session missing error as we are logging out anyway
+                if (error.message?.includes('session missing') || error.status === 403) {
+                    // Session already expired or missing
+                } else {
+                    console.warn('⚠️ Logout warning:', error.message);
+                }
+            }
+        } catch (error) {
+            console.warn('⚠️ Exception during logout (background):', error);
         }
     };
 
