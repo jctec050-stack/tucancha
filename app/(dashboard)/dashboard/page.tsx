@@ -197,8 +197,7 @@ export default function DashboardPage() {
     };
 
     const handleRejectTerms = async () => {
-        const confirm = window.confirm('Si rechazas las condiciones, no podrás utilizar la plataforma para gestionar tu complejo. ¿Estás seguro que deseas salir?');
-        if (confirm) {
+        if (window.confirm('Si rechazas las condiciones, no podrás utilizar la plataforma para gestionar tu complejo. ¿Estás seguro que deseas salir?')) {
             await logout();
             router.push('/');
         }
