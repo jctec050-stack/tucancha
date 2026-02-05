@@ -91,7 +91,7 @@ export const Navbar = () => {
         ];
     } else {
         navItems = [
-            { label: '🔍 Buscar Cancha', href: '/' },
+            { label: '🔍 Buscar Cancha', href: '/search' },
             { label: '📅 Mis Reservas', href: '/bookings' },
         ];
     }
@@ -116,7 +116,14 @@ export const Navbar = () => {
                     </button>
 
                     {/* Logo */}
-                    <Link href={user.role === 'OWNER' ? '/dashboard' : '/'} className="flex items-center cursor-pointer active:scale-95 transition-transform">
+                    <Link 
+                        href={
+                            user.role === 'OWNER' ? '/dashboard' : 
+                            user.role === 'ADMIN' ? '/admin/dashboard' : 
+                            '/search'
+                        } 
+                        className="flex items-center cursor-pointer active:scale-95 transition-transform"
+                    >
                         <img src="/logo.png" alt="TuCancha" className="w-10 h-10 md:w-16 md:h-16 object-contain" />
                     </Link>
 

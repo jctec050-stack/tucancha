@@ -16,7 +16,7 @@ export default function LoginPage() {
             } else if (user.role === 'OWNER') {
                 router.push('/dashboard');
             } else {
-                router.push('/');
+                router.push('/search');
             }
         }
     }, [user, router]);
