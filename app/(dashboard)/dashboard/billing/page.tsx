@@ -82,14 +82,14 @@ export default function BillingPage() {
                              // TRIAL EXPIRED -> AUTO UPGRADE TO PRO
                              // Check if we haven't already upgraded (double check logic)
                              if (sub.plan_type === 'FREE' && sub.status !== 'CANCELLED') {
-                                 console.log('Trial expired. Auto-upgrading to PRO...');
+                                 console.log('Trial expired. Auto-upgrading to PREMIUM...');
                                  const { error: upgradeError } = await supabase
                                      .from('subscriptions')
-                                     .update({ plan_type: 'PRO', status: 'ACTIVE' })
+                                     .update({ plan_type: 'PREMIUM', status: 'ACTIVE' })
                                      .eq('id', sub.id);
 
                                  if (!upgradeError) {
-                                     toast('Periodo de prueba finalizado. Tu plan ha sido actualizado a Profesional.', {
+                                     toast('Periodo de prueba finalizado. Tu plan ha sido actualizado a Premium.', {
                                          icon: '🚀',
                                          duration: 5000,
                                          style: {
@@ -99,12 +99,12 @@ export default function BillingPage() {
                                          },
                                      });
                                      // Update local state immediately
-                                     sub.plan_type = 'PRO';
+                                     sub.plan_type = 'PREMIUM';
                                      sub.status = 'ACTIVE';
                                      trialDays = 0; // No longer trial
                                  }
                              }
-                         }
+                        }
                     }
 
                     // Cycle logic based on start_date day

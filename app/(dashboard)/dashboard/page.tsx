@@ -95,12 +95,12 @@ export default function DashboardPage() {
                              console.log('Trial expired in Dashboard. Auto-upgrading...');
                              const { error: upgradeError } = await supabase
                                 .from('subscriptions')
-                                .update({ plan_type: 'PRO', status: 'ACTIVE' })
+                                .update({ plan_type: 'PREMIUM', status: 'ACTIVE' })
                                 .eq('id', sub.id);
                              
                              if (!upgradeError) {
                                  // Notify user gently
-                                 toast('Tu periodo de prueba ha finalizado. Ahora estás en el Plan Profesional.', {
+                                 toast('Tu periodo de prueba ha finalizado. Ahora estás en el Plan Premium.', {
                                      icon: '✨',
                                      duration: 5000
                                  });

@@ -714,7 +714,7 @@ const AdminDashboard = () => {
                                         const newPlan = e.target.value;
                                         let newPrice = subForm.price;
 
-                                        if (newPlan === 'PRO' && editingSub) {
+                                        if (newPlan === 'PREMIUM' && editingSub) {
                                             // Auto-calculate commissions for this owner
                                             const ownerVenues = venueData.filter(v => v.owner_id === editingSub.owner_id);
                                             const totalCommissions = ownerVenues.reduce((sum, v) => sum + (v.platform_commission || 0), 0);
@@ -728,7 +728,7 @@ const AdminDashboard = () => {
                                     className="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                                 >
                                     <option value="FREE">FREE</option>
-                                    <option value="PRO">PRO</option>
+                                    <option value="PREMIUM">PREMIUM (PRO)</option>
                                 </select>
                             </div>
 

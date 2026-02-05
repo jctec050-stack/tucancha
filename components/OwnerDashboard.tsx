@@ -438,7 +438,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ bookings, disabl
         <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100">
           <h5 className="text-lg font-bold text-gray-800 mb-6">Ingresos (Últimos 7 días hasta {selectedDate})</h5>
           <div className="h-64">
-            <ResponsiveContainer width="99%" height="100%" minHeight={200}>
+            <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="name" fontSize={10} tickFormatter={(val) => val.split('-')[2] + '/' + val.split('-')[1]} />
