@@ -79,6 +79,9 @@ export default function DashboardPage() {
                     const trialEndDate = new Date(startDate);
                     trialEndDate.setDate(trialEndDate.getDate() + 30);
 
+                    // FIX: If plan is FREE but status is ACTIVE, we check trial days.
+                    // If trial days < 0, then trial expired -> Should show BILLING banner (trialDaysLeft = 0)
+                    
                     if (now < trialEndDate) {
                         const diffTime = Math.abs(trialEndDate.getTime() - now.getTime());
                         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
@@ -86,7 +89,7 @@ export default function DashboardPage() {
                         // Ensure modal is closed if they have a sub
                         setShowTermsModal(false);
                     } else {
-                        setTrialDaysLeft(0); // Trial expired
+                        setTrialDaysLeft(0); // Trial expired -> Show Billing Banner
                         setShowTermsModal(false);
                     }
                 }
