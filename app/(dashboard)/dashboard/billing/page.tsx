@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/AuthContext';
 import { useRouter } from 'next/navigation';
+import { Toaster, toast } from 'react-hot-toast';
 import { supabase } from '@/lib/supabase';
 import { getOwnerVenues, getBookings } from '@/services/dataService';
 import { Venue, Subscription } from '@/types';
@@ -355,11 +356,16 @@ export default function BillingPage() {
                                 
                                 if (error) throw error;
                                 
-                                alert('Suscripción cancelada correctamente.');
-                                router.push('/dashboard'); // Will likely trigger reactivation modal or logout logic
+                                toast.success('Suscripción cancelada correctamente.', {
+                                    duration: 3000,
+                                });
+                                // Small delay to let the toast show
+                                setTimeout(() => {
+                                    router.push('/dashboard');
+                                }, 1500);
                             } catch (err) {
                                 console.error(err);
-                                alert('Error al cancelar.');
+                                toast.error('Error al cancelar la suscripción.');
                             } finally {
                                 setLoading(false);
                             }
@@ -370,6 +376,7 @@ export default function BillingPage() {
                     Cancelar Suscripción
                 </button>
             </div>
+            <Toaster position="top-right" />
         </main>
     );
 }

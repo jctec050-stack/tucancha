@@ -8,6 +8,7 @@ import { getDisabledSlots, getOwnerVenues } from '@/services/dataService'; // FI
 import { useOwnerBookings } from '@/hooks/useData';
 import { OwnerDashboard } from '@/components/OwnerDashboard';
 import { TermsModal } from '@/components/TermsModal';
+import { Toaster, toast } from 'react-hot-toast';
 import { ReactivationModal } from '@/components/ReactivationModal';
 import { supabase } from '@/lib/supabase';
 
@@ -151,7 +152,7 @@ export default function DashboardPage() {
             // Reload page to ensure everything syncs or just proceed
         } catch (error) {
             console.error('Error accepting terms:', error);
-            alert('Ocurrió un error al procesar tu solicitud. Por favor intenta nuevamente.');
+            toast.error('Ocurrió un error al procesar tu solicitud. Por favor intenta nuevamente.');
         }
     };
 
@@ -188,10 +189,10 @@ export default function DashboardPage() {
 
             setShowReactivationModal(false);
             setTrialDaysLeft(0); // Immediately reflect no trial
-            alert('¡Cuenta reactivada exitosamente! Bienvenido de nuevo.');
+            toast.success('¡Cuenta reactivada exitosamente! Bienvenido de nuevo.', { duration: 4000 });
         } catch (error) {
             console.error('Error reactivating account:', error);
-            alert('Error al reactivar la cuenta.');
+            toast.error('Error al reactivar la cuenta.');
         }
     };
 
@@ -226,6 +227,7 @@ export default function DashboardPage() {
                 onReactivate={handleReactivateAccount}
                 onLogout={handleRejectTerms}
             />
+            <Toaster position="top-right" />
 
             {/* Trial Banner */}
             {trialDaysLeft !== null && trialDaysLeft > 0 && (
