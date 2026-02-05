@@ -88,6 +88,7 @@ export const Navbar = () => {
             { label: '📊 Dashboard', href: '/dashboard' },
             { label: '📅 Horarios', href: '/dashboard/schedule' },
             { label: '🏭 Mis Complejos', href: '/dashboard/venues' },
+            { label: '💳 Facturación', href: '/dashboard/billing' }, // New link
         ];
     } else {
         navItems = [
