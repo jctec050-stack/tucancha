@@ -883,7 +883,8 @@ export const getAdminDashboardData = async (): Promise<AdminVenueData[]> => {
         // 2. Fetch all subscriptions
         const { data: subscriptionsData, error: subsError } = await supabase
             .from('subscriptions')
-            .select('*');
+            .select('*')
+            .order('created_at', { ascending: false });
 
         if (subsError) console.error('Error fetching subscriptions:', subsError);
         const subscriptions = subscriptionsData || [];
@@ -900,9 +901,8 @@ export const getAdminDashboardData = async (): Promise<AdminVenueData[]> => {
 
         // 4. Aggregate data
         const adminData: AdminVenueData[] = venues.map(venue => {
-            // Find subscription
-            const sub = subscriptions.find(s => s.owner_id === venue.owner_id && s.status === 'ACTIVE') ||
-                subscriptions.find(s => s.owner_id === venue.owner_id); // Fallback to any sub
+            // Find subscription (Latest one due to sorting)
+            const sub = subscriptions.find(s => s.owner_id === venue.owner_id);
 
             // Calculate Billing Period and Trial Status
             const now = new Date();
