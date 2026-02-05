@@ -534,19 +534,36 @@ const AdminDashboard = () => {
                                                 </td>
                                                 <td className="px-6 py-4 text-center">
                                                     {sub ? (
-                                                        <button
-                                                            onClick={() => openEditSubModal(sub)}
-                                                            className="text-indigo-600 hover:text-indigo-900 font-medium text-xs border border-indigo-200 px-3 py-1 rounded hover:bg-indigo-50"
-                                                        >
-                                                            Editar Plan
-                                                        </button>
+                                                        (() => {
+                                                            const trial = getTrialInfo(sub);
+                                                            if (trial?.isTrial) {
+                                                                return <span className="text-xs text-blue-600 font-bold">En Prueba</span>;
+                                                            }
+                                                            
+                                                            const daysLeft = getDaysRemaining(sub.end_date);
+                                                            const isExpiringSoon = sub.status === 'ACTIVE' && daysLeft <= 5 && daysLeft >= 0;
+                                                            const isExpired = sub.status === 'EXPIRED' || (sub.status === 'ACTIVE' && daysLeft < 0) || sub.status === 'PENDING_PAYMENT';
+
+                                                            if (sub.status !== 'ACTIVE' || isExpiringSoon || isExpired) {
+                                                                const buttonColorClass = isExpired 
+                                                                    ? 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100' 
+                                                                    : 'bg-yellow-50 text-yellow-700 border-yellow-200 hover:bg-yellow-100';
+                                                                
+                                                                return (
+                                                                    <button
+                                                                        onClick={() => markAsPaid(sub as AdminSubscriptionData)}
+                                                                        className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-medium rounded border transition ${buttonColorClass}`}
+                                                                        title="Extender suscripción por 30 días"
+                                                                    >
+                                                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                                                        {isExpired ? 'Vencido - Pagar' : 'Renovar'}
+                                                                    </button>
+                                                                );
+                                                            }
+                                                            return <span className="text-xs text-green-600 font-bold">Pagado</span>;
+                                                        })()
                                                     ) : (
-                                                        <button
-                                                            onClick={() => handleCreateSub(client.id)}
-                                                            className="text-green-600 hover:text-green-900 font-medium text-xs border border-green-200 px-3 py-1 rounded hover:bg-green-50"
-                                                        >
-                                                            Crear Plan
-                                                        </button>
+                                                        <span className="text-xs text-gray-400">Sin suscripción</span>
                                                     )}
                                                 </td>
                                             </tr>
