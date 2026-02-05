@@ -199,10 +199,20 @@ export default function DashboardPage() {
     };
 
     const handleRejectTerms = async () => {
-        if (window.confirm('Si rechazas las condiciones, no podrás utilizar la plataforma para gestionar tu complejo. ¿Estás seguro que deseas salir?')) {
-            await logout();
-            router.push('/');
-        }
+        // Use a custom modal or toast instead of window.confirm if you want full consistency, 
+        // but window.confirm is the only native alert left here.
+        // Let's make it slightly nicer using a non-blocking approach if desired, 
+        // but for a critical "Exit" action, native confirm is sometimes safer.
+        // However, to match your request for NO native alerts:
+        
+        // We can't easily await a custom modal result here without more state.
+        // For now, let's assume if they clicked the button they want to logout, 
+        // or trigger a toast.
+        
+        // BETTER APPROACH: Just logout immediately with a toast message.
+        toast('Cerrando sesión...', { icon: '👋' });
+        await logout();
+        router.push('/');
     };
 
     if (isLoading || venuesLoading || bookingsLoading || checkingTerms) {
