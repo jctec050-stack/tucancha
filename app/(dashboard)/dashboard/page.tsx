@@ -57,10 +57,12 @@ export default function DashboardPage() {
                     .maybeSingle();
 
                 if (!sub) {
-                    // No subscription found -> Show Terms Modal
+                    // No subscription found -> Check if user is newly registered (e.g. within last minute) or simply hasn't accepted terms
+                    // Logic: If no sub exists, it means they haven't accepted terms yet.
                     setShowTermsModal(true);
                 } else {
-                    // Subscription exists -> Calculate Trial Status
+                    // Subscription exists -> They have already accepted terms.
+                    // Calculate Trial Status logic...
                     const startDate = new Date(sub.start_date);
                     const now = new Date();
                     // Assuming 30 days trial for everyone initially
@@ -71,8 +73,11 @@ export default function DashboardPage() {
                         const diffTime = Math.abs(trialEndDate.getTime() - now.getTime());
                         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
                         setTrialDaysLeft(diffDays);
+                        // Ensure modal is closed if they have a sub
+                        setShowTermsModal(false);
                     } else {
                         setTrialDaysLeft(0); // Trial expired
+                        setShowTermsModal(false);
                     }
                 }
             } catch (err) {
