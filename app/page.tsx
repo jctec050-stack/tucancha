@@ -43,9 +43,8 @@ export default function LandingPage() {
                 
                 <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-32">
                     <div className="text-center max-w-4xl mx-auto">
-                        <div className="inline-flex items-center gap-2 bg-indigo-500/30 border border-indigo-400/30 rounded-full px-4 py-1.5 mb-8 backdrop-blur-sm">
-                            <span className="flex h-2 w-2 rounded-full bg-green-400 animate-pulse"></span>
-                            <span className="text-indigo-100 text-sm font-medium">La plataforma #1 en gestión deportiva</span>
+                        <div className="flex justify-center mb-8">
+                             <img src="/logo.png" alt="TuCancha" className="h-20 md:h-24 w-auto object-contain drop-shadow-lg" />
                         </div>
                         
                         <h1 className="text-5xl lg:text-7xl font-extrabold tracking-tight text-white mb-8 drop-shadow-lg">
