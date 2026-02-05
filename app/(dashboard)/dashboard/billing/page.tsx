@@ -47,11 +47,13 @@ export default function BillingPage() {
             try {
                 setLoading(true);
 
-                // 1. Fetch Subscription
+                // 1. Fetch Subscription (ensure getting the latest one)
                 const { data: sub } = await supabase
                     .from('subscriptions')
                     .select('*')
                     .eq('owner_id', user.id)
+                    .order('created_at', { ascending: false })
+                    .limit(1)
                     .maybeSingle();
                 
                 setSubscription(sub as Subscription);
