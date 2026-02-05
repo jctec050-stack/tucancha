@@ -39,6 +39,8 @@ export default function BillingPage() {
         }
     }, [user, isLoading, router]);
 
+    const [showCancelModal, setShowCancelModal] = useState(false);
+
     useEffect(() => {
         const fetchData = async () => {
             if (!user) return;
@@ -345,37 +347,66 @@ export default function BillingPage() {
                 <h3 className="text-lg font-bold text-red-600 mb-2">Zona de Peligro</h3>
                 <p className="text-gray-500 text-sm mb-4">Si cancelas tu suscripción, perderás el acceso a la gestión de reservas de inmediato.</p>
                 <button 
-                    onClick={async () => {
-                        if (confirm('¿Estás seguro de que deseas cancelar tu suscripción? Perderás el acceso inmediato y si decides volver, ya no tendrás días de prueba gratuitos.')) {
-                            setLoading(true);
-                            try {
-                                const { error } = await supabase
-                                    .from('subscriptions')
-                                    .update({ status: 'CANCELLED' })
-                                    .eq('id', subscription?.id);
-                                
-                                if (error) throw error;
-                                
-                                toast.success('Suscripción cancelada correctamente.', {
-                                    duration: 3000,
-                                });
-                                // Small delay to let the toast show
-                                setTimeout(() => {
-                                    router.push('/dashboard');
-                                }, 1500);
-                            } catch (err) {
-                                console.error(err);
-                                toast.error('Error al cancelar la suscripción.');
-                            } finally {
-                                setLoading(false);
-                            }
-                        }
-                    }}
+                    onClick={() => setShowCancelModal(true)}
                     className="px-4 py-2 border border-red-200 text-red-600 rounded-lg text-sm font-bold hover:bg-red-50 transition"
                 >
                     Cancelar Suscripción
                 </button>
             </div>
+
+            {/* Cancel Confirmation Modal */}
+            {showCancelModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-xl animate-in zoom-in-95 duration-200">
+                        <div className="text-center">
+                            <div className="bg-red-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                            </div>
+                            <h3 className="text-xl font-bold text-gray-900 mb-2">¿Cancelar Suscripción?</h3>
+                            <p className="text-gray-500 text-sm mb-6">
+                                Perderás el acceso inmediato y si decides volver, ya no tendrás días de prueba gratuitos. ¿Estás seguro?
+                            </p>
+                            
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setShowCancelModal(false)}
+                                    className="flex-1 py-2.5 text-gray-700 font-bold bg-gray-100 rounded-xl hover:bg-gray-200 transition"
+                                >
+                                    Volver
+                                </button>
+                                <button
+                                    onClick={async () => {
+                                        setShowCancelModal(false);
+                                        setLoading(true);
+                                        try {
+                                            const { error } = await supabase
+                                                .from('subscriptions')
+                                                .update({ status: 'CANCELLED' })
+                                                .eq('id', subscription?.id);
+                                            
+                                            if (error) throw error;
+                                            
+                                            toast.success('Suscripción cancelada correctamente.', { duration: 3000 });
+                                            setTimeout(() => {
+                                                router.push('/dashboard');
+                                            }, 1500);
+                                        } catch (err) {
+                                            console.error(err);
+                                            toast.error('Error al cancelar la suscripción.');
+                                        } finally {
+                                            setLoading(false);
+                                        }
+                                    }}
+                                    className="flex-1 py-2.5 text-white font-bold bg-red-600 rounded-xl hover:bg-red-700 transition shadow-lg shadow-red-100"
+                                >
+                                    Sí, Cancelar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+            
             <Toaster position="top-right" />
         </main>
     );
