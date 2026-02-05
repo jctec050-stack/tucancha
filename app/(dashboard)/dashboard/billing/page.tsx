@@ -388,6 +388,10 @@ export default function BillingPage() {
                                             
                                             if (error) throw error;
                                             
+                                            // Force update the local state to reflect cancellation immediately
+                                            setSubscription(prev => prev ? ({ ...prev, status: 'CANCELLED' }) : null);
+                                            setBillingSummary(prev => prev ? ({ ...prev, subscriptionStatus: 'CANCELLED', trialDaysLeft: 0 }) : null);
+
                                             toast.success('Suscripción cancelada correctamente.', { duration: 3000 });
                                             setTimeout(() => {
                                                 router.push('/dashboard');
