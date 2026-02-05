@@ -4,16 +4,13 @@ import { Venue, Booking, DisabledSlot } from '@/types';
 
 // Fetcher functions
 const venuesFetcher = () => getVenues();
-const bookingsFetcher = () => getBookings();
-const disabledSlotsFetcher = (key: string[]) => {
-    const [_, venueId, date] = key;
-    return getDisabledSlots(venueId, date);
-};
+// Updated fetcher to handle object return, but useSWR expects the data directly mostly.
+// Actually, we will define specific fetchers inside hooks or generic ones.
 
 export function useVenues() {
     const { data, error, isLoading, mutate } = useSWR<Venue[]>('venues', venuesFetcher, {
-        revalidateOnFocus: false, // Don't revalidate on window focus for static-ish data
-        dedupingInterval: 60000, // Cache for 1 minute
+        revalidateOnFocus: false, 
+        dedupingInterval: 60000, 
     });
 
     return {
@@ -42,48 +39,82 @@ export function useOwnerVenues(ownerId: string | undefined) {
     };
 }
 
-export function useBookings() {
-    // Fetches all bookings (used for availability checking in Home and list in Bookings)
-    // Note: This might need optimization to filter by date range in the future
-    const { data, error, isLoading, mutate } = useSWR<Booking[]>('bookings', bookingsFetcher, {
-        revalidateOnFocus: true,
-        dedupingInterval: 10000, // 10 seconds
-    });
-
-    return {
-        bookings: data || [],
-        isLoading,
-        isError: error,
-        mutate
-    };
+interface UseBookingsOptions {
+    ownerId?: string;
+    playerId?: string;
+    page?: number;
+    limit?: number;
+    startDate?: string;
+    endDate?: string;
+    status?: string;
 }
 
-export function useOwnerBookings(ownerId: string | undefined) {
-    const { data, error, isLoading, mutate } = useSWR<Booking[]>(
-        ownerId ? ['bookings', ownerId] : null,
-        () => getBookings(ownerId),
+export function useBookings(options: UseBookingsOptions = {}) {
+    // Unique key based on options
+    const key = ['bookings', JSON.stringify(options)];
+
+    const { data, error, isLoading, mutate } = useSWR(
+        key,
+        () => getBookings(options),
         {
             revalidateOnFocus: true,
             dedupingInterval: 10000,
+            keepPreviousData: true, // Good for pagination UI
         }
     );
 
     return {
-        bookings: data || [],
+        bookings: data?.data || [],
+        totalCount: data?.count || 0,
         isLoading,
         isError: error,
         mutate
     };
 }
 
-export function usePlayerBookings(userId?: string) {
-    const { bookings, isLoading, isError, mutate } = useBookings();
-
-    // Derived state
-    const playerBookings = userId ? bookings.filter(b => b.player_id === userId) : [];
+export function useOwnerBookings(ownerId: string | undefined, page = 1, limit = 20) {
+    const { bookings, totalCount, isLoading, isError, mutate } = useBookings({
+        ownerId,
+        page,
+        limit
+    });
 
     return {
-        bookings: playerBookings,
+        bookings,
+        totalCount,
+        isLoading,
+        isError,
+        mutate
+    };
+}
+
+export function usePlayerBookings(userId?: string, page = 1, limit = 20) {
+    // Now we filter on server side!
+    const { bookings, totalCount, isLoading, isError, mutate } = useBookings({
+        playerId: userId,
+        page,
+        limit
+    });
+
+    return {
+        bookings,
+        totalCount,
+        isLoading,
+        isError,
+        mutate
+    };
+}
+
+export function useBookingsByDate(ownerId: string | undefined, date: string) {
+    const { bookings, isLoading, isError, mutate } = useBookings({
+        ownerId,
+        startDate: date,
+        endDate: date,
+        limit: 1000 // High limit ensures we get all bookings for the day view
+    });
+
+    return {
+        bookings,
         isLoading,
         isError,
         mutate

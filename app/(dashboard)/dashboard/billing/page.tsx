@@ -129,15 +129,19 @@ export default function BillingPage() {
                 billingEnd.setMonth(billingEnd.getMonth() + 1);
 
                 // 4. Fetch Bookings & Calculate Commission
-                const allBookings = await getBookings(user.id);
-                
-                const cycleBookings = allBookings.filter(b => {
-                    const bDate = new Date(b.date);
-                    // Filter by date range AND status COMPLETED
-                    // Note: In real app, ensure 'status' is strictly checked. 
-                    // Here we use the derived status logic if available or raw status
-                    return bDate >= billingStart && bDate < billingEnd && b.status === 'COMPLETED';
+                // Optimization: Filter at DB level using new getBookings options
+                const startStr = billingStart.toISOString().split('T')[0];
+                const endStr = billingEnd.toISOString().split('T')[0];
+
+                const { data: cycleBookings } = await getBookings({
+                    ownerId: user.id,
+                    startDate: startStr,
+                    endDate: endStr,
+                    status: 'COMPLETED'
                 });
+                
+                // No need to filter manually anymore, except maybe double checking edge cases
+                // but for billing summary, DB filter is much more efficient.
 
                 let totalCommission = 0;
                 // Commission logic: 5.000 Gs per hour

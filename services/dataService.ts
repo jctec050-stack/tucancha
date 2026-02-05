@@ -445,46 +445,78 @@ export const clearAllNotifications = async (userId: string): Promise<boolean> =>
 // BOOKINGS
 // ============================================
 
-export const getBookings = async (ownerId?: string): Promise<Booking[]> => {
-    try {
-        let query;
+export interface GetBookingsOptions {
+    ownerId?: string;
+    playerId?: string;
+    page?: number;
+    limit?: number;
+    startDate?: string;
+    endDate?: string;
+    status?: string;
+}
 
+export interface PaginatedResult<T> {
+    data: T[];
+    count: number;
+}
+
+export const getBookings = async (
+    options: GetBookingsOptions = {}
+): Promise<PaginatedResult<Booking>> => {
+    try {
+        const { ownerId, playerId, page, limit, startDate, endDate, status } = options;
+        
+        // Base query
+        let query = supabase
+            .from('bookings')
+            .select(`
+                *,
+                profiles:player_id (full_name, email, phone),
+                venues:venue_id!inner (name, address, contact_info, latitude, longitude, owner_id),
+                courts:court_id (name, type)
+            `, { count: 'exact' });
+
+        // Apply Filters
         if (ownerId) {
-            query = supabase
-                .from('bookings')
-                .select(`
-                    *,
-                    profiles:player_id (full_name, email, phone),
-                    venues:venue_id!inner (name, owner_id),
-                    courts:court_id (name, type)
-                `)
-                .eq('venues.owner_id', ownerId)
-                .order('date', { ascending: false });
-        } else {
-            query = supabase
-                .from('bookings')
-                .select(`
-                    *,
-                    profiles:player_id (full_name, email, phone),
-                    venues:venue_id (name, address, contact_info, latitude, longitude),
-                    courts:court_id (name, type)
-                `)
-                .order('date', { ascending: false });
+            query = query.eq('venues.owner_id', ownerId);
         }
 
-        const { data, error } = await query;
+        if (playerId) {
+            query = query.eq('player_id', playerId);
+        }
+
+        if (startDate) {
+            query = query.gte('date', startDate);
+        }
+
+        if (endDate) {
+            query = query.lte('date', endDate);
+        }
+        
+        if (status) {
+             query = query.eq('status', status);
+        }
+
+        // Apply Pagination
+        if (page && limit) {
+            const from = (page - 1) * limit;
+            const to = from + limit - 1;
+            query = query.range(from, to);
+        }
+        
+        // Default Order
+        query = query.order('date', { ascending: false });
+
+        const { data, error, count } = await query;
 
         if (error) throw error;
 
-        // Map and Flatten for Types matching
-        return (data || []).map(b => ({
+        // Map and Flatten
+        const mappedData = (data || []).map(b => ({
             ...b,
             start_time: b.start_time?.substring(0, 5), // Trim seconds
             end_time: b.end_time?.substring(0, 5),
             status: getDerivedStatus(b),
-            // Flatten nested relations to match Booking interface if needed
-            // Checking types.ts, Booking interface has player_name, venue_name via interface extension?
-            // Yes, checking types.ts: populated fields are part of interface.
             player_name: b.player_name || (b.profiles as any)?.full_name,
             player_phone: b.player_phone || (b.profiles as any)?.phone,
             venue_name: (b.venues as any)?.name,
@@ -495,12 +527,18 @@ export const getBookings = async (ownerId?: string): Promise<Booking[]> => {
             court_name: (b.courts as any)?.name,
             court_type: (b.courts as any)?.type
         })) as Booking[];
+
+        return {
+            data: mappedData,
+            count: count || 0
+        };
+
     } catch (error: any) {
         if (error.name === 'AbortError' || error.message?.includes('AbortError')) {
-            return [];
+            return { data: [], count: 0 };
         }
-        console.error('❌ Error fetching all bookings:', error);
-        return [];
+        console.error('❌ Error fetching bookings:', error);
+        return { data: [], count: 0 };
     }
 };
 

@@ -5,7 +5,7 @@ import { useAuth } from '@/AuthContext';
 import { useRouter } from 'next/navigation';
 import { Venue, Booking, DisabledSlot } from '@/types';
 import { getDisabledSlots, getOwnerVenues } from '@/services/dataService'; // FIX: Imported getOwnerVenues
-import { useOwnerBookings } from '@/hooks/useData';
+import { useBookingsByDate } from '@/hooks/useData';
 import { OwnerDashboard } from '@/components/OwnerDashboard';
 import { TermsModal } from '@/components/TermsModal';
 import { Toaster, toast } from 'react-hot-toast';
@@ -19,10 +19,10 @@ export default function DashboardPage() {
     // Let's use local state for venues to simplify debugging if useOwnerVenues is acting up or missing
     const [venues, setVenues] = useState<Venue[]>([]);
     const [venuesLoading, setVenuesLoading] = useState(true);
-
-    const { bookings, isLoading: bookingsLoading } = useOwnerBookings(user?.id);
-    const [disabledSlots, setDisabledSlots] = useState<DisabledSlot[]>([]);
     const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+
+    const { bookings, isLoading: bookingsLoading } = useBookingsByDate(user?.id, selectedDate);
+    const [disabledSlots, setDisabledSlots] = useState<DisabledSlot[]>([]);
     const [loadingSlots, setLoadingSlots] = useState(false);
 
     // Terms & Trial State
