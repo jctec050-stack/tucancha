@@ -25,6 +25,8 @@ export default function BillingPage() {
     const [subscription, setSubscription] = useState<Subscription | null>(null);
     const [billingSummary, setBillingSummary] = useState<BillingSummary | null>(null);
 
+    const [showBankInfo, setShowBankInfo] = useState(false);
+
     useEffect(() => {
         if (!isLoading && !user) {
             router.push('/login');
@@ -240,6 +242,16 @@ export default function BillingPage() {
                             <p className="text-base font-bold text-gray-900">Total Estimado</p>
                             <p className="text-xl font-extrabold text-indigo-600">Gs. {billingSummary.totalCommission.toLocaleString('es-PY')}</p>
                         </div>
+                        
+                        {(!billingSummary.trialDaysLeft || billingSummary.trialDaysLeft <= 0) && (
+                            <button 
+                                onClick={() => setShowBankInfo(true)}
+                                className="w-full mt-4 py-3 bg-indigo-600 text-white rounded-xl font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition flex items-center justify-center gap-2"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                                Pagar Factura
+                            </button>
+                        )}
                     </div>
                 </div>
 
@@ -262,6 +274,61 @@ export default function BillingPage() {
                 </div>
             </div>
             
+            {/* Bank Info Modal */}
+            {showBankInfo && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl relative animate-in zoom-in-95 duration-200">
+                        <button 
+                            onClick={() => setShowBankInfo(false)}
+                            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+                        >
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                        
+                        <div className="text-center mb-6">
+                            <div className="bg-indigo-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <svg className="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+                            </div>
+                            <h3 className="text-xl font-bold text-gray-900">Datos para Transferencia</h3>
+                            <p className="text-gray-500 text-sm mt-1">Realiza el pago de tu factura a la siguiente cuenta:</p>
+                        </div>
+
+                        <div className="bg-gray-50 rounded-xl p-5 space-y-4 border border-gray-100">
+                            <div className="flex justify-between border-b border-gray-200 pb-2">
+                                <span className="text-gray-500 text-sm">Banco</span>
+                                <span className="font-bold text-gray-900">BANCO FAMILIAR</span>
+                            </div>
+                            <div className="flex justify-between border-b border-gray-200 pb-2">
+                                <span className="text-gray-500 text-sm">Cuenta Cte.</span>
+                                <span className="font-bold text-gray-900 font-mono">45-639689</span>
+                            </div>
+                            <div className="flex justify-between border-b border-gray-200 pb-2">
+                                <span className="text-gray-500 text-sm">Titular</span>
+                                <span className="font-bold text-gray-900 text-right">Juan Carlos Piris Sanchez</span>
+                            </div>
+                            <div className="flex justify-between border-b border-gray-200 pb-2">
+                                <span className="text-gray-500 text-sm">C.I. / Alias</span>
+                                <span className="font-bold text-gray-900">5.532.160</span>
+                            </div>
+                            <div className="flex justify-between pt-2">
+                                <span className="text-gray-500 text-sm">Monto a Pagar</span>
+                                <span className="font-bold text-indigo-600 text-lg">Gs. {billingSummary.totalCommission.toLocaleString('es-PY')}</span>
+                            </div>
+                        </div>
+
+                        <div className="mt-6 text-center">
+                            <p className="text-xs text-gray-400 mb-4">Una vez realizada la transferencia, envía el comprobante al soporte.</p>
+                            <button
+                                onClick={() => setShowBankInfo(false)}
+                                className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition"
+                            >
+                                Entendido
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="mt-12 pt-8 border-t border-gray-200">
                 <h3 className="text-lg font-bold text-red-600 mb-2">Zona de Peligro</h3>
                 <p className="text-gray-500 text-sm mb-4">Si cancelas tu suscripción, perderás el acceso a la gestión de reservas de inmediato.</p>
