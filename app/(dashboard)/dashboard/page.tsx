@@ -90,6 +90,23 @@ export default function DashboardPage() {
                         setShowTermsModal(false);
                     } else {
                         // Trial expired -> Show Billing Banner
+                        // Check for Auto-Upgrade here too
+                        if (sub.plan_type === 'FREE' && sub.status !== 'CANCELLED') {
+                             console.log('Trial expired in Dashboard. Auto-upgrading...');
+                             const { error: upgradeError } = await supabase
+                                .from('subscriptions')
+                                .update({ plan_type: 'PRO', status: 'ACTIVE' })
+                                .eq('id', sub.id);
+                             
+                             if (!upgradeError) {
+                                 // Notify user gently
+                                 toast('Tu periodo de prueba ha finalizado. Ahora estás en el Plan Profesional.', {
+                                     icon: '✨',
+                                     duration: 5000
+                                 });
+                             }
+                        }
+
                         // Only set if status is still active/free, if cancelled it's handled above
                         setTrialDaysLeft(0); 
                         setShowTermsModal(false);

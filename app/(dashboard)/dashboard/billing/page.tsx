@@ -70,7 +70,7 @@ export default function BillingPage() {
                 if (sub) {
                     const subStart = new Date(sub.start_date);
                     
-                    if (sub.status === 'TRIAL' || (sub.plan_type === 'FREE' && sub.price_per_month === 0)) { // Assuming 'FREE' implies trial logic for now based on previous implementation
+                    if (sub.status === 'TRIAL' || (sub.plan_type === 'FREE' && sub.price_per_month === 0)) { 
                          // Trial Logic
                          const trialEndDate = new Date(subStart);
                          trialEndDate.setDate(trialEndDate.getDate() + 30);
@@ -78,6 +78,32 @@ export default function BillingPage() {
                          if (now < trialEndDate) {
                              const diffTime = Math.abs(trialEndDate.getTime() - now.getTime());
                              trialDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                         } else {
+                             // TRIAL EXPIRED -> AUTO UPGRADE TO PRO
+                             // Check if we haven't already upgraded (double check logic)
+                             if (sub.plan_type === 'FREE' && sub.status !== 'CANCELLED') {
+                                 console.log('Trial expired. Auto-upgrading to PRO...');
+                                 const { error: upgradeError } = await supabase
+                                     .from('subscriptions')
+                                     .update({ plan_type: 'PRO', status: 'ACTIVE' })
+                                     .eq('id', sub.id);
+
+                                 if (!upgradeError) {
+                                     toast('Periodo de prueba finalizado. Tu plan ha sido actualizado a Profesional.', {
+                                         icon: '🚀',
+                                         duration: 5000,
+                                         style: {
+                                             borderRadius: '10px',
+                                             background: '#333',
+                                             color: '#fff',
+                                         },
+                                     });
+                                     // Update local state immediately
+                                     sub.plan_type = 'PRO';
+                                     sub.status = 'ACTIVE';
+                                     trialDays = 0; // No longer trial
+                                 }
+                             }
                          }
                     }
 
@@ -344,6 +370,91 @@ export default function BillingPage() {
                     </div>
                 </div>
             )}
+
+            {/* Plans Section */}
+            <div className="mt-12">
+                <h3 className="text-xl font-bold text-gray-900 mb-6">Tu Plan</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Free Plan (Informative Only) */}
+                    <div className={`rounded-2xl border-2 p-6 transition-all relative ${subscription?.plan_type === 'FREE' && subscription?.status !== 'CANCELLED' ? 'border-indigo-600 bg-indigo-50/50 shadow-md ring-1 ring-indigo-600' : 'border-gray-200 bg-gray-50 opacity-70'}`}>
+                        {subscription?.plan_type === 'FREE' && subscription?.status !== 'CANCELLED' && (
+                            <div className="absolute top-4 right-4 text-indigo-600 font-bold text-sm bg-indigo-100 px-3 py-1 rounded-full">
+                                Actual
+                            </div>
+                        )}
+                        <h4 className="text-lg font-bold text-gray-900">Plan Inicial (Prueba)</h4>
+                        <p className="text-3xl font-extrabold text-gray-900 mt-2">Gs. 0<span className="text-base font-normal text-gray-500">/mes</span></p>
+                        <p className="text-xs text-orange-600 font-bold mt-1">Válido solo los primeros 30 días</p>
+                        <ul className="mt-6 space-y-3 text-sm text-gray-600 mb-8">
+                            <li className="flex items-center gap-2"><svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>Gestión básica de reservas</li>
+                            <li className="flex items-center gap-2"><svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>1 Complejo</li>
+                            <li className="flex items-center gap-2"><svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>Sin comisiones</li>
+                        </ul>
+                        <button
+                            disabled={true}
+                            className="w-full py-2.5 rounded-xl font-bold bg-gray-200 text-gray-500 cursor-not-allowed border border-gray-300"
+                        >
+                            {subscription?.plan_type === 'FREE' ? 'Plan Actual' : 'Solo para nuevos usuarios'}
+                        </button>
+                    </div>
+
+                    {/* Pro Plan */}
+                    <div className={`rounded-2xl border-2 p-6 transition-all relative ${subscription?.plan_type === 'PRO' && subscription?.status !== 'CANCELLED' ? 'border-indigo-600 bg-indigo-50/50 shadow-md ring-1 ring-indigo-600' : 'border-gray-200 bg-white hover:border-gray-300'}`}>
+                        {subscription?.plan_type === 'PRO' && subscription?.status !== 'CANCELLED' && (
+                            <div className="absolute top-4 right-4 text-indigo-600 font-bold text-sm bg-indigo-100 px-3 py-1 rounded-full">
+                                Actual
+                            </div>
+                        )}
+                        <h4 className="text-lg font-bold text-gray-900">Plan Profesional</h4>
+                        <p className="text-3xl font-extrabold text-indigo-600 mt-2">Comisión<span className="text-base font-normal text-gray-500">/reserva</span></p>
+                        <p className="text-sm text-gray-500 mt-1">Gs. 5.000 por hora reservada</p>
+                        <ul className="mt-6 space-y-3 text-sm text-gray-600 mb-8">
+                            <li className="flex items-center gap-2"><svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>Todo ilimitado</li>
+                            <li className="flex items-center gap-2"><svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>Soporte Prioritario</li>
+                            <li className="flex items-center gap-2"><svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>Panel Avanzado</li>
+                        </ul>
+                        {/* Auto-upgrade logic makes this button less critical, but good for manual upgrade before trial ends */}
+                        <button
+                            onClick={async () => {
+                                if (subscription?.plan_type === 'PRO' && subscription?.status === 'ACTIVE') return;
+                                const toastId = toast.loading('Activando Plan Profesional...');
+                                try {
+                                    const { error } = await supabase
+                                        .from('subscriptions')
+                                        .update({ plan_type: 'PRO', status: 'ACTIVE' }) 
+                                        .eq('id', subscription?.id);
+                                    
+                                    if (error) throw error;
+                                    
+                                    // Optimistic update
+                                    let newTrialDays = billingSummary?.trialDaysLeft || 0;
+                                    if (subscription?.status === 'CANCELLED') {
+                                        newTrialDays = 0;
+                                    }
+
+                                    setSubscription(prev => prev ? ({ ...prev, plan_type: 'PRO', status: 'ACTIVE' }) : null);
+                                    setBillingSummary(prev => prev ? ({ 
+                                        ...prev, 
+                                        subscriptionPlan: 'PRO', 
+                                        subscriptionStatus: 'ACTIVE',
+                                        trialDaysLeft: newTrialDays
+                                    }) : null);
+                                    toast.success('Plan Profesional Activado', { id: toastId });
+                                } catch (err) {
+                                    console.error(err);
+                                    toast.error('Error al cambiar plan', { id: toastId });
+                                }
+                            }}
+                            disabled={subscription?.plan_type === 'PRO' && subscription?.status === 'ACTIVE'}
+                            className={`w-full py-2.5 rounded-xl font-bold transition ${subscription?.plan_type === 'PRO' && subscription?.status === 'ACTIVE'
+                                ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
+                                : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-100'}`}
+                        >
+                            {subscription?.plan_type === 'PRO' && subscription?.status === 'ACTIVE' ? 'Plan Actual' : 'Adelantar Upgrade a PRO'}
+                        </button>
+                    </div>
+                </div>
+            </div>
 
             <div className="mt-12 pt-8 border-t border-gray-200">
                 <h3 className="text-lg font-bold text-red-600 mb-2">Zona de Peligro</h3>
