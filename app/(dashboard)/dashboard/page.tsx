@@ -57,6 +57,8 @@ export default function DashboardPage() {
                     .from('subscriptions')
                     .select('*')
                     .eq('owner_id', user.id)
+                    .order('created_at', { ascending: false }) // Get the latest subscription
+                    .limit(1)
                     .maybeSingle();
 
                 if (!sub) {
