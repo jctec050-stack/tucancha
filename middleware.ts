@@ -72,11 +72,17 @@ export async function middleware(request: NextRequest) {
     }
   }
   
-  // 3. Protect Booking Routes (Players) - Optional, depends on business logic if guests can book
-  // Assuming only logged in users can book for now based on current app logic
-  if (request.nextUrl.pathname.startsWith('/bookings')) {
-      if (!user) {
-          url.pathname = '/login'
+  // 4. Redirect Authenticated Users away from Login/Register
+  if (request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/register') {
+      if (user) {
+          const role = user.user_metadata?.role;
+          if (role === 'ADMIN') {
+              url.pathname = '/admin/dashboard';
+          } else if (role === 'OWNER') {
+              url.pathname = '/dashboard';
+          } else {
+              url.pathname = '/search'; // Or home '/'
+          }
           return NextResponse.redirect(url)
       }
   }
