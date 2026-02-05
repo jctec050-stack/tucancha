@@ -84,41 +84,44 @@ export default function DashboardPage() {
                     }
 
                     // Calculate Trial Status logic...
-                    const startDate = new Date(sub.start_date);
-                    // Assuming 30 days trial for everyone initially
-                    const trialEndDate = new Date(startDate);
-                    trialEndDate.setDate(trialEndDate.getDate() + 30);
-
-                    // FIX: If plan is FREE but status is ACTIVE, we check trial days.
-                    // If trial days < 0, then trial expired -> Should show BILLING banner (trialDaysLeft = 0)
-                    
-                    if (now < trialEndDate) {
-                        const diffTime = Math.abs(trialEndDate.getTime() - now.getTime());
-                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
-                        setTrialDaysLeft(diffDays);
-                        // Ensure modal is closed if they have a sub
-                        setShowTermsModal(false);
-                    } else {
-                        // Trial expired -> Show Billing Banner
-                        // Check for Auto-Upgrade here too
-                        if (sub.plan_type === 'FREE' && sub.status !== 'CANCELLED') {
-                             console.log('Trial expired in Dashboard. Auto-upgrading...');
-                             const { error: upgradeError } = await supabase
-                                .from('subscriptions')
-                                .update({ plan_type: 'PREMIUM', status: 'ACTIVE' })
-                                .eq('id', sub.id);
-                             
-                             if (!upgradeError) {
-                                 // Notify user gently
-                                 toast('Tu periodo de prueba ha finalizado. Ahora estás en el Plan Premium.', {
-                                     icon: '✨',
-                                     duration: 5000
-                                 });
-                             }
+                    if (sub.plan_type === 'FREE') {
+                        const startDate = new Date(sub.start_date);
+                        // Assuming 30 days trial for everyone initially
+                        const trialEndDate = new Date(startDate);
+                        trialEndDate.setDate(trialEndDate.getDate() + 30);
+                        
+                        if (now < trialEndDate) {
+                            const diffTime = Math.abs(trialEndDate.getTime() - now.getTime());
+                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+                            setTrialDaysLeft(diffDays);
+                            // Ensure modal is closed if they have a sub
+                            setShowTermsModal(false);
+                        } else {
+                            // Trial expired -> Show Billing Banner
+                            // Check for Auto-Upgrade here too
+                            if (sub.status !== 'CANCELLED') {
+                                 console.log('Trial expired in Dashboard. Auto-upgrading...');
+                                 const { error: upgradeError } = await supabase
+                                    .from('subscriptions')
+                                    .update({ plan_type: 'PREMIUM', status: 'ACTIVE' })
+                                    .eq('id', sub.id);
+                                 
+                                 if (!upgradeError) {
+                                     // Notify user gently
+                                     toast('Tu periodo de prueba ha finalizado. Ahora estás en el Plan Premium.', {
+                                         icon: '✨',
+                                         duration: 5000
+                                     });
+                                     sub.plan_type = 'PREMIUM';
+                                 }
+                            }
+    
+                            setTrialDaysLeft(0); 
+                            setShowTermsModal(false);
                         }
-
-                        // Only set if status is still active/free, if cancelled it's handled above
-                        setTrialDaysLeft(0); 
+                    } else {
+                        // If not FREE (e.g. PREMIUM), no trial logic
+                        setTrialDaysLeft(0);
                         setShowTermsModal(false);
                     }
                 }

@@ -227,6 +227,10 @@ const AdminDashboard = () => {
 
     const getTrialInfo = (sub?: Subscription | AdminSubscriptionData) => {
         if (!sub || !sub.start_date) return null;
+        
+        // Fix: If plan is not FREE, it is NOT a trial, regardless of date
+        if (sub.plan_type !== 'FREE') return { isTrial: false };
+
         const start = new Date(sub.start_date);
         const now = new Date();
         const trialEnd = new Date(start);
