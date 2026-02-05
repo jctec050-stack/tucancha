@@ -195,19 +195,25 @@ export default function DashboardPage() {
 
             if (!sub) return;
 
-            // 2. Update Subscription to ACTIVE
-            // IMPORTANT: We set start_date to 31 days ago to ensure Trial Logic calculates 0 days left
-            // This effectively skips the trial period for reactivated accounts.
-            const pastDate = new Date();
-            pastDate.setDate(pastDate.getDate() - 31);
-            const pastDateStr = pastDate.toISOString().split('T')[0];
+            // 2. Update Subscription to ACTIVE PREMIUM
+            // IMPORTANT: If reactivating, they lose trial benefits and go straight to PREMIUM.
+            // We set the start_date to NOW so the billing cycle starts fresh today.
+            const today = new Date();
+            const todayStr = today.toISOString().split('T')[0];
+            
+            // Calculate end date (30 days from now) for billing cycle reference
+            const endDate = new Date(today);
+            endDate.setDate(endDate.getDate() + 30);
+            const endDateStr = endDate.toISOString().split('T')[0];
 
             const { error } = await supabase
                 .from('subscriptions')
                 .update({ 
                     status: 'ACTIVE',
-                    start_date: pastDateStr, // Force trial expiration
-                    plan_type: 'FREE', // Standard plan (commission based)
+                    plan_type: 'PREMIUM', // Force PREMIUM plan immediately
+                    start_date: todayStr, // New billing cycle starts today
+                    end_date: endDateStr, // Set clear expiration/renewal date
+                    price_per_month: 0, // It's commission based, but plan is PREMIUM
                 })
                 .eq('id', sub.id);
 
@@ -215,7 +221,12 @@ export default function DashboardPage() {
 
             setShowReactivationModal(false);
             setTrialDaysLeft(0); // Immediately reflect no trial
-            toast.success('¡Cuenta reactivada exitosamente! Bienvenido de nuevo.', { duration: 4000 });
+            toast.success('¡Cuenta reactivada en Plan Premium! Ya puedes gestionar tus reservas.', { duration: 5000 });
+            
+            // Force a reload to ensure all states (including Admin view if they switch tabs) are synced
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
         } catch (error) {
             console.error('Error reactivating account:', error);
             toast.error('Error al reactivar la cuenta.');
