@@ -43,9 +43,6 @@ export default function LandingPage() {
                 
                 <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-32">
                     <div className="text-center max-w-4xl mx-auto">
-                        <div className="flex justify-center mb-8">
-                             <img src="/logo.png" alt="TuCancha" className="h-20 md:h-24 w-auto object-contain drop-shadow-lg" />
-                        </div>
                         
                         <h1 className="text-5xl lg:text-7xl font-extrabold tracking-tight text-white mb-8 drop-shadow-lg">
                             Gestioná tu complejo y <br className="hidden md:block" />
@@ -135,9 +132,9 @@ export default function LandingPage() {
                                 <div className="w-14 h-14 bg-pink-600 rounded-2xl flex items-center justify-center text-white mb-6 shadow-lg shadow-pink-500/30 group-hover:scale-110 transition">
                                     <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                 </div>
-                                <h3 className="text-2xl font-bold text-gray-900 mb-3">Control de Caja</h3>
+                                <h3 className="text-2xl font-bold text-gray-900 mb-3">Control de Ingresos</h3>
                                 <p className="text-gray-600 leading-relaxed">
-                                    Registrá pagos, señas y pendientes. Mantené tus finanzas ordenadas y olvidate de los cuadernos perdidos.
+                                    Mantené el control total de tu negocio. Visualizá los ingresos generados por cada cancha reservada y optimizá tu rentabilidad.
                                 </p>
                             </div>
                         </div>
