@@ -31,7 +31,7 @@ export const TermsModal: React.FC<TermsModalProps> = ({ isOpen, onAccept, onReje
                                 </h3>
                                 <div className="mt-4">
                                     <p className="text-sm text-gray-500 mb-4">
-                                        Gracias por unirte a la red de canchas más grande del país. Para comenzar, por favor acepta nuestros términos de servicio diseñados para impulsar tu crecimiento.
+                                        Gracias por unirte a TuCancha! Para comenzar, por favor acepta nuestros términos de servicio diseñados para impulsar tu crecimiento.
                                     </p>
                                     
                                     <div className="bg-indigo-50 rounded-xl p-4 mb-4 border border-indigo-100">
