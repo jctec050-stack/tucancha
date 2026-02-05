@@ -261,6 +261,37 @@ export default function BillingPage() {
                     </div>
                 </div>
             </div>
+            
+            <div className="mt-12 pt-8 border-t border-gray-200">
+                <h3 className="text-lg font-bold text-red-600 mb-2">Zona de Peligro</h3>
+                <p className="text-gray-500 text-sm mb-4">Si cancelas tu suscripción, perderás el acceso a la gestión de reservas de inmediato.</p>
+                <button 
+                    onClick={async () => {
+                        if (confirm('¿Estás seguro de que deseas cancelar tu suscripción? Perderás el acceso inmediato y si decides volver, ya no tendrás días de prueba gratuitos.')) {
+                            setLoading(true);
+                            try {
+                                const { error } = await supabase
+                                    .from('subscriptions')
+                                    .update({ status: 'CANCELLED' })
+                                    .eq('id', subscription?.id);
+                                
+                                if (error) throw error;
+                                
+                                alert('Suscripción cancelada correctamente.');
+                                router.push('/dashboard'); // Will likely trigger reactivation modal or logout logic
+                            } catch (err) {
+                                console.error(err);
+                                alert('Error al cancelar.');
+                            } finally {
+                                setLoading(false);
+                            }
+                        }
+                    }}
+                    className="px-4 py-2 border border-red-200 text-red-600 rounded-lg text-sm font-bold hover:bg-red-50 transition"
+                >
+                    Cancelar Suscripción
+                </button>
+            </div>
         </main>
     );
 }

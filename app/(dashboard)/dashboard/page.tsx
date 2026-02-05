@@ -8,6 +8,7 @@ import { getDisabledSlots, getOwnerVenues } from '@/services/dataService'; // FI
 import { useOwnerBookings } from '@/hooks/useData';
 import { OwnerDashboard } from '@/components/OwnerDashboard';
 import { TermsModal } from '@/components/TermsModal';
+import { ReactivationModal } from '@/components/ReactivationModal';
 import { supabase } from '@/lib/supabase';
 
 export default function DashboardPage() {
@@ -25,6 +26,7 @@ export default function DashboardPage() {
 
     // Terms & Trial State
     const [showTermsModal, setShowTermsModal] = useState(false);
+    const [showReactivationModal, setShowReactivationModal] = useState(false);
     const [checkingTerms, setCheckingTerms] = useState(true);
     const [trialDaysLeft, setTrialDaysLeft] = useState<number | null>(null);
 
@@ -60,6 +62,9 @@ export default function DashboardPage() {
                     // No subscription found -> Check if user is newly registered (e.g. within last minute) or simply hasn't accepted terms
                     // Logic: If no sub exists, it means they haven't accepted terms yet.
                     setShowTermsModal(true);
+                } else if (sub.status === 'CANCELLED') {
+                    // Subscription exists but is CANCELLED -> Show Reactivation Modal
+                    setShowReactivationModal(true);
                 } else {
                     // Subscription exists -> They have already accepted terms.
                     // Calculate Trial Status logic...
@@ -150,6 +155,46 @@ export default function DashboardPage() {
         }
     };
 
+    const handleReactivateAccount = async () => {
+        if (!user) return;
+        try {
+            // Reactivate Account
+            // 1. Get current subscription ID
+            const { data: sub } = await supabase
+                .from('subscriptions')
+                .select('id')
+                .eq('owner_id', user.id)
+                .maybeSingle();
+
+            if (!sub) return;
+
+            // 2. Update Subscription to ACTIVE
+            // IMPORTANT: We set start_date to 31 days ago to ensure Trial Logic calculates 0 days left
+            // This effectively skips the trial period for reactivated accounts.
+            const pastDate = new Date();
+            pastDate.setDate(pastDate.getDate() - 31);
+            const pastDateStr = pastDate.toISOString().split('T')[0];
+
+            const { error } = await supabase
+                .from('subscriptions')
+                .update({ 
+                    status: 'ACTIVE',
+                    start_date: pastDateStr, // Force trial expiration
+                    plan_type: 'FREE', // Standard plan (commission based)
+                })
+                .eq('id', sub.id);
+
+            if (error) throw error;
+
+            setShowReactivationModal(false);
+            setTrialDaysLeft(0); // Immediately reflect no trial
+            alert('¡Cuenta reactivada exitosamente! Bienvenido de nuevo.');
+        } catch (error) {
+            console.error('Error reactivating account:', error);
+            alert('Error al reactivar la cuenta.');
+        }
+    };
+
     const handleRejectTerms = async () => {
         const confirm = window.confirm('Si rechazas las condiciones, no podrás utilizar la plataforma para gestionar tu complejo. ¿Estás seguro que deseas salir?');
         if (confirm) {
@@ -174,6 +219,12 @@ export default function DashboardPage() {
                 isOpen={showTermsModal} 
                 onAccept={handleAcceptTerms} 
                 onReject={handleRejectTerms} 
+            />
+
+            <ReactivationModal 
+                isOpen={showReactivationModal}
+                onReactivate={handleReactivateAccount}
+                onLogout={handleRejectTerms}
             />
 
             {/* Trial Banner */}
