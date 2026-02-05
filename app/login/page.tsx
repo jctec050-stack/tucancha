@@ -12,26 +12,22 @@ export default function LoginPage() {
     useEffect(() => {
         if (user) {
             const role = user.role;
-            if (role === 'ADMIN') router.replace('/admin/dashboard');
-            else if (role === 'OWNER') router.replace('/dashboard');
-            else router.replace('/search');
+            if (role === 'ADMIN') router.push('/admin/dashboard');
+            else if (role === 'OWNER') router.push('/dashboard');
+            else router.push('/search');
         }
     }, [user, router]);
 
-    if (user) {
-        return (
-             <div className="min-h-screen flex items-center justify-center bg-gray-50">
-                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
-             </div>
-        );
-    }
-
+    // Simple return without blocking UI logic to ensure hydration doesn't mismatch
+    // Let the useEffect handle the push.
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600 p-4">
-            <LoginForm
-                onLogin={login}
-                onSwitchToRegister={() => router.push('/register')}
-            />
+            {!user && (
+                <LoginForm
+                    onLogin={login}
+                    onSwitchToRegister={() => router.push('/register')}
+                />
+            )}
         </div>
     );
 }
