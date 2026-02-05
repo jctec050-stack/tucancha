@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/AuthContext';
 import { useRouter } from 'next/navigation';
 import { Toaster, toast } from 'react-hot-toast';
-import { AdminVenueData, AdminProfileData, AdminSubscriptionData, AdminPaymentData, SubscriptionPlan, SubscriptionStatus } from '@/types';
+import { AdminVenueData, AdminProfileData, AdminSubscriptionData, AdminPaymentData, SubscriptionPlan, SubscriptionStatus, Subscription } from '@/types';
 import { getAdminDashboardData, getAdminClientsData, getAdminSubscriptionsData, getAdminPaymentsData, updateSubscription, updateUserProfile, createPayment, createSubscription } from '@/services/dataService';
 
 const AdminDashboard = () => {
