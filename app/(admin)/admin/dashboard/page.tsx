@@ -544,11 +544,24 @@ const AdminDashboard = () => {
                                                             const isExpiringSoon = sub.status === 'ACTIVE' && daysLeft <= 5 && daysLeft >= 0;
                                                             const isExpired = sub.status === 'EXPIRED' || (sub.status === 'ACTIVE' && daysLeft < 0) || sub.status === 'PENDING_PAYMENT';
 
-                                                            if (sub.status !== 'ACTIVE' || isExpiringSoon || isExpired) {
-                                                                const buttonColorClass = isExpired 
-                                                                    ? 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100' 
-                                                                    : 'bg-yellow-50 text-yellow-700 border-yellow-200 hover:bg-yellow-100';
+                                                            // ALWAYS show action button for Premium plans to allow manual payment recording
+                                                            // Logic:
+                                                            // 1. Expired/Late -> Red Button "Vencido - Pagar"
+                                                            // 2. Expiring Soon -> Yellow Button "Renovar"
+                                                            // 3. Up to date -> Blue/Gray Button "Adelantar Pago" or "Extender"
+                                                            
+                                                            if (sub.plan_type === 'PREMIUM') {
+                                                                let buttonColorClass = 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100';
+                                                                let buttonText = 'Registrar Pago';
                                                                 
+                                                                if (isExpired || sub.status !== 'ACTIVE') {
+                                                                    buttonColorClass = 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100';
+                                                                    buttonText = 'Vencido - Pagar';
+                                                                } else if (isExpiringSoon) {
+                                                                    buttonColorClass = 'bg-yellow-50 text-yellow-700 border-yellow-200 hover:bg-yellow-100';
+                                                                    buttonText = 'Renovar';
+                                                                }
+
                                                                 return (
                                                                     <button
                                                                         onClick={() => markAsPaid(sub as AdminSubscriptionData)}
@@ -556,11 +569,12 @@ const AdminDashboard = () => {
                                                                         title="Extender suscripción por 30 días"
                                                                     >
                                                                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                                                        {isExpired ? 'Vencido - Pagar' : 'Renovar'}
+                                                                        {buttonText}
                                                                     </button>
                                                                 );
                                                             }
-                                                            return <span className="text-xs text-green-600 font-bold">Pagado</span>;
+                                                            
+                                                            return <span className="text-xs text-green-600 font-bold">Al día</span>;
                                                         })()
                                                     ) : (
                                                         <span className="text-xs text-gray-400">Sin suscripción</span>
