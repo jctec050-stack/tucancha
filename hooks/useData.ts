@@ -4,6 +4,11 @@ import { Venue, Booking, DisabledSlot } from '@/types';
 
 // Fetcher functions
 const venuesFetcher = () => getVenues();
+const disabledSlotsFetcher = (key: string[]) => {
+    const [_, venueId, date] = key;
+    return getDisabledSlots(venueId, date);
+};
+
 // Updated fetcher to handle object return, but useSWR expects the data directly mostly.
 // Actually, we will define specific fetchers inside hooks or generic ones.
 
