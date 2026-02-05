@@ -67,6 +67,8 @@ export default function DashboardPage() {
                     setShowTermsModal(true);
                 } else if (sub.status === 'CANCELLED') {
                     // Subscription exists but is CANCELLED -> Show Reactivation Modal
+                    // Set trial days to 0 immediately so no banner is shown behind
+                    setTrialDaysLeft(0);
                     setShowReactivationModal(true);
                 } else {
                     // Subscription exists -> They have already accepted terms.
