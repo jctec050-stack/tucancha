@@ -24,10 +24,12 @@ export default function LoginPage() {
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600 p-4">
-            <LoginForm
-                onLogin={login}
-                onSwitchToRegister={() => router.push('/register')}
-            />
+            {!user && (
+                <LoginForm
+                    onLogin={login}
+                    onSwitchToRegister={() => router.push('/register')}
+                />
+            )}
         </div>
     );
 }
