@@ -11,12 +11,13 @@ export default function LoginPage() {
 
     useEffect(() => {
         if (user) {
-            if (user.role === 'ADMIN') {
-                router.push('/admin/dashboard');
-            } else if (user.role === 'OWNER') {
-                router.push('/dashboard');
+            const role = user.role;
+            if (role === 'ADMIN') {
+                router.replace('/admin/dashboard');
+            } else if (role === 'OWNER') {
+                router.replace('/dashboard');
             } else {
-                router.push('/search');
+                router.replace('/search');
             }
         }
     }, [user, router]);

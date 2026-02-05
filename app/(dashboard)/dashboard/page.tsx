@@ -33,11 +33,11 @@ export default function DashboardPage() {
 
     useEffect(() => {
         if (!isLoading && !user) {
-            router.push('/login');
+            router.replace('/login');
             return;
         }
         if (!isLoading && user?.role !== 'OWNER') {
-            router.push('/');
+            router.replace('/');
             return;
         }
     }, [user, isLoading, router]);
