@@ -904,13 +904,28 @@ export const getAdminDashboardData = async (): Promise<AdminVenueData[]> => {
             const sub = subscriptions.find(s => s.owner_id === venue.owner_id && s.status === 'ACTIVE') ||
                 subscriptions.find(s => s.owner_id === venue.owner_id); // Fallback to any sub
 
-            // Calculate Billing Period
+            // Calculate Billing Period and Trial Status
             const now = new Date();
             let billingStart = new Date(now.getFullYear(), now.getMonth(), 1); // Default to calendar month
             
+            let isTrial = false;
+            let trialEndDate: Date | null = null;
+
             if (sub && sub.start_date) {
                 // Parse start date properly (YYYY-MM-DD)
                 const [sYear, sMonth, sDay] = sub.start_date.split('-').map(Number);
+                const subStartDate = new Date(sub.start_date);
+                
+                // Check Trial Status
+                const potentialTrialEnd = new Date(subStartDate);
+                potentialTrialEnd.setDate(potentialTrialEnd.getDate() + 30);
+                
+                if (now < potentialTrialEnd) {
+                    isTrial = true;
+                    trialEndDate = potentialTrialEnd;
+                }
+
+                // Calculate Billing Cycle Start
                 // Create a candidate date in the current month with the subscription start day
                 const candidateStart = new Date(now.getFullYear(), now.getMonth(), sDay);
                 
@@ -952,21 +967,25 @@ export const getAdminDashboardData = async (): Promise<AdminVenueData[]> => {
 
             // Calculate Platform Commission: 5.000 Gs per Hour Booked
             let totalCommission = 0;
-            venueBookings.forEach(b => {
-                if (b.start_time && b.end_time) {
-                    const [startH, startM] = b.start_time.split(':').map(Number);
-                    const [endH, endM] = b.end_time.split(':').map(Number);
-
-                    let duration = (endH + endM / 60) - (startH + startM / 60);
-                    // Minimal safeguard
-                    if (duration <= 0) duration = 1;
-
-                    totalCommission += duration * 5000;
-                } else {
-                    // Fallback to 1 hour (5000) if raw data is missing times
-                    totalCommission += 5000;
-                }
-            });
+            
+            // If in Trial, Commission is 0
+            if (!isTrial) {
+                venueBookings.forEach(b => {
+                    if (b.start_time && b.end_time) {
+                        const [startH, startM] = b.start_time.split(':').map(Number);
+                        const [endH, endM] = b.end_time.split(':').map(Number);
+    
+                        let duration = (endH + endM / 60) - (startH + startM / 60);
+                        // Minimal safeguard
+                        if (duration <= 0) duration = 1;
+    
+                        totalCommission += duration * 5000;
+                    } else {
+                        // Fallback to 1 hour (5000) if raw data is missing times
+                        totalCommission += 5000;
+                    }
+                });
+            }
 
             // Calculate revenue per court
             const revenueByCourt: Record<string, number> = {};

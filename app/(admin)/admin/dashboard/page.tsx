@@ -225,6 +225,20 @@ const AdminDashboard = () => {
         return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     };
 
+    const getTrialInfo = (sub?: Subscription | AdminSubscriptionData) => {
+        if (!sub || !sub.start_date) return null;
+        const start = new Date(sub.start_date);
+        const now = new Date();
+        const trialEnd = new Date(start);
+        trialEnd.setDate(trialEnd.getDate() + 30);
+        
+        if (now < trialEnd) {
+            const diff = Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+            return { isTrial: true, daysLeft: diff, endDate: trialEnd };
+        }
+        return { isTrial: false };
+    };
+
     if (authLoading || isLoading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -336,16 +350,35 @@ const AdminDashboard = () => {
                                                     <div className="flex flex-col">
                                                         <span className="font-medium text-indigo-600">{venue.subscription.plan_type}</span>
                                                         <div className="text-xs text-gray-500 mt-1">
-                                                            {venue.subscription.status === 'ACTIVE' && (
-                                                                <span className="inline-flex items-center text-green-600">
-                                                                    ● {venue.subscription.status}
-                                                                </span>
-                                                            )}
-                                                            {venue.subscription.end_date && (
-                                                                <span className="block mt-0.5">
-                                                                    Vence: {new Date(venue.subscription.end_date).toLocaleDateString('es-PY')}
-                                                                </span>
-                                                            )}
+                                                            {(() => {
+                                                                const trial = getTrialInfo(venue.subscription);
+                                                                if (trial?.isTrial) {
+                                                                    return (
+                                                                        <>
+                                                                            <span className="inline-flex items-center text-blue-600 font-bold">
+                                                                                ★ Prueba Gratis ({trial.daysLeft} días)
+                                                                            </span>
+                                                                            <span className="block mt-0.5 text-gray-400">
+                                                                                Fin: {trial.endDate?.toLocaleDateString('es-PY')}
+                                                                            </span>
+                                                                        </>
+                                                                    );
+                                                                }
+                                                                return (
+                                                                    <>
+                                                                        {venue.subscription.status === 'ACTIVE' && (
+                                                                            <span className="inline-flex items-center text-green-600">
+                                                                                ● {venue.subscription.status}
+                                                                            </span>
+                                                                        )}
+                                                                        {venue.subscription.end_date && (
+                                                                            <span className="block mt-0.5">
+                                                                                Vence: {new Date(venue.subscription.end_date).toLocaleDateString('es-PY')}
+                                                                            </span>
+                                                                        )}
+                                                                    </>
+                                                                );
+                                                            })()}
                                                         </div>
                                                     </div>
                                                 ) : (
@@ -464,16 +497,35 @@ const AdminDashboard = () => {
                                                     {sub ? formatCurrency(sub.price_per_month) : '-'}
                                                 </td>
                                                 <td className="px-6 py-4">
-                                                    {sub?.end_date ? new Date(sub.end_date).toLocaleDateString('es-PY') : '-'}
+                                                    {(() => {
+                                                        if (!sub) return '-';
+                                                        const trial = getTrialInfo(sub);
+                                                        if (trial?.isTrial) {
+                                                            return <span className="text-blue-600 font-medium" title="Fin de prueba">{trial.endDate?.toLocaleDateString('es-PY')}</span>;
+                                                        }
+                                                        return sub.end_date ? new Date(sub.end_date).toLocaleDateString('es-PY') : '-';
+                                                    })()}
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     {sub ? (
-                                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${sub.status === 'ACTIVE' ? 'bg-green-100 text-green-800' :
-                                                                sub.status === 'EXPIRED' ? 'bg-red-100 text-red-800' :
-                                                                    'bg-gray-100 text-gray-800'
-                                                            }`}>
-                                                            {sub.status}
-                                                        </span>
+                                                        (() => {
+                                                             const trial = getTrialInfo(sub);
+                                                             if (trial?.isTrial) {
+                                                                 return (
+                                                                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800">
+                                                                         ★ Prueba ({trial.daysLeft}d)
+                                                                     </span>
+                                                                 );
+                                                             }
+                                                             return (
+                                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${sub.status === 'ACTIVE' ? 'bg-green-100 text-green-800' :
+                                                                        sub.status === 'EXPIRED' ? 'bg-red-100 text-red-800' :
+                                                                            'bg-gray-100 text-gray-800'
+                                                                    }`}>
+                                                                    {sub.status}
+                                                                </span>
+                                                             );
+                                                        })()
                                                     ) : (
                                                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
                                                             N/A
@@ -573,39 +625,66 @@ const AdminDashboard = () => {
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex flex-col gap-1">
-                                                        {sub.status === 'ACTIVE' && !isExpiringSoon && !isExpired && (
-                                                            <span className="inline-flex w-fit items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                                Pagado (Activo)
-                                                            </span>
-                                                        )}
-                                                        {isExpiringSoon && (
-                                                            <span className="inline-flex w-fit items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                                                                ⚠️ Por vencer ({daysLeft} días)
-                                                            </span>
-                                                        )}
-                                                        {isExpired && (
-                                                            <span className="inline-flex w-fit items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                                                Vencido
-                                                            </span>
-                                                        )}
-                                                        <span className="text-xs text-gray-500">
-                                                            Vence: {sub.end_date ? new Date(sub.end_date).toLocaleDateString('es-PY') : '-'}
-                                                        </span>
+                                                        {(() => {
+                                                            const trial = getTrialInfo(sub);
+                                                            if (trial?.isTrial) {
+                                                                return (
+                                                                    <>
+                                                                        <span className="inline-flex w-fit items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800">
+                                                                            ★ Prueba Gratis
+                                                                        </span>
+                                                                        <span className="text-xs text-gray-500">
+                                                                            Fin: {trial.endDate?.toLocaleDateString('es-PY')}
+                                                                        </span>
+                                                                    </>
+                                                                );
+                                                            }
+                                                            return (
+                                                                <>
+                                                                    {sub.status === 'ACTIVE' && !isExpiringSoon && !isExpired && (
+                                                                        <span className="inline-flex w-fit items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                                            Pagado (Activo)
+                                                                        </span>
+                                                                    )}
+                                                                    {isExpiringSoon && (
+                                                                        <span className="inline-flex w-fit items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                                                            ⚠️ Por vencer ({daysLeft} días)
+                                                                        </span>
+                                                                    )}
+                                                                    {isExpired && (
+                                                                        <span className="inline-flex w-fit items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                                                            Vencido
+                                                                        </span>
+                                                                    )}
+                                                                    <span className="text-xs text-gray-500">
+                                                                        Vence: {sub.end_date ? new Date(sub.end_date).toLocaleDateString('es-PY') : '-'}
+                                                                    </span>
+                                                                </>
+                                                            );
+                                                        })()}
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 text-center">
-                                                    {sub.status !== 'ACTIVE' || isExpiringSoon || isExpired ? (
-                                                        <button
-                                                            onClick={() => markAsPaid(sub)}
-                                                            className="inline-flex items-center gap-1 px-3 py-1 bg-green-50 text-green-700 text-xs font-medium rounded border border-green-200 hover:bg-green-100 transition"
-                                                            title="Marcar como pagado (Extender 30 días)"
-                                                        >
-                                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
-                                                            Registrar Pago
-                                                        </button>
-                                                    ) : (
-                                                        <span className="text-xs text-gray-400">Al día</span>
-                                                    )}
+                                                    {(() => {
+                                                        const trial = getTrialInfo(sub);
+                                                        if (trial?.isTrial) {
+                                                            return <span className="text-xs text-blue-600 font-bold">En Prueba</span>;
+                                                        }
+                                                        
+                                                        if (sub.status !== 'ACTIVE' || isExpiringSoon || isExpired) {
+                                                            return (
+                                                                <button
+                                                                    onClick={() => markAsPaid(sub as AdminSubscriptionData)}
+                                                                    className="inline-flex items-center gap-1 px-3 py-1 bg-green-50 text-green-700 text-xs font-medium rounded border border-green-200 hover:bg-green-100 transition"
+                                                                    title="Marcar como pagado (Extender 30 días)"
+                                                                >
+                                                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
+                                                                    Registrar Pago
+                                                                </button>
+                                                            );
+                                                        }
+                                                        return <span className="text-xs text-gray-400">Al día</span>;
+                                                    })()}
                                                 </td>
                                             </tr>
                                         )
