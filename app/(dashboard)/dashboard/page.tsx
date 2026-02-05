@@ -89,7 +89,9 @@ export default function DashboardPage() {
                         // Ensure modal is closed if they have a sub
                         setShowTermsModal(false);
                     } else {
-                        setTrialDaysLeft(0); // Trial expired -> Show Billing Banner
+                        // Trial expired -> Show Billing Banner
+                        // Only set if status is still active/free, if cancelled it's handled above
+                        setTrialDaysLeft(0); 
                         setShowTermsModal(false);
                     }
                 }
