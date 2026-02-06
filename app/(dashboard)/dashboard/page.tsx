@@ -10,7 +10,7 @@ import { OwnerDashboard } from '@/components/OwnerDashboard';
 import { TermsModal } from '@/components/TermsModal';
 import { Toaster, toast } from 'react-hot-toast';
 import { ReactivationModal } from '@/components/ReactivationModal';
-import { supabase } from '@/lib/supabase';
+import { getDisabledSlots, getOwnerVenues, getBookings } from '@/services/dataService'; // FIX: Imported getOwnerVenues
 
 export default function DashboardPage() {
     const { user, isLoading, logout } = useAuth();
@@ -31,6 +31,7 @@ export default function DashboardPage() {
     const [showExpiredModal, setShowExpiredModal] = useState(false); // New blocking modal
     const [checkingTerms, setCheckingTerms] = useState(true);
     const [trialDaysLeft, setTrialDaysLeft] = useState<number | null>(null);
+    const [debtAmount, setDebtAmount] = useState(0); // State for Debt Amount
 
     useEffect(() => {
         if (!isLoading && !user) {
@@ -70,6 +71,59 @@ export default function DashboardPage() {
                     // Subscription exists but is CANCELLED -> Show Reactivation Modal
                     // Set trial days to 0 immediately so no banner is shown behind
                     setTrialDaysLeft(0);
+                    
+                    // --- DEBT CALCULATION LOGIC ---
+                    try {
+                        const ownerVenues = await getOwnerVenues(user.id);
+                        // Even if no venues now, if they had bookings, we should check debt.
+                        // But usually bookings are tied to venues.
+                        if (ownerVenues.length > 0 || true) { // Force check even without venues logic if needed
+                             const now = new Date();
+                             // Use sub.start_date day to find current/last billing cycle
+                             const subStart = new Date(sub.start_date);
+                             const sDay = subStart.getDate();
+                             
+                             // Calculate "Previous Cycle" that was interrupted or unpaid
+                             // Since it's cancelled, we look for unpaid bookings in the last relevant period.
+                             // Simple heuristic: Look at the current month cycle.
+                             let billingStart = new Date(now.getFullYear(), now.getMonth(), sDay);
+                             if (now < billingStart) {
+                                 billingStart.setMonth(billingStart.getMonth() - 1);
+                             }
+                             const billingEnd = new Date(billingStart);
+                             billingEnd.setMonth(billingEnd.getMonth() + 1);
+
+                             // Fetch bookings for this period
+                             const { data: cycleBookings } = await getBookings({
+                                 ownerId: user.id,
+                                 startDate: billingStart.toISOString().split('T')[0],
+                                 endDate: billingEnd.toISOString().split('T')[0],
+                                 status: 'COMPLETED'
+                             });
+
+                             // Calculate debt
+                             let totalCommission = 0;
+                             cycleBookings.forEach(b => {
+                                 if (b.start_time && b.end_time) {
+                                     const [startH, startM] = b.start_time.split(':').map(Number);
+                                     const [endH, endM] = b.end_time.split(':').map(Number);
+                                     let duration = (endH + endM / 60) - (startH + startM / 60);
+                                     if (duration <= 0) duration = 1;
+                                     totalCommission += duration * 5000;
+                                 } else {
+                                     totalCommission += 5000;
+                                 }
+                             });
+                             
+                             if (totalCommission > 0) {
+                                 setDebtAmount(Math.round(totalCommission));
+                             }
+                        }
+                    } catch (e) {
+                        console.error('Error calculating debt for reactivation:', e);
+                    }
+                    // -----------------------------
+
                     setShowReactivationModal(true);
                 } else {
                     // Subscription exists -> They have already accepted terms.
@@ -285,6 +339,7 @@ export default function DashboardPage() {
                 isOpen={showReactivationModal}
                 onReactivate={handleReactivateAccount}
                 onLogout={handleRejectTerms}
+                debtAmount={debtAmount}
             />
 
             {/* Expired/Blocking Modal */}
