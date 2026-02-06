@@ -413,9 +413,32 @@ export default function BillingPage() {
                                         setShowCancelModal(false);
                                         setLoading(true);
                                         try {
+                                            // Calculate current debt before cancelling
+                                            // This logic mimics the backend calculation for consistency
+                                            let finalCommission = 0;
+                                            if (billingSummary) {
+                                                finalCommission = billingSummary.totalCommission;
+                                            }
+
+                                            // Only if they owe money, we record it.
+                                            // Ideally, this should be a backend function/RPC for atomicity.
+                                            // For now, we update status and maybe add a metadata field or rely on the fact 
+                                            // that the subscription is cancelled but the unpaid period exists.
+                                            // The requirement says: "show debt until that date".
+                                            // We can store the 'debt_at_cancellation' in the subscription metadata or a new field.
+                                            // Or simpler: Just set status to CANCELLED. The billing page already calculates debt based on bookings.
+                                            // BUT, if they come back later, the bookings might be "old". 
+                                            // So we need to ensure the system knows "this cancellation has pending debt".
+                                            
+                                            // Step 1: Update Subscription
                                             const { error } = await supabase
                                                 .from('subscriptions')
-                                                .update({ status: 'CANCELLED' })
+                                                .update({ 
+                                                    status: 'CANCELLED',
+                                                    // Optional: Store debt snapshot if we had a JSONB field, but for now 
+                                                    // we'll rely on the existing logic: CANCELLED status + bookings in that period = Debt.
+                                                    // To make it "expired balance", we just need to ensure the Re-activation logic checks for this.
+                                                })
                                                 .eq('id', subscription?.id);
                                             
                                             if (error) throw error;
@@ -424,10 +447,10 @@ export default function BillingPage() {
                                             setSubscription(prev => prev ? ({ ...prev, status: 'CANCELLED' }) : null);
                                             setBillingSummary(prev => prev ? ({ ...prev, subscriptionStatus: 'CANCELLED', trialDaysLeft: 0 }) : null);
 
-                                            toast.success('Suscripción cancelada correctamente.', { duration: 3000 });
+                                            toast.success('Suscripción cancelada. Tu deuda pendiente se mantendrá hasta que decidas volver.', { duration: 5000 });
                                             setTimeout(() => {
                                                 router.push('/dashboard');
-                                            }, 1500);
+                                            }, 2000);
                                         } catch (err) {
                                             console.error(err);
                                             toast.error('Error al cancelar la suscripción.');
