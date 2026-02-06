@@ -965,6 +965,11 @@ export const getAdminDashboardData = async (): Promise<AdminVenueData[]> => {
 
                 // Calculate Billing Cycle Start
                 // Create a candidate date in the current month with the subscription start day
+                // FIX: Use split logic to avoid Timezone Offset issues
+                const [sY, sM, sD] = sub.start_date.split('-').map(Number);
+                const subStart = new Date(sY, sM - 1, sD);
+                const sDay = subStart.getDate();
+                
                 const candidateStart = new Date(now.getFullYear(), now.getMonth(), sDay);
                 
                 // If today is before the candidate start date, we are in the previous billing cycle
@@ -974,7 +979,9 @@ export const getAdminDashboardData = async (): Promise<AdminVenueData[]> => {
                 billingStart = candidateStart;
             } else if (venue.created_at) {
                 // Fallback to venue creation day if no sub
-                const createdDate = new Date(venue.created_at);
+                // Use UTC-safe parsing for created_at too
+                const [cY, cM, cD] = venue.created_at.split('T')[0].split('-').map(Number);
+                const createdDate = new Date(cY, cM - 1, cD);
                 const sDay = createdDate.getDate();
                 const candidateStart = new Date(now.getFullYear(), now.getMonth(), sDay);
                  if (now < candidateStart) {
@@ -996,7 +1003,10 @@ export const getAdminDashboardData = async (): Promise<AdminVenueData[]> => {
                 if (status !== 'COMPLETED') return false;
 
                 // Check Date Range
-                const bookingDate = new Date(b.date);
+                // FIX: Use manual parsing to avoid Timezone issues on booking date too
+                const [bY, bM, bD] = b.date.split('-').map(Number);
+                const bookingDate = new Date(bY, bM - 1, bD);
+                
                 return bookingDate >= billingStart && bookingDate < billingEnd;
             });
 
@@ -1008,19 +1018,58 @@ export const getAdminDashboardData = async (): Promise<AdminVenueData[]> => {
             
             // If in Trial, Commission is 0
             if (!isTrial) {
+                // Determine commissionable start date for Premium users (handle mid-month upgrade)
+                let commissionableStart: Date | null = null;
+                
+                if (sub && sub.plan_type === 'PREMIUM' && sub.status === 'ACTIVE') {
+                     // Check if updated_at is recent (Reactivation/Upgrade logic)
+                     // Reusing logic from Billing Page:
+                     // If updated_at > created_at + 30 days, then updated_at is the start of Premium.
+                     // Otherwise, rely on Trial End Date.
+                     
+                     const [cY, cM, cD] = sub.created_at.split('T')[0].split('-').map(Number);
+                     const createdDate = new Date(cY, cM - 1, cD);
+                     const trialEnd = new Date(createdDate);
+                     trialEnd.setDate(trialEnd.getDate() + 30);
+                     
+                     const updatedDate = new Date(sub.updated_at);
+                     
+                     if (updatedDate > trialEnd) {
+                         // Reactivated AFTER trial expired -> Commission starts from Reactivation Time
+                         commissionableStart = updatedDate;
+                     } else {
+                         // Still in normal flow -> Commission starts after Trial End
+                         commissionableStart = trialEnd;
+                     }
+                }
+
                 venueBookings.forEach(b => {
-                    if (b.start_time && b.end_time) {
-                        const [startH, startM] = b.start_time.split(':').map(Number);
-                        const [endH, endM] = b.end_time.split(':').map(Number);
-    
-                        let duration = (endH + endM / 60) - (startH + startM / 60);
-                        // Minimal safeguard
-                        if (duration <= 0) duration = 1;
-    
-                        totalCommission += duration * 5000;
-                    } else {
-                        // Fallback to 1 hour (5000) if raw data is missing times
-                        totalCommission += 5000;
+                    // Check if commissionable
+                    let isCommissionable = true;
+                    if (commissionableStart) {
+                        const [bY, bM, bD] = b.date.split('-').map(Number);
+                         const [startH, startM] = (b.start_time || '00:00').split(':').map(Number);
+                         const bookingDateTime = new Date(bY, bM - 1, bD, startH, startM);
+                         
+                         if (bookingDateTime < commissionableStart) {
+                             isCommissionable = false;
+                         }
+                    }
+
+                    if (isCommissionable) {
+                        if (b.start_time && b.end_time) {
+                            const [startH, startM] = b.start_time.split(':').map(Number);
+                            const [endH, endM] = b.end_time.split(':').map(Number);
+        
+                            let duration = (endH + endM / 60) - (startH + startM / 60);
+                            // Minimal safeguard
+                            if (duration <= 0) duration = 1;
+        
+                            totalCommission += duration * 5000;
+                        } else {
+                            // Fallback to 1 hour (5000) if raw data is missing times
+                            totalCommission += 5000;
+                        }
                     }
                 });
             }
