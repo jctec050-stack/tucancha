@@ -133,12 +133,14 @@ export default function BillingPage() {
                 const startStr = billingStart.toISOString().split('T')[0];
                 const endStr = billingEnd.toISOString().split('T')[0];
 
-                const { data: cycleBookings } = await getBookings({
+                const { data: rawBookings } = await getBookings({
                     ownerId: user.id,
                     startDate: startStr,
-                    endDate: endStr,
-                    status: 'COMPLETED'
+                    endDate: endStr
                 });
+                
+                // Filter in memory to catch derived status 'COMPLETED' (e.g. active bookings in past time)
+                const cycleBookings = rawBookings.filter(b => b.status === 'COMPLETED');
                 
                 // No need to filter manually anymore, except maybe double checking edge cases
                 // but for billing summary, DB filter is much more efficient.
