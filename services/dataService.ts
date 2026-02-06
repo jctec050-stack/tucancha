@@ -1001,7 +1001,13 @@ export const getAdminDashboardData = async (): Promise<AdminVenueData[]> => {
                 const potentialTrialEnd = new Date(subStartDate);
                 potentialTrialEnd.setDate(potentialTrialEnd.getDate() + 30);
                 
-                if (now < potentialTrialEnd) {
+                // FIX: Only consider it a trial if the plan is NOT Premium.
+                // If user upgraded to Premium, they are no longer in "Trial" mode for commission purposes,
+                // unless the business logic explicitly gives 30 days free even for Premium.
+                // Based on Owner Logic: "TRIAL" status or "FREE" plan triggers trial behavior.
+                // "PREMIUM" status implies active billing.
+                
+                if (now < potentialTrialEnd && sub.plan_type !== 'PREMIUM') {
                     isTrial = true;
                     trialEndDate = potentialTrialEnd;
                 }
@@ -1077,19 +1083,10 @@ export const getAdminDashboardData = async (): Promise<AdminVenueData[]> => {
                 // Let's simplify: If not trial, calculate commission for all bookings.
                 
                 if (sub && sub.plan_type === 'PREMIUM' && sub.status === 'ACTIVE') {
-                     // Check if updated_at is recent (Reactivation/Upgrade logic)
-                     const [cY, cM, cD] = sub.created_at.split('T')[0].split('-').map(Number);
-                     const createdDate = new Date(cY, cM - 1, cD);
-                     const trialEnd = new Date(createdDate);
-                     trialEnd.setDate(trialEnd.getDate() + 30);
-                     
-                     const updatedDate = new Date(sub.updated_at);
-                     
-                     if (updatedDate > trialEnd) {
-                         commissionableStart = updatedDate;
-                     } else {
-                         commissionableStart = trialEnd;
-                     }
+                     // Match Owner Logic:
+                     // If Premium, commission starts from the moment of upgrade/activation (updated_at).
+                     // We do not wait for the original 30-day trial to expire if they upgraded early.
+                     commissionableStart = new Date(sub.updated_at);
                 }
                 
                 // FIX: If user is on BASIC or no plan, commissionableStart is null, 
