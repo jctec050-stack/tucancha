@@ -10,7 +10,8 @@ import { OwnerDashboard } from '@/components/OwnerDashboard';
 import { TermsModal } from '@/components/TermsModal';
 import { Toaster, toast } from 'react-hot-toast';
 import { ReactivationModal } from '@/components/ReactivationModal';
-import { getDisabledSlots, getOwnerVenues, getBookings } from '@/services/dataService'; // FIX: Imported getOwnerVenues
+import { supabase } from '@/lib/supabase';
+import { getBookings } from '@/services/dataService';
 
 export default function DashboardPage() {
     const { user, isLoading, logout } = useAuth();
