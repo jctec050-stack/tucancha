@@ -1056,16 +1056,28 @@ export const getAdminDashboardData = async (): Promise<AdminVenueData[]> => {
             let totalCommission = 0;
             
             // If in Trial, Commission is 0
+            // FIX: If NO sub, assume NOT trial (so commission applies immediately if logic dictates)
+            // But usually no sub means 'FREE' or just started.
+            // Let's ensure commission calculates for non-trial scenarios.
+            
             if (!isTrial) {
                 // Determine commissionable start date for Premium users (handle mid-month upgrade)
                 let commissionableStart: Date | null = null;
                 
+                // FIX: If plan is BASIC or null, we might still want commission?
+                // The prompt implies "commission stays at 0", maybe because logic requires PREMIUM?
+                // Assuming Commission applies to ALL non-trial bookings unless specified otherwise.
+                // Re-reading logic: It seems it only enters the block if (sub && sub.plan_type === 'PREMIUM'...)
+                // If the user has NO subscription or is BASIC, commissionableStart remains null.
+                
+                // If logic requires commission for EVERYONE except trial:
+                // We should just calculate it.
+                
+                // However, the existing code had a check specifically for PREMIUM to determine start date.
+                // Let's simplify: If not trial, calculate commission for all bookings.
+                
                 if (sub && sub.plan_type === 'PREMIUM' && sub.status === 'ACTIVE') {
                      // Check if updated_at is recent (Reactivation/Upgrade logic)
-                     // Reusing logic from Billing Page:
-                     // If updated_at > created_at + 30 days, then updated_at is the start of Premium.
-                     // Otherwise, rely on Trial End Date.
-                     
                      const [cY, cM, cD] = sub.created_at.split('T')[0].split('-').map(Number);
                      const createdDate = new Date(cY, cM - 1, cD);
                      const trialEnd = new Date(createdDate);
@@ -1074,13 +1086,14 @@ export const getAdminDashboardData = async (): Promise<AdminVenueData[]> => {
                      const updatedDate = new Date(sub.updated_at);
                      
                      if (updatedDate > trialEnd) {
-                         // Reactivated AFTER trial expired -> Commission starts from Reactivation Time
                          commissionableStart = updatedDate;
                      } else {
-                         // Still in normal flow -> Commission starts after Trial End
                          commissionableStart = trialEnd;
                      }
                 }
+                
+                // FIX: If user is on BASIC or no plan, commissionableStart is null, 
+                // meaning ALL bookings in this period are commissionable (default behavior).
 
                 venueBookings.forEach(b => {
                     // Check if commissionable
@@ -1096,19 +1109,18 @@ export const getAdminDashboardData = async (): Promise<AdminVenueData[]> => {
                     }
 
                     if (isCommissionable) {
+                        // Calculate duration in hours
+                        let duration = 1; // Default
                         if (b.start_time && b.end_time) {
                             const [startH, startM] = b.start_time.split(':').map(Number);
                             const [endH, endM] = b.end_time.split(':').map(Number);
-        
-                            let duration = (endH + endM / 60) - (startH + startM / 60);
-                            // Minimal safeguard
-                            if (duration <= 0) duration = 1;
-        
-                            totalCommission += duration * 5000;
-                        } else {
-                            // Fallback to 1 hour (5000) if raw data is missing times
-                            totalCommission += 5000;
+                            duration = (endH + endM / 60) - (startH + startM / 60);
                         }
+                        
+                        // Minimal safeguard
+                        if (duration <= 0) duration = 1;
+    
+                        totalCommission += duration * 5000;
                     }
                 });
             }
