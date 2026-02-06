@@ -146,20 +146,42 @@ export default function BillingPage() {
                 // but for billing summary, DB filter is much more efficient.
 
                 let totalCommission = 0;
+                
+                // Calculate commissionable start date (Trial Logic Check)
+                // If plan is PREMIUM, check if bookings were during a potential trial period.
+                // Assumption: Trial starts at 'created_at'. Duration: 30 days.
+                let trialEndDate: Date | null = null;
+                if (sub) {
+                    const subscriptionCreated = new Date(sub.created_at);
+                    trialEndDate = new Date(subscriptionCreated);
+                    trialEndDate.setDate(trialEndDate.getDate() + 30);
+                }
+
                 // Commission logic: 5.000 Gs per hour
                 cycleBookings.forEach(b => {
-                    if (b.start_time && b.end_time) {
-                        const [startH, startM] = b.start_time.split(':').map(Number);
-                        const [endH, endM] = b.end_time.split(':').map(Number);
-                        let duration = (endH + endM / 60) - (startH + startM / 60);
-                        if (duration <= 0) duration = 1;
-                        totalCommission += duration * 5000;
-                    } else {
-                        totalCommission += 5000;
+                    // Check if booking date is commissionable
+                    // If booking date <= trialEndDate, it's FREE.
+                    const bookingDate = new Date(b.date);
+                    let isCommissionable = true;
+                    
+                    if (trialEndDate && bookingDate <= trialEndDate) {
+                        isCommissionable = false;
+                    }
+
+                    if (isCommissionable) {
+                        if (b.start_time && b.end_time) {
+                            const [startH, startM] = b.start_time.split(':').map(Number);
+                            const [endH, endM] = b.end_time.split(':').map(Number);
+                            let duration = (endH + endM / 60) - (startH + startM / 60);
+                            if (duration <= 0) duration = 1;
+                            totalCommission += duration * 5000;
+                        } else {
+                            totalCommission += 5000;
+                        }
                     }
                 });
 
-                // If in trial, commission is 0
+                // If currently in strict TRIAL status (plan_type FREE), override to 0 just in case
                 if (trialDays > 0) {
                     totalCommission = 0;
                 }

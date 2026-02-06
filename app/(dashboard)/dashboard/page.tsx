@@ -106,17 +106,31 @@ export default function DashboardPage() {
                              // Filter in memory using the derived status (which handles time-based completion)
                              const cycleBookings = rawBookings.filter(b => b.status === 'COMPLETED');
 
+                             // Calculate commissionable start date (Trial Logic Check)
+                             // If plan is PREMIUM, check if bookings were during a potential trial period.
+                             // Assumption: Trial starts at 'created_at'. Duration: 30 days.
+                             const subscriptionCreated = new Date(sub.created_at);
+                             const trialEndDate = new Date(subscriptionCreated);
+                             trialEndDate.setDate(trialEndDate.getDate() + 30);
+                             
                              // Calculate debt
                              let totalCommission = 0;
                              cycleBookings.forEach(b => {
-                                 if (b.start_time && b.end_time) {
-                                     const [startH, startM] = b.start_time.split(':').map(Number);
-                                     const [endH, endM] = b.end_time.split(':').map(Number);
-                                     let duration = (endH + endM / 60) - (startH + startM / 60);
-                                     if (duration <= 0) duration = 1;
-                                     totalCommission += duration * 5000;
-                                 } else {
-                                     totalCommission += 5000;
+                                 // Check if booking date is commissionable
+                                 // If booking date <= trialEndDate, it's FREE.
+                                 const bookingDate = new Date(b.date);
+                                 
+                                 // Only charge if booking is AFTER trial period
+                                 if (bookingDate > trialEndDate) {
+                                     if (b.start_time && b.end_time) {
+                                         const [startH, startM] = b.start_time.split(':').map(Number);
+                                         const [endH, endM] = b.end_time.split(':').map(Number);
+                                         let duration = (endH + endM / 60) - (startH + startM / 60);
+                                         if (duration <= 0) duration = 1;
+                                         totalCommission += duration * 5000;
+                                     } else {
+                                         totalCommission += 5000;
+                                     }
                                  }
                              });
                              
