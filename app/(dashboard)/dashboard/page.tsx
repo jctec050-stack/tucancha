@@ -94,12 +94,16 @@ export default function DashboardPage() {
                              billingEnd.setMonth(billingEnd.getMonth() + 1);
 
                              // Fetch bookings for this period
-                             const { data: cycleBookings } = await getBookings({
+                             // NOTE: We fetch ALL bookings in range and filter by derived status in memory.
+                             // Because DB status might be 'ACTIVE' but time has passed.
+                             const { data: rawBookings } = await getBookings({
                                  ownerId: user.id,
                                  startDate: billingStart.toISOString().split('T')[0],
-                                 endDate: billingEnd.toISOString().split('T')[0],
-                                 status: 'COMPLETED'
+                                 endDate: billingEnd.toISOString().split('T')[0]
                              });
+
+                             // Filter in memory using the derived status (which handles time-based completion)
+                             const cycleBookings = rawBookings.filter(b => b.status === 'COMPLETED');
 
                              // Calculate debt
                              let totalCommission = 0;
