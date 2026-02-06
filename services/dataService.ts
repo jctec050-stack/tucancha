@@ -966,10 +966,6 @@ export const getAdminDashboardData = async (): Promise<AdminVenueData[]> => {
                 // Calculate Billing Cycle Start
                 // Create a candidate date in the current month with the subscription start day
                 // FIX: Use split logic to avoid Timezone Offset issues
-                const [sY, sM, sD] = sub.start_date.split('-').map(Number);
-                const subStart = new Date(sY, sM - 1, sD);
-                const sDay = subStart.getDate();
-                
                 const candidateStart = new Date(now.getFullYear(), now.getMonth(), sDay);
                 
                 // If today is before the candidate start date, we are in the previous billing cycle
