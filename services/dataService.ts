@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { Venue, Court, Booking, BookingStatus, DisabledSlot, Profile, Subscription, Payment, AdminVenueData, AdminProfileData, AdminSubscriptionData, AdminPaymentData } from '@/types';
+import { BookingSchema } from '@/lib/validations';
 
 // NOTE: Removed legacy adapters import. 
 // We now map directly to snake_case matching types.ts and DB.
@@ -575,6 +576,48 @@ export const createBooking = async (
     shouldNotify: boolean = true
 ): Promise<{ success: boolean; data?: Booking; error?: string }> => {
     try {
+        // 1. Zod Validation (Security & Data Integrity)
+        const validation = BookingSchema.safeParse(booking);
+        if (!validation.success) {
+            // Return the first error message to the UI
+            const errorMsg = validation.error.issues?.[0]?.message || 'Error de validación';
+            return { success: false, error: errorMsg };
+        }
+
+        // 2. Overlap Validation (Business Logic)
+        // Fetch existing active bookings for this court/date
+        const { data: existingBookings } = await supabase
+            .from('bookings')
+            .select('start_time, end_time')
+            .eq('court_id', booking.court_id)
+            .eq('date', booking.date)
+            .neq('status', 'CANCELLED');
+
+        if (existingBookings && existingBookings.length > 0) {
+            const getMinutes = (t: string) => {
+                if (!t) return 0;
+                const [h, m] = t.split(':').map(Number);
+                return h * 60 + m;
+            };
+
+            const startNew = getMinutes(booking.start_time);
+            // Default to 60 min duration if end_time not provided
+            const endNew = booking.end_time ? getMinutes(booking.end_time) : startNew + 60;
+
+            const hasOverlap = existingBookings.some(b => {
+                const startExisting = getMinutes(b.start_time);
+                const endExisting = b.end_time ? getMinutes(b.end_time) : startExisting + 60;
+
+                // Overlap: (StartA < EndB) and (EndA > StartB)
+                return startNew < endExisting && endNew > startExisting;
+            });
+
+            if (hasOverlap) {
+                return { success: false, error: 'HORARIO_OCUPADO' };
+            }
+        }
+
+        // 3. Database Insert
         const { data, error } = await supabase
             .from('bookings')
             .insert(booking)
@@ -582,7 +625,7 @@ export const createBooking = async (
             .single();
 
         if (error) {
-            if (error.code === '23505') { // Unique violation
+            if (error.code === '23505') { // Unique violation fallback
                 return { success: false, error: 'HORARIO_OCUPADO' };
             }
             throw error;
