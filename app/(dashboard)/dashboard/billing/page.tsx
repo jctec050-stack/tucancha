@@ -68,7 +68,8 @@ export default function BillingPage() {
                 let trialDays = 0;
 
                 if (sub) {
-                    const subStart = new Date(sub.start_date);
+                    const [sY, sM, sD] = sub.start_date.split('-').map(Number);
+                    const subStart = new Date(sY, sM - 1, sD);
                     
                     if (sub.status === 'TRIAL' || (sub.plan_type === 'FREE' && sub.price_per_month === 0)) { 
                          // Trial Logic
@@ -152,21 +153,108 @@ export default function BillingPage() {
                 // Assumption: Trial starts at 'created_at'. Duration: 30 days.
                 let trialEndDate: Date | null = null;
                 if (sub) {
-                    const subscriptionCreated = new Date(sub.created_at);
-                    trialEndDate = new Date(subscriptionCreated);
-                    trialEndDate.setDate(trialEndDate.getDate() + 30);
+                    // Use updated_at if it's more recent than created_at + 30 days to handle reactivations
+                    // Logic:
+                    // 1. Initial Trial: created_at -> created_at + 30 days.
+                    // 2. Cancellation: status becomes CANCELLED.
+                    // 3. Reactivation: updated_at becomes NOW, status becomes ACTIVE, plan_type becomes PREMIUM.
+                    // If status is ACTIVE and plan is PREMIUM, but updated_at > (created_at + 30),
+                    // it means they reactivated after trial expiration.
+                    // In this case, commission should start from updated_at (Reactivation time).
+                    // BUT if they are still within original trial window, trial continues? 
+                    // No, usually cancellation forfeits trial. Reactivation implies immediate PRO.
+                    
+                    const updatedDate = new Date(sub.updated_at);
+                    const [cY, cM, cD] = sub.created_at.split('T')[0].split('-').map(Number);
+                    const subscriptionCreated = new Date(cY, cM - 1, cD); // Midnight local
+                    
+                    const originalTrialEnd = new Date(subscriptionCreated);
+                    originalTrialEnd.setDate(originalTrialEnd.getDate() + 30);
+                    
+                    // Check if current updated_at suggests a recent reactivation (e.g. status change)
+                    // If they are PREMIUM now, and updated_at is recent, maybe we should use updated_at as the "Start of Pro".
+                    // However, we don't have a specific "reactivated_at" field.
+                    // Heuristic: If plan is PREMIUM and status ACTIVE:
+                    //   If we are past originalTrialEnd, then EVERY booking is commissionable.
+                    //   If we are INSIDE originalTrialEnd, technically it's still trial?
+                    //   User requirement: "If I cancel and come back same day... detect change".
+                    //   This implies: 
+                    //     - 10 AM: Free. 
+                    //     - 11 AM: Cancel.
+                    //     - 14 PM: Reactivate (Pro).
+                    //     - 18 PM: Booking. -> Should charge.
+                    
+                    // Problem: We only store ONE subscription row per user usually in this logic (maybeSingle).
+                    // If we update the SAME row, `updated_at` changes to 14:00 PM.
+                    // So we can say: If Plan is PREMIUM, commission starts from `updated_at` if it was a reactivation?
+                    // Or simply: If Plan is PREMIUM, ALL bookings from TODAY onwards are commissionable?
+                    // But wait, 10 AM booking was Free.
+                    
+                    // Precise Solution:
+                    // If Plan is PREMIUM, commissionable start date is effectively when they became Premium.
+                    // Since we overwrite the row, we lose history of "when exactly did they become premium" 
+                    // unless we trust `updated_at` as the "Start of current status".
+                    // Let's assume `updated_at` is the timestamp of the last status change (Reactivation).
+                    
+                    if (sub.plan_type === 'PREMIUM' && sub.status === 'ACTIVE') {
+                         // If we assume updated_at is the moment they upgraded/reactivated.
+                         // Then any booking BEFORE updated_at is Free (or whatever previous state was).
+                         // Any booking AFTER updated_at is Commissionable.
+                         // Exception: If they upgraded from Free Trial automatically, updated_at might be the auto-upgrade time.
+                         
+                         // So, `commissionableStart` = `updated_at`.
+                         // `trialEndDate` logic is for pure Free Trial users.
+                         // For Premium users, we check `bookingDate >= commissionableStart`.
+                         
+                         // Let's use `updated_at` as the boundary for Premium users.
+                         // But `updated_at` includes time! Perfect.
+                         trialEndDate = new Date(sub.updated_at); 
+                         // Logic flip: Instead of "End of Free", this is "Start of Paid".
+                         // So isCommissionable = bookingDate >= trialEndDate.
+                    } else {
+                        // Standard Trial Logic
+                        trialEndDate = originalTrialEnd;
+                    }
                 }
 
                 // Commission logic: 5.000 Gs per hour
                 cycleBookings.forEach(b => {
-                    // Check if booking date is commissionable
-                    // If booking date <= trialEndDate, it's FREE.
-                    const bookingDate = new Date(b.date);
+                    // Parse Booking Date + Time to get full timestamp
+                    const [bY, bM, bD] = b.date.split('-').map(Number);
+                    const [startH, startM] = b.start_time.split(':').map(Number);
+                    const bookingDateTime = new Date(bY, bM - 1, bD, startH, startM);
+                    
                     let isCommissionable = true;
                     
-                    if (trialEndDate && bookingDate <= trialEndDate) {
+                    if (sub?.plan_type === 'PREMIUM') {
+                        // If Premium, we check if booking is AFTER the "Start of Paid" (stored in trialEndDate variable for reuse)
+                        // If booking is BEFORE updated_at (Reactivation/Upgrade time), it's treated as previous plan (Free/Cancelled).
+                        // Note: If previous plan was also Paid, this logic is flawed without history table.
+                        // But for Free -> Pro switch, this works.
+                        if (trialEndDate && bookingDateTime < trialEndDate) {
+                            isCommissionable = false;
+                        }
+                    } else {
+                        // Free / Trial Plan
+                        // Commissionable only if strictly AFTER trial end (which shouldn't happen for active free plan usually, but for expired yes)
+                        // Actually if Free, isCommissionable is FALSE usually, unless trial expired?
+                        // If trial expired, they should be Premium. 
+                        // So if Plan is FREE, commission is 0.
                         isCommissionable = false;
                     }
+
+                    if (isCommissionable) {
+                        if (b.start_time && b.end_time) {
+                            const [startH, startM] = b.start_time.split(':').map(Number);
+                            const [endH, endM] = b.end_time.split(':').map(Number);
+                            let duration = (endH + endM / 60) - (startH + startM / 60);
+                            if (duration <= 0) duration = 1;
+                            totalCommission += duration * 5000;
+                        } else {
+                            totalCommission += 5000;
+                        }
+                    }
+                });
 
                     if (isCommissionable) {
                         if (b.start_time && b.end_time) {

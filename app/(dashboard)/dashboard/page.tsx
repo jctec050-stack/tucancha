@@ -81,7 +81,8 @@ export default function DashboardPage() {
                         if (ownerVenues.length > 0 || true) { // Force check even without venues logic if needed
                              const now = new Date();
                              // Use sub.start_date day to find current/last billing cycle
-                             const subStart = new Date(sub.start_date);
+                             const [sY, sM, sD] = sub.start_date.split('-').map(Number);
+                             const subStart = new Date(sY, sM - 1, sD);
                              const sDay = subStart.getDate();
                              
                              // Calculate "Previous Cycle" that was interrupted or unpaid
@@ -109,7 +110,8 @@ export default function DashboardPage() {
                              // Calculate commissionable start date (Trial Logic Check)
                              // If plan is PREMIUM, check if bookings were during a potential trial period.
                              // Assumption: Trial starts at 'created_at'. Duration: 30 days.
-                             const subscriptionCreated = new Date(sub.created_at);
+                             const [cY, cM, cD] = sub.created_at.split('T')[0].split('-').map(Number);
+                             const subscriptionCreated = new Date(cY, cM - 1, cD);
                              const trialEndDate = new Date(subscriptionCreated);
                              trialEndDate.setDate(trialEndDate.getDate() + 30);
                              
@@ -118,7 +120,8 @@ export default function DashboardPage() {
                              cycleBookings.forEach(b => {
                                  // Check if booking date is commissionable
                                  // If booking date <= trialEndDate, it's FREE.
-                                 const bookingDate = new Date(b.date);
+                                 const [bY, bM, bD] = b.date.split('-').map(Number);
+                                 const bookingDate = new Date(bY, bM - 1, bD);
                                  
                                  // Only charge if booking is AFTER trial period
                                  if (bookingDate > trialEndDate) {
