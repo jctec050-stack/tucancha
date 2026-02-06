@@ -256,19 +256,6 @@ export default function BillingPage() {
                     }
                 });
 
-                    if (isCommissionable) {
-                        if (b.start_time && b.end_time) {
-                            const [startH, startM] = b.start_time.split(':').map(Number);
-                            const [endH, endM] = b.end_time.split(':').map(Number);
-                            let duration = (endH + endM / 60) - (startH + startM / 60);
-                            if (duration <= 0) duration = 1;
-                            totalCommission += duration * 5000;
-                        } else {
-                            totalCommission += 5000;
-                        }
-                    }
-                });
-
                 // If currently in strict TRIAL status (plan_type FREE), override to 0 just in case
                 if (trialDays > 0) {
                     totalCommission = 0;
