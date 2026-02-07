@@ -1,6 +1,60 @@
-# 📦 Scripts de Backup - TuCancha
+# 📦 Scripts - TuCancha
 
-## Backup Manual de Base de Datos
+## 🎨 Generar Favicons Optimizados
+
+Este script genera automáticamente favicons en múltiples tamaños desde el logo principal.
+
+### 🚀 Uso Rápido
+
+```powershell
+.\scripts\generate-favicons.ps1
+```
+
+### 📋 Qué se Genera
+
+El script crea estos archivos en `public/`:
+- ✅ `favicon-16x16.png` - Favicon 16x16 (pestañas navegador)
+- ✅ `favicon-32x32.png` - Favicon 32x32 (escritorio)
+- ✅ `favicon-192x192.png` - Favicon 192x192 (Android)
+- ✅ `apple-touch-icon.png` - Apple Touch Icon 180x180 (iOS)
+
+### 🎯 Características
+
+- **Alta calidad**: Usa interpolación bicúbica para redimensionamiento
+- **Optimizado**: Genera archivos PNG compactos
+- **Automático**: Un solo comando genera todos los tamaños
+- **Visual**: Muestra progreso y tamaño de cada archivo
+
+### 📊 Ejemplo de Salida
+
+```
+🎨 Generando favicons optimizados para TuCancha...
+
+✅ Logo encontrado: C:\...\public\logo.png
+🔄 Generando favicon-16x16.png (16x16)... ✅ (2.45 KB)
+🔄 Generando favicon-32x32.png (32x32)... ✅ (5.12 KB)
+🔄 Generando favicon-192x192.png (192x192)... ✅ (45.67 KB)
+🔄 Generando apple-touch-icon.png (180x180)... ✅ (42.34 KB)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📊 Resumen:
+   Total de favicons: 4
+   Generados exitosamente: 4
+   Fallidos: 0
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎉 ¡Todos los favicons se generaron correctamente!
+```
+
+### ⚠️ Requisitos
+
+- Windows PowerShell
+- .NET Framework (pre-instalado en Windows)
+- Logo fuente en `public/logo.png`
+
+---
+
+## 📦 Backup Manual de Base de Datos
 
 Este script exporta todas las tablas críticas de Supabase a archivos JSON locales.
 
