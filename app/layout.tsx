@@ -2,6 +2,7 @@ import { Inter } from 'next/font/google';
 import { AuthProvider } from '@/AuthContext';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -41,15 +42,17 @@ export default function RootLayout({
     return (
         <html lang="es">
             <body className={inter.className}>
-                <AuthProvider>
-                    <div className="flex flex-col min-h-screen">
-                        <Navbar />
-                        <div className="flex-grow">
-                            {children}
+                <ErrorBoundary>
+                    <AuthProvider>
+                        <div className="flex flex-col min-h-screen">
+                            <Navbar />
+                            <div className="flex-grow">
+                                {children}
+                            </div>
+                            <Footer />
                         </div>
-                        <Footer />
-                    </div>
-                </AuthProvider>
+                    </AuthProvider>
+                </ErrorBoundary>
             </body>
         </html>
     );

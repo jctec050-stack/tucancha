@@ -1,8 +1,35 @@
 
 import { NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
+import { checkRateLimit, getClientIP } from '@/lib/rate-limit';
 
 export async function POST(request: Request) {
+  // ============================================
+  // RATE LIMITING: 10 requests por minuto
+  // ============================================
+  const clientIP = getClientIP(request);
+  const rateLimitResult = checkRateLimit(clientIP, 10, 60000); // 10 req/min
+
+  if (!rateLimitResult.success) {
+    const retryAfter = Math.ceil((rateLimitResult.reset - Date.now()) / 1000);
+
+    return NextResponse.json(
+      {
+        error: 'Too many requests',
+        message: 'Has excedido el límite de envío de emails. Por favor intenta nuevamente en unos minutos.',
+      },
+      {
+        status: 429,
+        headers: {
+          'X-RateLimit-Limit': '10',
+          'X-RateLimit-Remaining': '0',
+          'X-RateLimit-Reset': rateLimitResult.reset.toString(),
+          'Retry-After': retryAfter.toString(),
+        },
+      }
+    );
+  }
+
   try {
     const { to, subject, html } = await request.json();
 
@@ -62,7 +89,18 @@ export async function POST(request: Request) {
     });
 
     console.log('✅ Email sent successfully:', info.messageId);
-    return NextResponse.json({ success: true, messageId: info.messageId });
+
+    // Incluir headers de rate limit en respuesta exitosa
+    return NextResponse.json(
+      { success: true, messageId: info.messageId },
+      {
+        headers: {
+          'X-RateLimit-Limit': '10',
+          'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+          'X-RateLimit-Reset': rateLimitResult.reset.toString(),
+        },
+      }
+    );
   } catch (error: any) {
     console.error('❌ Error sending email:', error);
     return NextResponse.json({

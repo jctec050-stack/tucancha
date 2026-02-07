@@ -17,6 +17,9 @@ dist-ssr
 out/
 build/
 
+# Backups (local only)
+backups/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

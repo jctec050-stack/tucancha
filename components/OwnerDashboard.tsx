@@ -1,9 +1,9 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Booking, Venue, DisabledSlot } from '../types';
+import { usePagination } from '@/hooks/usePagination';
 
 
 interface ScheduleItem {
@@ -74,64 +74,64 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ bookings, disabl
   // Memoize Monthly History and Revenue
   const { monthlyHistory, monthlyRevenue } = useMemo(() => {
     const [year, month] = selectedDate.split('-').map(Number);
-    
+
     // Filter bookings for the selected month and year
     const monthlyBookings = bookings.filter(b => {
-        const [bYear, bMonth] = b.date.split('-').map(Number);
-        return bYear === year && bMonth === month;
+      const [bYear, bMonth] = b.date.split('-').map(Number);
+      return bYear === year && bMonth === month;
     });
 
     // Calculate total revenue for the month (only ACTIVE or COMPLETED)
     const totalRevenue = monthlyBookings
-        .filter(b => b.status === 'ACTIVE' || b.status === 'COMPLETED')
-        .reduce((sum, b) => sum + b.price, 0);
+      .filter(b => b.status === 'ACTIVE' || b.status === 'COMPLETED')
+      .reduce((sum, b) => sum + b.price, 0);
 
     // Group consecutive bookings
     const sortedForGrouping = [...monthlyBookings].sort((a, b) => {
-        if (a.date !== b.date) return a.date.localeCompare(b.date);
-        return a.start_time.localeCompare(b.start_time);
+      if (a.date !== b.date) return a.date.localeCompare(b.date);
+      return a.start_time.localeCompare(b.start_time);
     });
 
     const groupedHistory: any[] = [];
-    
+
     if (sortedForGrouping.length > 0) {
-        // Helper to ensure end_time
-        const getEndTime = (b: Booking) => {
-            if (b.end_time) return b.end_time;
-            const [h, m] = b.start_time.split(':').map(Number);
-            return `${(h+1).toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:00`;
-        };
+      // Helper to ensure end_time
+      const getEndTime = (b: Booking) => {
+        if (b.end_time) return b.end_time;
+        const [h, m] = b.start_time.split(':').map(Number);
+        return `${(h + 1).toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:00`;
+      };
 
-        let current = { ...sortedForGrouping[0], end_time: getEndTime(sortedForGrouping[0]) };
+      let current = { ...sortedForGrouping[0], end_time: getEndTime(sortedForGrouping[0]) };
 
-        for (let i = 1; i < sortedForGrouping.length; i++) {
-            const next = { ...sortedForGrouping[i], end_time: getEndTime(sortedForGrouping[i]) };
+      for (let i = 1; i < sortedForGrouping.length; i++) {
+        const next = { ...sortedForGrouping[i], end_time: getEndTime(sortedForGrouping[i]) };
 
-            const currentEnd = current.end_time.substring(0, 5);
-            const nextStart = next.start_time.substring(0, 5);
+        const currentEnd = current.end_time.substring(0, 5);
+        const nextStart = next.start_time.substring(0, 5);
 
-            const isConsecutive = currentEnd === nextStart;
-            const isSameDate = current.date === next.date;
-            const isSamePlayer = (current.player_id && current.player_id === next.player_id) || (!current.player_id && current.player_name === next.player_name);
-            const isSameCourt = current.court_id === next.court_id;
-            const isSameStatus = current.status === next.status;
+        const isConsecutive = currentEnd === nextStart;
+        const isSameDate = current.date === next.date;
+        const isSamePlayer = (current.player_id && current.player_id === next.player_id) || (!current.player_id && current.player_name === next.player_name);
+        const isSameCourt = current.court_id === next.court_id;
+        const isSameStatus = current.status === next.status;
 
-            if (isSameDate && isSamePlayer && isSameCourt && isSameStatus && isConsecutive) {
-                // Merge
-                current.end_time = next.end_time;
-                current.price += next.price;
-            } else {
-                groupedHistory.push(current);
-                current = next;
-            }
+        if (isSameDate && isSamePlayer && isSameCourt && isSameStatus && isConsecutive) {
+          // Merge
+          current.end_time = next.end_time;
+          current.price += next.price;
+        } else {
+          groupedHistory.push(current);
+          current = next;
         }
-        groupedHistory.push(current);
+      }
+      groupedHistory.push(current);
     }
 
     // Sort by date descending, then time descending
     const finalHistory = groupedHistory.sort((a, b) => {
-        if (a.date !== b.date) return b.date.localeCompare(a.date);
-        return b.start_time.localeCompare(a.start_time);
+      if (a.date !== b.date) return b.date.localeCompare(a.date);
+      return b.start_time.localeCompare(a.start_time);
     });
 
     return { monthlyHistory: finalHistory, monthlyRevenue: totalRevenue };
@@ -170,59 +170,59 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ bookings, disabl
     // 2. Group consecutive items
     const groupedItems: ScheduleItem[] = [];
     if (rawItems.length > 0) {
-        let currentGroup = { ...rawItems[0], count: 1, endTimeMinutes: rawItems[0].endTimeMinutes };
+      let currentGroup = { ...rawItems[0], count: 1, endTimeMinutes: rawItems[0].endTimeMinutes };
 
-        for (let i = 1; i < rawItems.length; i++) {
-            const item = rawItems[i];
-            
-            // Check if same group: Court, Type, Status, Details (Player), and Consecutive Time
-            const isConsecutive = item.startTimeMinutes === currentGroup.endTimeMinutes;
-            const isSameGroup = 
-                item.courtName === currentGroup.courtName &&
-                item.type === currentGroup.type &&
-                item.status === currentGroup.status &&
-                item.details === currentGroup.details;
+      for (let i = 1; i < rawItems.length; i++) {
+        const item = rawItems[i];
 
-            if (isConsecutive && isSameGroup) {
-                currentGroup.endTimeMinutes = item.endTimeMinutes;
-                currentGroup.price += item.price;
-                currentGroup.count += 1;
-                // Keep the ID of the first one for key, or maybe combine? 
-                // For UI keys, first ID is fine.
-            } else {
-                groupedItems.push(currentGroup);
-                currentGroup = { ...item, count: 1, endTimeMinutes: item.endTimeMinutes };
-            }
+        // Check if same group: Court, Type, Status, Details (Player), and Consecutive Time
+        const isConsecutive = item.startTimeMinutes === currentGroup.endTimeMinutes;
+        const isSameGroup =
+          item.courtName === currentGroup.courtName &&
+          item.type === currentGroup.type &&
+          item.status === currentGroup.status &&
+          item.details === currentGroup.details;
+
+        if (isConsecutive && isSameGroup) {
+          currentGroup.endTimeMinutes = item.endTimeMinutes;
+          currentGroup.price += item.price;
+          currentGroup.count += 1;
+          // Keep the ID of the first one for key, or maybe combine? 
+          // For UI keys, first ID is fine.
+        } else {
+          groupedItems.push(currentGroup);
+          currentGroup = { ...item, count: 1, endTimeMinutes: item.endTimeMinutes };
         }
-        groupedItems.push(currentGroup);
+      }
+      groupedItems.push(currentGroup);
     }
 
     // 3. Format output
     return groupedItems.map(item => {
-        const startHour = Math.floor(item.startTimeMinutes / 60).toString().padStart(2, '0');
-        const startMin = (item.startTimeMinutes % 60).toString().padStart(2, '0');
-        const endHour = Math.floor(item.endTimeMinutes / 60).toString().padStart(2, '0');
-        const endMin = (item.endTimeMinutes % 60).toString().padStart(2, '0');
-        
-        return {
-            ...item,
-            timeRange: `${startHour}:${startMin} a ${endHour}:${endMin}`
-        };
+      const startHour = Math.floor(item.startTimeMinutes / 60).toString().padStart(2, '0');
+      const startMin = (item.startTimeMinutes % 60).toString().padStart(2, '0');
+      const endHour = Math.floor(item.endTimeMinutes / 60).toString().padStart(2, '0');
+      const endMin = (item.endTimeMinutes % 60).toString().padStart(2, '0');
+
+      return {
+        ...item,
+        timeRange: `${startHour}:${startMin} a ${endHour}:${endMin}`
+      };
     });
 
   }, [dailyBookings, disabledSlots, venue.courts]);
 
   const handleDownloadPDF = () => {
     const doc = new jsPDF();
-    
+
     // Add Header
     doc.setFontSize(18);
     doc.text(`Reporte de Reservas Activas`, 14, 22);
-    
+
     doc.setFontSize(12);
     doc.text(`Fecha: ${selectedDate}`, 14, 30);
     doc.text(`Complejo: ${venue.name}`, 14, 36);
-    
+
     // Define columns
     const columns = [
       { header: 'Hora', dataKey: 'time' },
@@ -232,7 +232,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ bookings, disabl
       { header: 'Precio', dataKey: 'price' },
       { header: 'Estado', dataKey: 'status' }
     ];
-    
+
     // Prepare data
     const tableData = dailyActiveBookings.map(booking => ({
       time: `${booking.start_time.substring(0, 5)} - ${booking.end_time ? booking.end_time.substring(0, 5) : '??:??'}`,
@@ -245,7 +245,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ bookings, disabl
 
     // Add total revenue row
     const totalRevenue = dailyActiveBookings.reduce((sum, b) => sum + b.price, 0);
-    
+
     // Generate table
     autoTable(doc, {
       head: [columns.map(c => c.header)],
@@ -303,7 +303,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ bookings, disabl
             {revenueGrowth >= 0 ? '↑' : '↓'} {Math.abs(revenueGrowth).toFixed(1)}% vs ayer
           </span>
         </div>
-        <div 
+        <div
           onClick={() => setShowActiveBookingsModal(true)}
           className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100 cursor-pointer hover:shadow-md transition group"
         >
@@ -351,26 +351,24 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ bookings, disabl
                     <td className="px-6 py-4 font-bold text-gray-900">{item.timeRange}</td>
                     <td className="px-6 py-4 text-gray-600">{item.courtName}</td>
                     <td className="px-6 py-4">
-                      <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${
-                        item.status === 'CANCELLED' ? 'bg-gray-200 text-gray-500 line-through' :
+                      <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${item.status === 'CANCELLED' ? 'bg-gray-200 text-gray-500 line-through' :
                         item.type === 'Reserva' ? 'bg-indigo-50 text-indigo-600' : 'bg-red-50 text-red-600'
-                      }`}>
+                        }`}>
                         {item.type}
                       </span>
                     </td>
                     <td className={`px-6 py-4 font-medium ${item.status === 'CANCELLED' ? 'text-gray-400 line-through' : 'text-gray-700'}`}>
-                        {item.details}
+                      {item.details}
                     </td>
                     <td className="px-6 py-4 text-right font-bold text-gray-900">
                       {item.price > 0 ? `Gs. ${item.price.toLocaleString('es-PY')}` : '-'}
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <span className={`inline-block w-2 h-2 rounded-full ${
-                        item.status === 'ACTIVE' ? 'bg-green-500' :
+                      <span className={`inline-block w-2 h-2 rounded-full ${item.status === 'ACTIVE' ? 'bg-green-500' :
                         item.status === 'COMPLETED' ? 'bg-blue-500' :
-                        item.status === 'CANCELLED' ? 'bg-red-500' :
-                        item.status === 'DISABLED' ? 'bg-orange-500' : 'bg-gray-300'
-                      }`}></span>
+                          item.status === 'CANCELLED' ? 'bg-red-500' :
+                            item.status === 'DISABLED' ? 'bg-orange-500' : 'bg-gray-300'
+                        }`}></span>
                     </td>
                   </tr>
                 ))
@@ -390,47 +388,45 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ bookings, disabl
       <div className="md:hidden space-y-4">
         <h3 className="text-lg font-bold text-gray-800 px-2">Detalle de Actividad ({selectedDate})</h3>
         {scheduleItems.length > 0 ? (
-            scheduleItems.map((item, index) => (
+          scheduleItems.map((item, index) => (
             <div key={`${item.id}-${index}`} className={`bg-white p-4 rounded-xl border border-gray-100 shadow-sm ${item.status === 'CANCELLED' ? 'bg-red-50/50' : ''}`}>
-                <div className="flex justify-between items-start mb-2">
+              <div className="flex justify-between items-start mb-2">
                 <div>
-                    <span className="text-lg font-bold text-gray-900 block">{item.timeRange}</span>
-                    <span className="text-sm text-gray-500">{item.courtName}</span>
+                  <span className="text-lg font-bold text-gray-900 block">{item.timeRange}</span>
+                  <span className="text-sm text-gray-500">{item.courtName}</span>
                 </div>
-                <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${
-                    item.status === 'CANCELLED' ? 'bg-gray-200 text-gray-500 line-through' :
-                    item.type === 'Reserva' ? 'bg-indigo-50 text-indigo-600' : 'bg-red-50 text-red-600'
-                }`}>
-                    {item.type}
+                <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${item.status === 'CANCELLED' ? 'bg-gray-200 text-gray-500 line-through' :
+                  item.type === 'Reserva' ? 'bg-indigo-50 text-indigo-600' : 'bg-red-50 text-red-600'
+                  }`}>
+                  {item.type}
                 </span>
+              </div>
+              <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-50">
+                <div className="flex items-center gap-2">
+                  <span className={`w-2 h-2 rounded-full ${item.status === 'ACTIVE' ? 'bg-green-500' :
+                    item.status === 'COMPLETED' ? 'bg-blue-500' :
+                      item.status === 'CANCELLED' ? 'bg-red-500' :
+                        item.status === 'DISABLED' ? 'bg-orange-500' : 'bg-gray-300'
+                    }`}></span>
+                  <div className={`font-medium text-sm ${item.status === 'CANCELLED' ? 'text-gray-400 line-through' : 'text-gray-700'}`}>
+                    {item.details}
+                    {item.phone && (
+                      <div className="text-xs text-gray-500 font-normal mt-0.5">
+                        📞 {item.phone}
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-50">
-                    <div className="flex items-center gap-2">
-                        <span className={`w-2 h-2 rounded-full ${
-                            item.status === 'ACTIVE' ? 'bg-green-500' :
-                            item.status === 'COMPLETED' ? 'bg-blue-500' :
-                            item.status === 'CANCELLED' ? 'bg-red-500' :
-                            item.status === 'DISABLED' ? 'bg-orange-500' : 'bg-gray-300'
-                        }`}></span>
-                        <div className={`font-medium text-sm ${item.status === 'CANCELLED' ? 'text-gray-400 line-through' : 'text-gray-700'}`}>
-                            {item.details}
-                            {item.phone && (
-                                <div className="text-xs text-gray-500 font-normal mt-0.5">
-                                    📞 {item.phone}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                    <span className="font-bold text-gray-900">
-                        {item.price > 0 ? `Gs. ${item.price.toLocaleString('es-PY')}` : '-'}
-                    </span>
-                </div>
+                <span className="font-bold text-gray-900">
+                  {item.price > 0 ? `Gs. ${item.price.toLocaleString('es-PY')}` : '-'}
+                </span>
+              </div>
             </div>
-            ))
+          ))
         ) : (
-            <div className="text-center py-8 text-gray-400 bg-white rounded-xl border border-gray-100">
-                No hay actividad registrada
-            </div>
+          <div className="text-center py-8 text-gray-400 bg-white rounded-xl border border-gray-100">
+            No hay actividad registrada
+          </div>
         )}
       </div>
 
@@ -452,59 +448,102 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ bookings, disabl
 
         <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col h-[380px]">
           <div className="flex items-center justify-between mb-4">
-             <div>
-                <h5 className="text-lg font-bold text-gray-800">Historial del Mes</h5>
-                <p className="text-xs text-gray-500 capitalize">{new Date(selectedDate).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}</p>
-             </div>
-             <div className="text-right">
-                <p className="text-xs text-gray-500 font-medium">Total Ingresos</p>
-                <p className="text-xl font-bold text-green-600">Gs. {monthlyRevenue.toLocaleString('es-PY')}</p>
-             </div>
+            <div>
+              <h5 className="text-lg font-bold text-gray-800">Historial del Mes</h5>
+              <p className="text-xs text-gray-500 capitalize">{new Date(selectedDate).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-gray-500 font-medium">Total Ingresos</p>
+              <p className="text-xl font-bold text-green-600">Gs. {monthlyRevenue.toLocaleString('es-PY')}</p>
+            </div>
           </div>
-          
-          <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-            {monthlyHistory.length > 0 ? (
-                <div className="space-y-3">
-                    {monthlyHistory.map((booking) => (
+
+          {(() => {
+            // Aplicar paginación solo si hay más de 10 items
+            const shouldPaginate = monthlyHistory.length > 10;
+            const pagination = usePagination(monthlyHistory, 10);
+            const displayItems = shouldPaginate ? pagination.paginatedItems : monthlyHistory;
+
+            return (
+              <>
+                <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                  {displayItems.length > 0 ? (
+                    <div className="space-y-3">
+                      {displayItems.map((booking) => (
                         <div key={booking.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
-                            <div>
-                                <div className="flex items-center gap-2 mb-1">
-                                    <span className="text-xs font-bold text-gray-700 bg-white px-2 py-0.5 rounded border border-gray-200">
-                                        {booking.date.split('-')[2]}/{booking.date.split('-')[1]}
-                                    </span>
-                                    <span className="text-xs text-gray-500 font-medium">
-                                        {booking.start_time?.substring(0, 5)} {booking.end_time ? `- ${booking.end_time.substring(0, 5)}` : ''}
-                                    </span>
-                                </div>
-                                <p className="text-sm font-bold text-gray-800 line-clamp-1">{booking.player_name || 'Cliente'}</p>
-                                <p className="text-xs text-gray-500">{booking.court_name || 'Cancha'}</p>
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-xs font-bold text-gray-700 bg-white px-2 py-0.5 rounded border border-gray-200">
+                                {booking.date.split('-')[2]}/{booking.date.split('-')[1]}
+                              </span>
+                              <span className="text-xs text-gray-500 font-medium">
+                                {booking.start_time?.substring(0, 5)} {booking.end_time ? `- ${booking.end_time.substring(0, 5)}` : ''}
+                              </span>
                             </div>
-                            <div className="text-right">
-                                <span className={`text-xs font-bold px-2 py-1 rounded-full ${
-                                    booking.status === 'ACTIVE' ? 'bg-green-100 text-green-700' :
-                                    booking.status === 'COMPLETED' ? 'bg-blue-100 text-blue-700' :
-                                    booking.status === 'CANCELLED' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'
-                                }`}>
-                                    {booking.status === 'CANCELLED' ? 'Cancelado' : 
-                                     booking.status === 'ACTIVE' ? 'Activo' : 
-                                     booking.status === 'COMPLETED' ? 'Completado' : booking.status}
-                                </span>
-                                <p className={`text-sm font-bold mt-1 ${booking.status === 'CANCELLED' ? 'text-gray-400 line-through' : 'text-gray-900'}`}>
-                                    Gs. {booking.price.toLocaleString('es-PY')}
-                                </p>
-                            </div>
+                            <p className="text-sm font-bold text-gray-800 line-clamp-1">{booking.player_name || 'Cliente'}</p>
+                            <p className="text-xs text-gray-500">{booking.court_name || 'Cancha'}</p>
+                          </div>
+                          <div className="text-right">
+                            <span className={`text-xs font-bold px-2 py-1 rounded-full ${booking.status === 'ACTIVE' ? 'bg-green-100 text-green-700' :
+                                booking.status === 'COMPLETED' ? 'bg-blue-100 text-blue-700' :
+                                  booking.status === 'CANCELLED' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'
+                              }`}>
+                              {booking.status === 'CANCELLED' ? 'Cancelado' :
+                                booking.status === 'ACTIVE' ? 'Activo' :
+                                  booking.status === 'COMPLETED' ? 'Completado' : booking.status}
+                            </span>
+                            <p className={`text-sm font-bold mt-1 ${booking.status === 'CANCELLED' ? 'text-gray-400 line-through' : 'text-gray-900'}`}>
+                              Gs. {booking.price.toLocaleString('es-PY')}
+                            </p>
+                          </div>
                         </div>
-                    ))}
-                </div>
-            ) : (
-                <div className="h-full flex flex-col items-center justify-center text-gray-400">
-                    <svg className="w-12 h-12 mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="h-full flex flex-col items-center justify-center text-gray-400">
+                      <svg className="w-12 h-12 mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                    </svg>
-                    <p className="text-sm">Sin movimientos este mes</p>
+                      </svg>
+                      <p className="text-sm">Sin movimientos este mes</p>
+                    </div>
+                  )}
                 </div>
-            )}
-          </div>
+
+                {/* Paginación - Solo mostrar si hay más de 10 items */}
+                {shouldPaginate && (
+                  <div className="mt-3 pt-3 border-t border-gray-100">
+                    <div className="flex items-center justify-between text-xs text-gray-600">
+                      <span>
+                        Página {pagination.currentPage} de {pagination.totalPages}
+                      </span>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={pagination.prevPage}
+                          disabled={!pagination.hasPrevPage}
+                          className={`px-2 py-1 rounded ${pagination.hasPrevPage
+                              ? 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'
+                              : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                            }`}
+                        >
+                          ←
+                        </button>
+                        <button
+                          onClick={pagination.nextPage}
+                          disabled={!pagination.hasNextPage}
+                          className={`px-2 py-1 rounded ${pagination.hasNextPage
+                              ? 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'
+                              : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                            }`}
+                        >
+                          →
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </div>
       </div>
 
@@ -521,9 +560,9 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ bookings, disabl
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
-            
+
             <div className="p-4 border-b border-gray-100 bg-white flex justify-end">
-              <button 
+              <button
                 onClick={handleDownloadPDF}
                 className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium text-sm shadow-sm hover:shadow"
               >
@@ -559,12 +598,11 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ bookings, disabl
                           Gs. {booking.price.toLocaleString('es-PY')}
                         </td>
                         <td className="px-6 py-4 text-center">
-                           <span className={`inline-block px-2 py-1 rounded-full text-xs font-bold ${
-                            booking.status === 'ACTIVE' ? 'bg-green-100 text-green-700' :
+                          <span className={`inline-block px-2 py-1 rounded-full text-xs font-bold ${booking.status === 'ACTIVE' ? 'bg-green-100 text-green-700' :
                             booking.status === 'COMPLETED' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'
-                           }`}>
-                             {booking.status}
-                           </span>
+                            }`}>
+                            {booking.status}
+                          </span>
                         </td>
                       </tr>
                     ))

@@ -1,0 +1,82 @@
+name: Weekly Database Backup
+
+# Ejecuta automáticamente cada domingo a las 3am (hora servidor)
+# También puede ejecutarse manualmente desde GitHub Actions tab
+on:
+  schedule:
+    - cron: '0 3 * * 0'  # Domingos a las 3am UTC
+  workflow_dispatch:  # Permite ejecución manual
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    
+    steps:
+      # 1. Checkout del código
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Setup de Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      # 3. Instalar dependencias
+      - name: Install dependencies
+        run: npm ci
+
+      # 4. Ejecutar backup
+      - name: Run database backup
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: npm run backup
+
+      # 5. Comprimir backups
+      - name: Compress backup files
+        run: |
+          cd backups
+          BACKUP_DIR=$(ls -t | head -1)
+          tar -czf "${BACKUP_DIR}.tar.gz" "$BACKUP_DIR"
+          echo "BACKUP_FILE=${BACKUP_DIR}.tar.gz" >> $GITHUB_ENV
+          echo "BACKUP_DIR=${BACKUP_DIR}" >> $GITHUB_ENV
+
+      # 6. Subir como artifact de GitHub
+      - name: Upload backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: database-backup-${{ github.run_number }}
+          path: backups/${{ env.BACKUP_FILE }}
+          retention-days: 30  # Mantener 30 días
+
+      # 7. Crear release tag (opcional - para historial)
+      - name: Create backup release
+        uses: softprops/action-gh-release@v1
+        if: github.event_name == 'schedule'
+        with:
+          tag_name: backup-${{ env.BACKUP_DIR }}
+          name: Database Backup ${{ env.BACKUP_DIR }}
+          body: |
+            Backup automático semanal de base de datos
+            
+            📅 Fecha: ${{ env.BACKUP_DIR }}
+            🔢 Run: #${{ github.run_number }}
+            
+            Para restaurar:
+            1. Descarga el archivo .tar.gz
+            2. Extrae: `tar -xzf backup-XXXX.tar.gz`
+            3. Sigue instrucciones en scripts/README.md
+          files: backups/${{ env.BACKUP_FILE }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # 8. Notificar resultado (opcional - requiere webhook)
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "❌ Backup falló. Revisar logs en GitHub Actions."
+          # Aquí puedes agregar notificación por email/Slack si configuras webhooks
