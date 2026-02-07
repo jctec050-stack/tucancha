@@ -9,10 +9,27 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata = {
     title: 'TuCancha! - Reservá tu Cancha',
     description: 'Sistema de gestión y reserva de canchas de padel y beach tennis',
+    metadataBase: new URL('https://tucancha.com.py'),
     icons: {
         icon: '/logo.png',
         shortcut: '/logo.png',
         apple: '/logo.png',
+    },
+    openGraph: {
+        title: 'TuCancha! - Reservá tu Cancha',
+        description: 'Sistema de gestión y reserva de canchas de padel y beach tennis',
+        url: 'https://tucancha.com.py',
+        siteName: 'TuCancha',
+        images: [
+            {
+                url: '/logo.png',
+                width: 800,
+                height: 600,
+                alt: 'TuCancha Logo',
+            },
+        ],
+        locale: 'es_PY',
+        type: 'website',
     },
 };
 
