@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Toaster, toast } from 'react-hot-toast';
 import { AdminVenueData, AdminProfileData, AdminSubscriptionData, AdminPaymentData, SubscriptionPlan, SubscriptionStatus, Subscription } from '@/types';
 import { getAdminDashboardData, getAdminClientsData, getAdminSubscriptionsData, getAdminPaymentsData, updateSubscription, updateUserProfile, createPayment, createSubscription } from '@/services/dataService';
+import { getLocalDateString } from '@/utils/dateUtils';
 
 const AdminDashboard = () => {
     const { user, isLoading: authLoading } = useAuth();
@@ -87,7 +88,7 @@ const AdminDashboard = () => {
             plan_type: 'FREE',
             price_per_month: 0,
             status: 'ACTIVE',
-            start_date: new Date().toISOString().split('T')[0],
+            start_date: getLocalDateString(),
             max_venues: 1,
             max_courts_per_venue: 2
         });
@@ -137,7 +138,7 @@ const AdminDashboard = () => {
 
         const newEndDate = new Date();
         newEndDate.setDate(newEndDate.getDate() + 30);
-        const endDateStr = newEndDate.toISOString().split('T')[0];
+        const endDateStr = getLocalDateString(newEndDate);
 
         // 1. Create Payment Record
         const paymentSuccess = await createPayment({
@@ -227,7 +228,7 @@ const AdminDashboard = () => {
 
     const getTrialInfo = (sub?: Subscription | AdminSubscriptionData) => {
         if (!sub || !sub.start_date) return null;
-        
+
         // Fix: If plan is not FREE, it is NOT a trial, regardless of date
         if (sub.plan_type !== 'FREE') return { isTrial: false };
 
@@ -235,7 +236,7 @@ const AdminDashboard = () => {
         const now = new Date();
         const trialEnd = new Date(start);
         trialEnd.setDate(trialEnd.getDate() + 30);
-        
+
         if (now < trialEnd) {
             const diff = Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
             return { isTrial: true, daysLeft: diff, endDate: trialEnd };
@@ -308,8 +309,8 @@ const AdminDashboard = () => {
                                 key={tab}
                                 onClick={() => setActiveTab(tab as any)}
                                 className={`${activeTab === tab
-                                        ? 'border-indigo-500 text-indigo-600'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                    ? 'border-indigo-500 text-indigo-600'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                     } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm capitalize`}
                             >
                                 {tab === 'venues' ? 'Complejos' :
@@ -489,7 +490,7 @@ const AdminDashboard = () => {
                                                 <td className="px-6 py-4">
                                                     {sub ? (
                                                         <span className={`font-medium ${sub.plan_type === 'PREMIUM' ? 'text-indigo-600' :
-                                                                sub.plan_type === 'ENTERPRISE' ? 'text-purple-600' : 'text-gray-600'
+                                                            sub.plan_type === 'ENTERPRISE' ? 'text-purple-600' : 'text-gray-600'
                                                             }`}>
                                                             {sub.plan_type}
                                                         </span>
@@ -513,22 +514,22 @@ const AdminDashboard = () => {
                                                 <td className="px-6 py-4">
                                                     {sub ? (
                                                         (() => {
-                                                             const trial = getTrialInfo(sub);
-                                                             if (trial?.isTrial) {
-                                                                 return (
-                                                                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800">
-                                                                         ★ Prueba ({trial.daysLeft}d)
-                                                                     </span>
-                                                                 );
-                                                             }
-                                                             return (
+                                                            const trial = getTrialInfo(sub);
+                                                            if (trial?.isTrial) {
+                                                                return (
+                                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800">
+                                                                        ★ Prueba ({trial.daysLeft}d)
+                                                                    </span>
+                                                                );
+                                                            }
+                                                            return (
                                                                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${sub.status === 'ACTIVE' ? 'bg-green-100 text-green-800' :
-                                                                        sub.status === 'EXPIRED' ? 'bg-red-100 text-red-800' :
-                                                                            'bg-gray-100 text-gray-800'
+                                                                    sub.status === 'EXPIRED' ? 'bg-red-100 text-red-800' :
+                                                                        'bg-gray-100 text-gray-800'
                                                                     }`}>
                                                                     {sub.status}
                                                                 </span>
-                                                             );
+                                                            );
                                                         })()
                                                     ) : (
                                                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
@@ -543,7 +544,7 @@ const AdminDashboard = () => {
                                                             if (trial?.isTrial) {
                                                                 return <span className="text-xs text-blue-600 font-bold">En Prueba</span>;
                                                             }
-                                                            
+
                                                             const daysLeft = getDaysRemaining(sub.end_date);
                                                             const isExpiringSoon = sub.status === 'ACTIVE' && daysLeft <= 5 && daysLeft >= 0;
                                                             const isExpired = sub.status === 'EXPIRED' || (sub.status === 'ACTIVE' && daysLeft < 0) || sub.status === 'PENDING_PAYMENT';
@@ -553,11 +554,11 @@ const AdminDashboard = () => {
                                                             // 1. Expired/Late -> Red Button "Vencido - Pagar"
                                                             // 2. Expiring Soon -> Yellow Button "Renovar"
                                                             // 3. Up to date -> Blue/Gray Button "Adelantar Pago" or "Extender"
-                                                            
+
                                                             if (sub.plan_type === 'PREMIUM') {
                                                                 let buttonColorClass = 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100';
                                                                 let buttonText = 'Registrar Pago';
-                                                                
+
                                                                 if (isExpired || sub.status !== 'ACTIVE') {
                                                                     buttonColorClass = 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100';
                                                                     buttonText = 'Vencido - Pagar';
@@ -577,7 +578,7 @@ const AdminDashboard = () => {
                                                                     </button>
                                                                 );
                                                             }
-                                                            
+
                                                             return <span className="text-xs text-green-600 font-bold">Al día</span>;
                                                         })()
                                                     ) : (
@@ -705,7 +706,7 @@ const AdminDashboard = () => {
                                                         if (trial?.isTrial) {
                                                             return <span className="text-xs text-blue-600 font-bold">En Prueba</span>;
                                                         }
-                                                        
+
                                                         if (sub.status !== 'ACTIVE' || isExpiringSoon || isExpired) {
                                                             return (
                                                                 <button

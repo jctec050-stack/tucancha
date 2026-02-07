@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { Venue, Court, Booking, BookingStatus, DisabledSlot, Profile, Subscription, Payment, AdminVenueData, AdminProfileData, AdminSubscriptionData, AdminPaymentData } from '@/types';
 import { BookingSchema } from '@/lib/validations';
+import { getLocalDateString } from '@/utils/dateUtils';
 
 // NOTE: Removed legacy adapters import. 
 // We now map directly to snake_case matching types.ts and DB.
@@ -466,7 +467,7 @@ export const getBookings = async (
 ): Promise<PaginatedResult<Booking>> => {
     try {
         const { ownerId, playerId, page, limit, startDate, endDate, status } = options;
-        
+
         // Base query
         let query = supabase
             .from('bookings')
@@ -493,9 +494,9 @@ export const getBookings = async (
         if (endDate) {
             query = query.lte('date', endDate);
         }
-        
+
         if (status) {
-             query = query.eq('status', status);
+            query = query.eq('status', status);
         }
 
         // Apply Pagination
@@ -504,7 +505,7 @@ export const getBookings = async (
             const to = from + limit - 1;
             query = query.range(from, to);
         }
-        
+
         // Default Order
         query = query.order('date', { ascending: false });
 
@@ -767,7 +768,7 @@ export const createRecurringBookings = async (
     // 1. Calculate valid dates first
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
         if (d.getDay() === dayOfWeek) {
-            datesToBook.push(d.toISOString().split('T')[0]);
+            datesToBook.push(getLocalDateString(d));
         }
     }
 
@@ -988,7 +989,7 @@ export const getAdminDashboardData = async (): Promise<AdminVenueData[]> => {
             // Calculate Billing Period and Trial Status
             const now = new Date();
             let billingStart = new Date(now.getFullYear(), now.getMonth(), 1); // Default to calendar month
-            
+
             let isTrial = false;
             let trialEndDate: Date | null = null;
 
@@ -996,17 +997,17 @@ export const getAdminDashboardData = async (): Promise<AdminVenueData[]> => {
                 // Parse start date properly (YYYY-MM-DD)
                 const [sYear, sMonth, sDay] = sub.start_date.split('-').map(Number);
                 const subStartDate = new Date(sub.start_date);
-                
+
                 // Check Trial Status
                 const potentialTrialEnd = new Date(subStartDate);
                 potentialTrialEnd.setDate(potentialTrialEnd.getDate() + 30);
-                
+
                 // FIX: Only consider it a trial if the plan is NOT Premium.
                 // If user upgraded to Premium, they are no longer in "Trial" mode for commission purposes,
                 // unless the business logic explicitly gives 30 days free even for Premium.
                 // Based on Owner Logic: "TRIAL" status or "FREE" plan triggers trial behavior.
                 // "PREMIUM" status implies active billing.
-                
+
                 if (now < potentialTrialEnd && sub.plan_type !== 'PREMIUM') {
                     isTrial = true;
                     trialEndDate = potentialTrialEnd;
@@ -1016,7 +1017,7 @@ export const getAdminDashboardData = async (): Promise<AdminVenueData[]> => {
                 // Create a candidate date in the current month with the subscription start day
                 // FIX: Use split logic to avoid Timezone Offset issues
                 const candidateStart = new Date(now.getFullYear(), now.getMonth(), sDay);
-                
+
                 // If today is before the candidate start date, we are in the previous billing cycle
                 if (now < candidateStart) {
                     candidateStart.setMonth(candidateStart.getMonth() - 1);
@@ -1029,7 +1030,7 @@ export const getAdminDashboardData = async (): Promise<AdminVenueData[]> => {
                 const createdDate = new Date(cY, cM - 1, cD);
                 const sDay = createdDate.getDate();
                 const candidateStart = new Date(now.getFullYear(), now.getMonth(), sDay);
-                 if (now < candidateStart) {
+                if (now < candidateStart) {
                     candidateStart.setMonth(candidateStart.getMonth() - 1);
                 }
                 billingStart = candidateStart;
@@ -1051,7 +1052,7 @@ export const getAdminDashboardData = async (): Promise<AdminVenueData[]> => {
                 // FIX: Use manual parsing to avoid Timezone issues on booking date too
                 const [bY, bM, bD] = b.date.split('-').map(Number);
                 const bookingDate = new Date(bY, bM - 1, bD);
-                
+
                 return bookingDate >= billingStart && bookingDate < billingEnd;
             });
 
@@ -1060,35 +1061,35 @@ export const getAdminDashboardData = async (): Promise<AdminVenueData[]> => {
 
             // Calculate Platform Commission: 5.000 Gs per Hour Booked
             let totalCommission = 0;
-            
+
             // If in Trial, Commission is 0
             // FIX: If NO sub, assume NOT trial (so commission applies immediately if logic dictates)
             // But usually no sub means 'FREE' or just started.
             // Let's ensure commission calculates for non-trial scenarios.
-            
+
             if (!isTrial) {
                 // Determine commissionable start date for Premium users (handle mid-month upgrade)
                 let commissionableStart: Date | null = null;
-                
+
                 // FIX: If plan is BASIC or null, we might still want commission?
                 // The prompt implies "commission stays at 0", maybe because logic requires PREMIUM?
                 // Assuming Commission applies to ALL non-trial bookings unless specified otherwise.
                 // Re-reading logic: It seems it only enters the block if (sub && sub.plan_type === 'PREMIUM'...)
                 // If the user has NO subscription or is BASIC, commissionableStart remains null.
-                
+
                 // If logic requires commission for EVERYONE except trial:
                 // We should just calculate it.
-                
+
                 // However, the existing code had a check specifically for PREMIUM to determine start date.
                 // Let's simplify: If not trial, calculate commission for all bookings.
-                
+
                 if (sub && sub.plan_type === 'PREMIUM' && sub.status === 'ACTIVE') {
-                     // Match Owner Logic:
-                     // If Premium, commission starts from the moment of upgrade/activation (updated_at).
-                     // We do not wait for the original 30-day trial to expire if they upgraded early.
-                     commissionableStart = new Date(sub.updated_at);
+                    // Match Owner Logic:
+                    // If Premium, commission starts from the moment of upgrade/activation (updated_at).
+                    // We do not wait for the original 30-day trial to expire if they upgraded early.
+                    commissionableStart = new Date(sub.updated_at);
                 }
-                
+
                 // FIX: If user is on BASIC or no plan, commissionableStart is null, 
                 // meaning ALL bookings in this period are commissionable (default behavior).
 
@@ -1097,12 +1098,12 @@ export const getAdminDashboardData = async (): Promise<AdminVenueData[]> => {
                     let isCommissionable = true;
                     if (commissionableStart) {
                         const [bY, bM, bD] = b.date.split('-').map(Number);
-                         const [startH, startM] = (b.start_time || '00:00').split(':').map(Number);
-                         const bookingDateTime = new Date(bY, bM - 1, bD, startH, startM);
-                         
-                         if (bookingDateTime < commissionableStart) {
-                             isCommissionable = false;
-                         }
+                        const [startH, startM] = (b.start_time || '00:00').split(':').map(Number);
+                        const bookingDateTime = new Date(bY, bM - 1, bD, startH, startM);
+
+                        if (bookingDateTime < commissionableStart) {
+                            isCommissionable = false;
+                        }
                     }
 
                     if (isCommissionable) {
@@ -1113,10 +1114,10 @@ export const getAdminDashboardData = async (): Promise<AdminVenueData[]> => {
                             const [endH, endM] = b.end_time.split(':').map(Number);
                             duration = (endH + endM / 60) - (startH + startM / 60);
                         }
-                        
+
                         // Minimal safeguard
                         if (duration <= 0) duration = 1;
-    
+
                         totalCommission += duration * 5000;
                     }
                 });

@@ -11,6 +11,7 @@ import { CourtCard } from '@/components/CourtCard';
 import { Toast } from '@/components/Toast';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
 import { useVenues, useBookings, useDisabledSlots } from '@/hooks/useData';
+import { getLocalDateString } from '@/utils/dateUtils';
 
 export default function SearchPage() {
     const { user, isLoading: authLoading } = useAuth();
@@ -19,11 +20,11 @@ export default function SearchPage() {
     // SWR Hooks
     const { venues, isLoading: venuesLoading } = useVenues();
     const { bookings, isLoading: bookingsLoading, mutate: mutateBookings } = useBookings();
-    
+
     // State
     const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
-    const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
-    
+    const [selectedDate, setSelectedDate] = useState<string>(getLocalDateString());
+
     // Disabled slots depend on selected venue and date
     const { disabledSlots, isLoading: slotsLoading } = useDisabledSlots(selectedVenue?.id || null, selectedDate);
 
@@ -95,27 +96,27 @@ export default function SearchPage() {
     const handleSlotSelect = (venue: Venue, court: Court, time: string) => {
         // Validation: Past Time Check
         const now = new Date();
-        const currentDateStr = now.toISOString().split('T')[0];
-        
+        const currentDateStr = getLocalDateString(now);
+
         // If selected date is today
         if (selectedDate === currentDateStr) {
             const [slotHours, slotMinutes] = time.split(':').map(Number);
             const currentHours = now.getHours();
             const currentMinutes = now.getMinutes();
-            
+
             // Compare time
             if (slotHours < currentHours || (slotHours === currentHours && slotMinutes < currentMinutes)) {
-                setToast({ 
-                    message: 'No se puede reservar un horario que ya ha pasado.', 
-                    type: 'error' 
+                setToast({
+                    message: 'No se puede reservar un horario que ya ha pasado.',
+                    type: 'error'
                 });
                 return;
             }
         } else if (selectedDate < currentDateStr) {
             // Should be handled by date picker but extra safety
-             setToast({ 
-                message: 'No se puede reservar en fechas pasadas.', 
-                type: 'error' 
+            setToast({
+                message: 'No se puede reservar en fechas pasadas.',
+                type: 'error'
             });
             return;
         }
@@ -174,7 +175,7 @@ export default function SearchPage() {
                 status: 'ACTIVE',
                 payment_status: 'PENDING'
             }, false); // Don't notify yet
-            
+
             if (result.success && result.data) {
                 successCount++;
                 successfulBookings.push(result.data);
@@ -197,7 +198,7 @@ export default function SearchPage() {
             // Group by Court to be safe, though usually same court.
             // But if user selected multiple courts, we should probably group by court or send multiple notifications.
             // For simplicity and typical use case (single court multiple hours), let's group by court.
-            
+
             const bookingsByCourt: { [key: string]: any[] } = {};
             successfulBookings.forEach(b => {
                 if (!bookingsByCourt[b.court_id]) bookingsByCourt[b.court_id] = [];
@@ -276,8 +277,8 @@ export default function SearchPage() {
     };
 
     if (authLoading || (isLoadingData && venues.length === 0)) { // Show loading only if no data yet (SWR stale-while-revalidate)
-         return (
-             <div className="min-h-screen flex items-center justify-center">
+        return (
+            <div className="min-h-screen flex items-center justify-center">
                 <div className="flex flex-col items-center gap-4">
                     <div className="relative w-20 h-20">
                         <img src="/logo.png" alt="TuCancha" className="w-full h-full object-contain" />
@@ -316,14 +317,14 @@ export default function SearchPage() {
                                         </div>
                                     )}
                                     {userLocation && v.latitude && v.longitude && (() => {
-                                         const { calculateDistance } = require('@/lib/geocoding');
-                                         const distance = calculateDistance(userLocation.lat, userLocation.lng, v.latitude, v.longitude);
-                                         return (
-                                             <div className="absolute top-4 left-4 bg-indigo-600 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
-                                                 📍 {distance.toFixed(1)} km
-                                             </div>
-                                         );
-                                     })()}
+                                        const { calculateDistance } = require('@/lib/geocoding');
+                                        const distance = calculateDistance(userLocation.lat, userLocation.lng, v.latitude, v.longitude);
+                                        return (
+                                            <div className="absolute top-4 left-4 bg-indigo-600 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
+                                                📍 {distance.toFixed(1)} km
+                                            </div>
+                                        );
+                                    })()}
                                     <div className="absolute top-4 right-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-indigo-600 uppercase tracking-wider shadow-sm">
                                         Abierto: {v.opening_hours}
                                     </div>
@@ -372,7 +373,7 @@ export default function SearchPage() {
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
                         Volver al listado
                     </button>
-                    
+
                     <div className="bg-white rounded-3xl overflow-hidden shadow-xl border border-gray-100">
                         {/* Header Image */}
                         <div className="h-64 relative bg-gray-50">
@@ -388,7 +389,7 @@ export default function SearchPage() {
                             <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
                             <div className="absolute bottom-6 left-8 text-white">
                                 <h2 className="text-4xl font-extrabold">{selectedVenue.name}</h2>
-                                <a 
+                                <a
                                     href={`https://www.google.com/maps/search/?api=1&query=${selectedVenue.latitude && selectedVenue.longitude ? `${selectedVenue.latitude},${selectedVenue.longitude}` : encodeURIComponent(selectedVenue.address)}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
@@ -426,19 +427,19 @@ export default function SearchPage() {
                                 <div className="text-center md:text-left w-full md:w-auto">
                                     <div className="flex items-center justify-between md:justify-start gap-2 mb-1">
                                         <p className="text-xs font-bold text-gray-400 uppercase">Fecha Seleccionada</p>
-                                        <button 
-                                            onClick={() => setSelectedDate(new Date().toISOString().split('T')[0])}
+                                        <button
+                                            onClick={() => setSelectedDate(getLocalDateString())}
                                             className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded hover:bg-indigo-100 transition"
                                         >
                                             HOY
                                         </button>
                                     </div>
                                     <div className="flex items-center justify-center md:justify-start gap-4 bg-gray-50 md:bg-transparent p-2 md:p-0 rounded-xl">
-                                         <button
+                                        <button
                                             onClick={() => {
-                                                const d = new Date(selectedDate);
+                                                const d = new Date(selectedDate + 'T00:00:00');
                                                 d.setDate(d.getDate() - 1);
-                                                setSelectedDate(d.toISOString().split('T')[0]);
+                                                setSelectedDate(getLocalDateString(d));
                                             }}
                                             className="p-3 hover:bg-white md:hover:bg-gray-100 rounded-lg text-gray-500 transition shadow-sm md:shadow-none"
                                         >
@@ -452,11 +453,11 @@ export default function SearchPage() {
                                                 className="text-xl font-bold text-indigo-600 bg-transparent outline-none cursor-pointer text-center md:text-left w-full"
                                             />
                                         </div>
-                                         <button
+                                        <button
                                             onClick={() => {
-                                                const d = new Date(selectedDate);
+                                                const d = new Date(selectedDate + 'T00:00:00');
                                                 d.setDate(d.getDate() + 1);
-                                                setSelectedDate(d.toISOString().split('T')[0]);
+                                                setSelectedDate(getLocalDateString(d));
                                             }}
                                             className="p-3 hover:bg-white md:hover:bg-gray-100 rounded-lg text-gray-500 transition shadow-sm md:shadow-none"
                                         >
@@ -546,10 +547,10 @@ export default function SearchPage() {
                                                     s.court_id === court.id &&
                                                     s.time_slot === slot
                                                 );
-                                                
+
                                                 // Check if past time
                                                 const now = new Date();
-                                                const currentDateStr = now.toISOString().split('T')[0];
+                                                const currentDateStr = getLocalDateString(now);
                                                 let isPast = false;
                                                 if (selectedDate === currentDateStr) {
                                                     const [h, m] = slot.split(':').map(Number);
@@ -574,23 +575,23 @@ export default function SearchPage() {
                                                         // User asked for ALERT. So let's enable click if it's just 'isPast' to show the alert.
                                                         // Strategy: Only disable if booked or manually disabled by owner.
                                                         // If it's past, let handleSlotSelect trigger the alert.
-                                                        
+
                                                         // UPDATED STRATEGY: 
                                                         // If isPast, show as unavailable visually (gray) but clickable? 
                                                         // Or just normal unavailable?
                                                         // User request: "when they want to book... show alert".
                                                         // This implies they CLICK it.
-                                                        
+
                                                         onClick={() => handleSlotSelect(selectedVenue, court, slot)}
                                                         className={`
                                                         py-3 rounded-xl font-bold text-xs md:text-sm transition-all active:scale-95 touch-manipulation
                                                         ${isUnavailable && !isPast // If booked/disabled by owner -> blocked
                                                                 ? 'bg-gray-100 text-gray-300 cursor-not-allowed border border-gray-200 line-through'
                                                                 : isPast // If past -> look disabled but clickable for alert
-                                                                    ? 'bg-gray-50 text-gray-400 border border-gray-200' 
-                                                                : isSelected
-                                                                    ? 'bg-indigo-600 text-white shadow-lg scale-105 ring-2 ring-indigo-300'
-                                                                    : 'bg-white border-2 border-indigo-100 text-indigo-600 hover:border-indigo-600 hover:bg-indigo-50 shadow-sm'}
+                                                                    ? 'bg-gray-50 text-gray-400 border border-gray-200'
+                                                                    : isSelected
+                                                                        ? 'bg-indigo-600 text-white shadow-lg scale-105 ring-2 ring-indigo-300'
+                                                                        : 'bg-white border-2 border-indigo-100 text-indigo-600 hover:border-indigo-600 hover:bg-indigo-50 shadow-sm'}
                                                     `}
                                                     >
                                                         {slot} - {parseInt(slot.split(':')[0]) + 1}:00
@@ -628,7 +629,7 @@ export default function SearchPage() {
                     )}
                 </div>
             )}
-            
+
             <ConfirmationModal
                 isOpen={showConfirmModal}
                 title="Confirmar Reserva"
@@ -639,7 +640,7 @@ export default function SearchPage() {
                 cancelText="Cancelar"
             />
 
-             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </main>
     );
 }

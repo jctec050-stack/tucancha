@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/AuthContext';
 import { useRouter } from 'next/navigation';
+import { getLocalDateString } from '@/utils/dateUtils';
 import { Venue, Booking, DisabledSlot } from '@/types';
 import { toggleSlotAvailability } from '@/services/dataService';
 import { useOwnerVenues, useOwnerBookings, useDisabledSlots } from '@/hooks/useData';
@@ -15,7 +16,7 @@ export default function SchedulePage() {
     const router = useRouter();
     const { venues, isLoading: venuesLoading } = useOwnerVenues(user?.id);
     const { bookings, isLoading: bookingsLoading, mutate: mutateBookings } = useOwnerBookings(user?.id);
-    const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+    const [selectedDate, setSelectedDate] = useState<string>(getLocalDateString());
     const { disabledSlots, isLoading: slotsLoading, mutate: mutateSlots } = useDisabledSlots(venues[0]?.id || null, selectedDate);
     const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null);
     const [isRecurringModalOpen, setIsRecurringModalOpen] = useState(false);
@@ -50,7 +51,7 @@ export default function SchedulePage() {
 
     if (isLoading || venuesLoading || bookingsLoading || (venues.length > 0 && slotsLoading)) {
         return (
-             <div className="min-h-screen flex items-center justify-center">
+            <div className="min-h-screen flex items-center justify-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
             </div>
         );
@@ -58,10 +59,10 @@ export default function SchedulePage() {
 
     if (!user || user.role !== 'OWNER') return null;
 
-     if (venues.length === 0) {
+    if (venues.length === 0) {
         return (
             <div className="max-w-7xl mx-auto px-4 py-8">
-                 <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-12 text-center">
+                <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-12 text-center">
                     <h3 className="text-xl font-bold text-gray-900 mb-2">No tienes complejos</h3>
                     <button
                         onClick={() => router.push('/dashboard/venues')}
@@ -104,7 +105,7 @@ export default function SchedulePage() {
                 onSuccess={handleRecurringSuccess}
             />
 
-             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </main>
     );
 }

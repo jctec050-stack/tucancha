@@ -7,6 +7,7 @@ import { Toaster, toast } from 'react-hot-toast';
 import { supabase } from '@/lib/supabase';
 import { getOwnerVenues, getBookings } from '@/services/dataService';
 import { Venue, Subscription } from '@/types';
+import { getLocalDateString } from '@/utils/dateUtils';
 
 interface BillingSummary {
     cycleStart: Date;
@@ -55,7 +56,7 @@ export default function BillingPage() {
                     .order('created_at', { ascending: false })
                     .limit(1)
                     .maybeSingle();
-                
+
                 setSubscription(sub as Subscription);
 
                 // 2. Fetch Venues
@@ -70,41 +71,41 @@ export default function BillingPage() {
                 if (sub) {
                     const [sY, sM, sD] = sub.start_date.split('-').map(Number);
                     const subStart = new Date(sY, sM - 1, sD);
-                    
-                    if (sub.status === 'TRIAL' || (sub.plan_type === 'FREE' && sub.price_per_month === 0)) { 
-                         // Trial Logic
-                         const trialEndDate = new Date(subStart);
-                         trialEndDate.setDate(trialEndDate.getDate() + 30);
-                         
-                         if (now < trialEndDate) {
-                             const diffTime = Math.abs(trialEndDate.getTime() - now.getTime());
-                             trialDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                         } else {
-                             // TRIAL EXPIRED -> AUTO UPGRADE TO PRO
-                             // Check if we haven't already upgraded (double check logic)
-                             if (sub.plan_type === 'FREE' && sub.status !== 'CANCELLED') {
-                                 console.log('Trial expired. Auto-upgrading to PREMIUM...');
-                                 const { error: upgradeError } = await supabase
-                                     .from('subscriptions')
-                                     .update({ plan_type: 'PREMIUM', status: 'ACTIVE' })
-                                     .eq('id', sub.id);
 
-                                 if (!upgradeError) {
-                                     toast('Periodo de prueba finalizado. Tu plan ha sido actualizado a Premium.', {
-                                         icon: '🚀',
-                                         duration: 5000,
-                                         style: {
-                                             borderRadius: '10px',
-                                             background: '#333',
-                                             color: '#fff',
-                                         },
-                                     });
-                                     // Update local state immediately
-                                     sub.plan_type = 'PREMIUM';
-                                     sub.status = 'ACTIVE';
-                                     trialDays = 0; // No longer trial
-                                 }
-                             }
+                    if (sub.status === 'TRIAL' || (sub.plan_type === 'FREE' && sub.price_per_month === 0)) {
+                        // Trial Logic
+                        const trialEndDate = new Date(subStart);
+                        trialEndDate.setDate(trialEndDate.getDate() + 30);
+
+                        if (now < trialEndDate) {
+                            const diffTime = Math.abs(trialEndDate.getTime() - now.getTime());
+                            trialDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        } else {
+                            // TRIAL EXPIRED -> AUTO UPGRADE TO PRO
+                            // Check if we haven't already upgraded (double check logic)
+                            if (sub.plan_type === 'FREE' && sub.status !== 'CANCELLED') {
+                                console.log('Trial expired. Auto-upgrading to PREMIUM...');
+                                const { error: upgradeError } = await supabase
+                                    .from('subscriptions')
+                                    .update({ plan_type: 'PREMIUM', status: 'ACTIVE' })
+                                    .eq('id', sub.id);
+
+                                if (!upgradeError) {
+                                    toast('Periodo de prueba finalizado. Tu plan ha sido actualizado a Premium.', {
+                                        icon: '🚀',
+                                        duration: 5000,
+                                        style: {
+                                            borderRadius: '10px',
+                                            background: '#333',
+                                            color: '#fff',
+                                        },
+                                    });
+                                    // Update local state immediately
+                                    sub.plan_type = 'PREMIUM';
+                                    sub.status = 'ACTIVE';
+                                    trialDays = 0; // No longer trial
+                                }
+                            }
                         }
                     }
 
@@ -116,11 +117,11 @@ export default function BillingPage() {
                     }
                     billingStart = candidateStart;
                 } else if (ownerVenues.length > 0) {
-                     // Fallback to first venue creation
-                     const createdDate = new Date(ownerVenues[0].created_at);
-                     const sDay = createdDate.getDate();
-                     const candidateStart = new Date(now.getFullYear(), now.getMonth(), sDay);
-                     if (now < candidateStart) {
+                    // Fallback to first venue creation
+                    const createdDate = new Date(ownerVenues[0].created_at);
+                    const sDay = createdDate.getDate();
+                    const candidateStart = new Date(now.getFullYear(), now.getMonth(), sDay);
+                    if (now < candidateStart) {
                         candidateStart.setMonth(candidateStart.getMonth() - 1);
                     }
                     billingStart = candidateStart;
@@ -131,23 +132,23 @@ export default function BillingPage() {
 
                 // 4. Fetch Bookings & Calculate Commission
                 // Optimization: Filter at DB level using new getBookings options
-                const startStr = billingStart.toISOString().split('T')[0];
-                const endStr = billingEnd.toISOString().split('T')[0];
+                const startStr = getLocalDateString(billingStart);
+                const endStr = getLocalDateString(billingEnd);
 
                 const { data: rawBookings } = await getBookings({
                     ownerId: user.id,
                     startDate: startStr,
                     endDate: endStr
                 });
-                
+
                 // Filter in memory to catch derived status 'COMPLETED' (e.g. active bookings in past time)
                 const cycleBookings = rawBookings.filter(b => b.status === 'COMPLETED');
-                
+
                 // No need to filter manually anymore, except maybe double checking edge cases
                 // but for billing summary, DB filter is much more efficient.
 
                 let totalCommission = 0;
-                
+
                 // Calculate commissionable start date (Trial Logic Check)
                 // If plan is PREMIUM, check if bookings were during a potential trial period.
                 // Assumption: Trial starts at 'created_at'. Duration: 30 days.
@@ -163,14 +164,14 @@ export default function BillingPage() {
                     // In this case, commission should start from updated_at (Reactivation time).
                     // BUT if they are still within original trial window, trial continues? 
                     // No, usually cancellation forfeits trial. Reactivation implies immediate PRO.
-                    
+
                     const updatedDate = new Date(sub.updated_at);
                     const [cY, cM, cD] = sub.created_at.split('T')[0].split('-').map(Number);
                     const subscriptionCreated = new Date(cY, cM - 1, cD); // Midnight local
-                    
+
                     const originalTrialEnd = new Date(subscriptionCreated);
                     originalTrialEnd.setDate(originalTrialEnd.getDate() + 30);
-                    
+
                     // Check if current updated_at suggests a recent reactivation (e.g. status change)
                     // If they are PREMIUM now, and updated_at is recent, maybe we should use updated_at as the "Start of Pro".
                     // However, we don't have a specific "reactivated_at" field.
@@ -183,34 +184,34 @@ export default function BillingPage() {
                     //     - 11 AM: Cancel.
                     //     - 14 PM: Reactivate (Pro).
                     //     - 18 PM: Booking. -> Should charge.
-                    
+
                     // Problem: We only store ONE subscription row per user usually in this logic (maybeSingle).
                     // If we update the SAME row, `updated_at` changes to 14:00 PM.
                     // So we can say: If Plan is PREMIUM, commission starts from `updated_at` if it was a reactivation?
                     // Or simply: If Plan is PREMIUM, ALL bookings from TODAY onwards are commissionable?
                     // But wait, 10 AM booking was Free.
-                    
+
                     // Precise Solution:
                     // If Plan is PREMIUM, commissionable start date is effectively when they became Premium.
                     // Since we overwrite the row, we lose history of "when exactly did they become premium" 
                     // unless we trust `updated_at` as the "Start of current status".
                     // Let's assume `updated_at` is the timestamp of the last status change (Reactivation).
-                    
+
                     if (sub.plan_type === 'PREMIUM' && sub.status === 'ACTIVE') {
-                         // If we assume updated_at is the moment they upgraded/reactivated.
-                         // Then any booking BEFORE updated_at is Free (or whatever previous state was).
-                         // Any booking AFTER updated_at is Commissionable.
-                         // Exception: If they upgraded from Free Trial automatically, updated_at might be the auto-upgrade time.
-                         
-                         // So, `commissionableStart` = `updated_at`.
-                         // `trialEndDate` logic is for pure Free Trial users.
-                         // For Premium users, we check `bookingDate >= commissionableStart`.
-                         
-                         // Let's use `updated_at` as the boundary for Premium users.
-                         // But `updated_at` includes time! Perfect.
-                         trialEndDate = new Date(sub.updated_at); 
-                         // Logic flip: Instead of "End of Free", this is "Start of Paid".
-                         // So isCommissionable = bookingDate >= trialEndDate.
+                        // If we assume updated_at is the moment they upgraded/reactivated.
+                        // Then any booking BEFORE updated_at is Free (or whatever previous state was).
+                        // Any booking AFTER updated_at is Commissionable.
+                        // Exception: If they upgraded from Free Trial automatically, updated_at might be the auto-upgrade time.
+
+                        // So, `commissionableStart` = `updated_at`.
+                        // `trialEndDate` logic is for pure Free Trial users.
+                        // For Premium users, we check `bookingDate >= commissionableStart`.
+
+                        // Let's use `updated_at` as the boundary for Premium users.
+                        // But `updated_at` includes time! Perfect.
+                        trialEndDate = new Date(sub.updated_at);
+                        // Logic flip: Instead of "End of Free", this is "Start of Paid".
+                        // So isCommissionable = bookingDate >= trialEndDate.
                     } else {
                         // Standard Trial Logic
                         trialEndDate = originalTrialEnd;
@@ -223,9 +224,9 @@ export default function BillingPage() {
                     const [bY, bM, bD] = b.date.split('-').map(Number);
                     const [startH, startM] = b.start_time.split(':').map(Number);
                     const bookingDateTime = new Date(bY, bM - 1, bD, startH, startM);
-                    
+
                     let isCommissionable = true;
-                    
+
                     if (sub?.plan_type === 'PREMIUM') {
                         // If Premium, we check if booking is AFTER the "Start of Paid" (stored in trialEndDate variable for reuse)
                         // If booking is BEFORE updated_at (Reactivation/Upgrade time), it's treated as previous plan (Free/Cancelled).
@@ -310,7 +311,7 @@ export default function BillingPage() {
                     <div>
                         <p className="text-sm text-gray-500 font-medium mb-1">Estado de la cuenta</p>
                         <p className="text-xl font-bold text-gray-900">
-                            {billingSummary.trialDaysLeft && billingSummary.trialDaysLeft > 0 
+                            {billingSummary.trialDaysLeft && billingSummary.trialDaysLeft > 0
                                 ? `Prueba Gratis (${billingSummary.trialDaysLeft} días restantes)`
                                 : 'Plan Profesional'
                             }
@@ -319,7 +320,7 @@ export default function BillingPage() {
                             {subscription?.status === 'ACTIVE' ? 'Suscripción activa' : 'Estado desconocido'}
                         </p>
                     </div>
-                    
+
                     <div>
                         <p className="text-sm text-gray-500 font-medium mb-1">Ciclo de Facturación</p>
                         <p className="text-xl font-bold text-gray-900">
@@ -348,7 +349,7 @@ export default function BillingPage() {
                         <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
                         Detalle del Mes
                     </h3>
-                    
+
                     <div className="space-y-4">
                         <div className="flex justify-between items-center py-3 border-b border-gray-50">
                             <div>
@@ -365,7 +366,7 @@ export default function BillingPage() {
                             <p className="text-sm font-bold text-gray-900">{billingSummary.totalBookings}</p>
                         </div>
                         {billingSummary.trialDaysLeft && billingSummary.trialDaysLeft > 0 && (
-                             <div className="flex justify-between items-center py-3 border-b border-gray-50 bg-green-50 px-2 rounded-lg -mx-2">
+                            <div className="flex justify-between items-center py-3 border-b border-gray-50 bg-green-50 px-2 rounded-lg -mx-2">
                                 <div>
                                     <p className="text-sm font-bold text-green-700">Descuento Prueba Gratis</p>
                                 </div>
@@ -376,9 +377,9 @@ export default function BillingPage() {
                             <p className="text-base font-bold text-gray-900">Total Estimado</p>
                             <p className="text-xl font-extrabold text-indigo-600">Gs. {billingSummary.totalCommission.toLocaleString('es-PY')}</p>
                         </div>
-                        
+
                         {(!billingSummary.trialDaysLeft || billingSummary.trialDaysLeft <= 0) && (
-                            <button 
+                            <button
                                 onClick={() => setShowBankInfo(true)}
                                 className="w-full mt-4 py-3 bg-indigo-600 text-white rounded-xl font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition flex items-center justify-center gap-2"
                             >
@@ -391,13 +392,13 @@ export default function BillingPage() {
 
                 {/* Payment History (Mock for now, could be real if payments table populated) */}
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 opacity-70 relative">
-                     {/* Overlay for "Coming Soon" or empty state if no history */}
-                     {/* For now, let's just show it as empty or static example */}
+                    {/* Overlay for "Coming Soon" or empty state if no history */}
+                    {/* For now, let's just show it as empty or static example */}
                     <h3 className="font-bold text-gray-900 mb-6 flex items-center gap-2">
                         <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                         Historial de Pagos
                     </h3>
-                    
+
                     <div className="text-center py-8">
                         <div className="bg-gray-50 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
                             <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
@@ -407,18 +408,18 @@ export default function BillingPage() {
                     </div>
                 </div>
             </div>
-            
+
             {/* Bank Info Modal */}
             {showBankInfo && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
                     <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl relative animate-in zoom-in-95 duration-200">
-                        <button 
+                        <button
                             onClick={() => setShowBankInfo(false)}
                             className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
                         >
                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
                         </button>
-                        
+
                         <div className="text-center mb-6">
                             <div className="bg-indigo-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                                 <svg className="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
@@ -452,14 +453,14 @@ export default function BillingPage() {
 
                         <div className="mt-6 text-center">
                             <p className="text-sm font-medium text-gray-700 mb-3">Enviar comprobante y datos para factura</p>
-                            
-                            <a 
-                                href="https://wa.me/595976392214?text=Hola,%20adjunto%20comprobante%20de%20pago%20de%20TuCancha" 
-                                target="_blank" 
+
+                            <a
+                                href="https://wa.me/595976392214?text=Hola,%20adjunto%20comprobante%20de%20pago%20de%20TuCancha"
+                                target="_blank"
                                 rel="noopener noreferrer"
                                 className="inline-flex items-center gap-2 bg-green-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-green-600 transition shadow-lg shadow-green-100 mb-4 w-full justify-center"
                             >
-                                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.017-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
+                                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.017-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z" /></svg>
                                 Enviar comprobante y datos para Factura
                             </a>
 
@@ -475,11 +476,11 @@ export default function BillingPage() {
             )}
 
             {/* Plans Section Removed as per logic simplification */}
-            
+
             <div className="mt-12 pt-8 border-t border-gray-200">
                 <h3 className="text-lg font-bold text-red-600 mb-2">Zona de Peligro</h3>
                 <p className="text-gray-500 text-sm mb-4">Si cancelas tu suscripción, perderás el acceso a la gestión de reservas de inmediato.</p>
-                <button 
+                <button
                     onClick={() => setShowCancelModal(true)}
                     className="px-4 py-2 border border-red-200 text-red-600 rounded-lg text-sm font-bold hover:bg-red-50 transition"
                 >
@@ -499,7 +500,7 @@ export default function BillingPage() {
                             <p className="text-gray-500 text-sm mb-6">
                                 Perderás el acceso inmediato y si decides volver, ya no tendrás días de prueba gratuitos. ¿Estás seguro?
                             </p>
-                            
+
                             <div className="flex gap-3">
                                 <button
                                     onClick={() => setShowCancelModal(false)}
@@ -528,20 +529,20 @@ export default function BillingPage() {
                                             // Or simpler: Just set status to CANCELLED. The billing page already calculates debt based on bookings.
                                             // BUT, if they come back later, the bookings might be "old". 
                                             // So we need to ensure the system knows "this cancellation has pending debt".
-                                            
+
                                             // Step 1: Update Subscription
                                             const { error } = await supabase
                                                 .from('subscriptions')
-                                                .update({ 
+                                                .update({
                                                     status: 'CANCELLED',
                                                     // Optional: Store debt snapshot if we had a JSONB field, but for now 
                                                     // we'll rely on the existing logic: CANCELLED status + bookings in that period = Debt.
                                                     // To make it "expired balance", we just need to ensure the Re-activation logic checks for this.
                                                 })
                                                 .eq('id', subscription?.id);
-                                            
+
                                             if (error) throw error;
-                                            
+
                                             // Force update the local state to reflect cancellation immediately
                                             setSubscription(prev => prev ? ({ ...prev, status: 'CANCELLED' }) : null);
                                             setBillingSummary(prev => prev ? ({ ...prev, subscriptionStatus: 'CANCELLED', trialDaysLeft: 0 }) : null);
@@ -566,7 +567,7 @@ export default function BillingPage() {
                     </div>
                 </div>
             )}
-            
+
             <Toaster position="top-right" />
         </main>
     );

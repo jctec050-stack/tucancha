@@ -4,6 +4,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Booking, Venue, DisabledSlot } from '../types';
 import { usePagination } from '@/hooks/usePagination';
+import { getLocalDateString, addDays } from '@/utils/dateUtils';
 
 
 interface ScheduleItem {
@@ -43,9 +44,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ bookings, disabl
 
   // Memoize previous day stats
   const { revenueGrowth } = useMemo(() => {
-    const prevDateObj = new Date(selectedDate);
-    prevDateObj.setDate(prevDateObj.getDate() - 1);
-    const prevDate = prevDateObj.toISOString().split('T')[0];
+    const prevDate = addDays(selectedDate, -1);
 
     const prevDayBookings = bookings.filter(b => b.date === prevDate && (b.status === 'ACTIVE' || b.status === 'COMPLETED'));
     const prevDayRevenue = prevDayBookings.reduce((sum, b) => sum + b.price, 0);
@@ -58,9 +57,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ bookings, disabl
   const chartData = useMemo(() => {
     const data = [];
     for (let i = 6; i >= 0; i--) {
-      const d = new Date(selectedDate);
-      d.setDate(d.getDate() - i);
-      const dStr = d.toISOString().split('T')[0];
+      const dStr = addDays(selectedDate, -i);
 
       const dayRevenue = bookings
         .filter(b => b.date === dStr && (b.status === 'ACTIVE' || b.status === 'COMPLETED'))
@@ -268,9 +265,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ bookings, disabl
         <div className="flex items-center gap-2">
           <button
             onClick={() => {
-              const d = new Date(selectedDate);
-              d.setDate(d.getDate() - 1);
-              onDateChange(d.toISOString().split('T')[0]);
+              onDateChange(addDays(selectedDate, -1));
             }}
             className="p-2 hover:bg-gray-100 rounded-full transition text-gray-500"
           >
@@ -284,9 +279,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ bookings, disabl
           />
           <button
             onClick={() => {
-              const d = new Date(selectedDate);
-              d.setDate(d.getDate() + 1);
-              onDateChange(d.toISOString().split('T')[0]);
+              onDateChange(addDays(selectedDate, 1));
             }}
             className="p-2 hover:bg-gray-100 rounded-full transition text-gray-500"
           >
@@ -485,8 +478,8 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ bookings, disabl
                           </div>
                           <div className="text-right">
                             <span className={`text-xs font-bold px-2 py-1 rounded-full ${booking.status === 'ACTIVE' ? 'bg-green-100 text-green-700' :
-                                booking.status === 'COMPLETED' ? 'bg-blue-100 text-blue-700' :
-                                  booking.status === 'CANCELLED' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'
+                              booking.status === 'COMPLETED' ? 'bg-blue-100 text-blue-700' :
+                                booking.status === 'CANCELLED' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'
                               }`}>
                               {booking.status === 'CANCELLED' ? 'Cancelado' :
                                 booking.status === 'ACTIVE' ? 'Activo' :
@@ -521,8 +514,8 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ bookings, disabl
                           onClick={pagination.prevPage}
                           disabled={!pagination.hasPrevPage}
                           className={`px-2 py-1 rounded ${pagination.hasPrevPage
-                              ? 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'
-                              : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                            ? 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'
+                            : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                             }`}
                         >
                           ←
@@ -531,8 +524,8 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ bookings, disabl
                           onClick={pagination.nextPage}
                           disabled={!pagination.hasNextPage}
                           className={`px-2 py-1 rounded ${pagination.hasNextPage
-                              ? 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'
-                              : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                            ? 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'
+                            : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                             }`}
                         >
                           →

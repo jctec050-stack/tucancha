@@ -3,6 +3,7 @@ import { Court, Booking } from '@/types';
 import { createRecurringBookings } from '@/services/dataService';
 import { TIME_SLOTS } from '@/constants';
 import { supabase } from '@/lib/supabase';
+import { getLocalDateString, addDays } from '@/utils/dateUtils';
 
 interface RecurringBookingModalProps {
     isOpen: boolean;
@@ -27,11 +28,11 @@ export const RecurringBookingModal: React.FC<RecurringBookingModalProps> = ({
     const [dayOfWeek, setDayOfWeek] = useState<number>(new Date().getDay());
     const [startTime, setStartTime] = useState('18:00');
     const [endTime, setEndTime] = useState('19:00'); // Default 1 hour
-    const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
+    const [startDate, setStartDate] = useState(getLocalDateString());
     const [endDate, setEndDate] = useState(() => {
         const d = new Date();
         d.setMonth(d.getMonth() + 1);
-        return d.toISOString().split('T')[0];
+        return getLocalDateString(d);
     });
     const [price, setPrice] = useState<number>(courts[0]?.price_per_hour || 0);
     const [error, setError] = useState<string | null>(null);
@@ -72,7 +73,7 @@ export const RecurringBookingModal: React.FC<RecurringBookingModalProps> = ({
         }
         return count;
     };
-    
+
     const turnCount = calculateTurnCount();
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -93,7 +94,7 @@ export const RecurringBookingModal: React.FC<RecurringBookingModalProps> = ({
             const bookingTemplate = {
                 venue_id: venueId,
                 court_id: selectedCourtId,
-                player_id: ownerId, 
+                player_id: ownerId,
                 player_name: playerName,
                 player_phone: playerPhone,
                 start_time: startTime,
@@ -264,7 +265,7 @@ export const RecurringBookingModal: React.FC<RecurringBookingModalProps> = ({
                             placeholder="0"
                         />
                         <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
-                            <span className="font-medium text-indigo-600">{turnCount} fechas</span> 
+                            <span className="font-medium text-indigo-600">{turnCount} fechas</span>
                             <span>x Gs. {formatNumber(Math.floor(price / (turnCount || 1)))} c/u</span>
                         </p>
                     </div>
