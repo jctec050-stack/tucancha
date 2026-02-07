@@ -34,6 +34,12 @@ interface OwnerDashboardProps {
 export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ bookings, disabledSlots, venue, selectedDate, onDateChange }) => {
   const [showActiveBookingsModal, setShowActiveBookingsModal] = useState(false);
 
+  // Estado independiente para el mes del historial
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const today = new Date();
+    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+  });
+
   // Memoize daily stats
   const { dailyBookings, dailyActiveBookings, dailyRevenue } = useMemo(() => {
     const dailyBookings = bookings.filter(b => b.date === selectedDate);
@@ -70,7 +76,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ bookings, disabl
 
   // Memoize Monthly History and Revenue
   const { monthlyHistory, monthlyRevenue } = useMemo(() => {
-    const [year, month] = selectedDate.split('-').map(Number);
+    const [year, month] = selectedMonth.split('-').map(Number);
 
     // Filter bookings for the selected month and year
     const monthlyBookings = bookings.filter(b => {
@@ -132,7 +138,29 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ bookings, disabl
     });
 
     return { monthlyHistory: finalHistory, monthlyRevenue: totalRevenue };
-  }, [bookings, selectedDate]);
+  }, [bookings, selectedMonth]);
+
+  // Funciones de navegación mensual
+  const goToPreviousMonth = () => {
+    const [year, month] = selectedMonth.split('-').map(Number);
+    const date = new Date(year, month - 2); // month - 2 porque necesitamos ir al mes anterior
+    const newMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    setSelectedMonth(newMonth);
+  };
+
+  const goToNextMonth = () => {
+    const [year, month] = selectedMonth.split('-').map(Number);
+    const date = new Date(year, month); // month es 1-indexed en el string, así que esto nos da el siguiente mes
+    const newMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    setSelectedMonth(newMonth);
+  };
+
+  const goToCurrentMonth = () => {
+    const today = new Date();
+    const newMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+    setSelectedMonth(newMonth);
+  };
+
 
   // Memoize Schedule Items (Grouped)
   const scheduleItems = useMemo(() => {
@@ -441,9 +469,38 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ bookings, disabl
 
         <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col h-[380px]">
           <div className="flex items-center justify-between mb-4">
-            <div>
-              <h5 className="text-lg font-bold text-gray-800">Historial del Mes</h5>
-              <p className="text-xs text-gray-500 capitalize">{new Date(selectedDate).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}</p>
+            <div className="flex-1">
+              <h5 className="text-lg font-bold text-gray-800 mb-2">Historial del Mes</h5>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={goToPreviousMonth}
+                  className="p-1 hover:bg-gray-100 rounded transition text-gray-600 hover:text-gray-900"
+                  title="Mes anterior"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
+                </button>
+                <p className="text-sm text-gray-700 font-medium capitalize min-w-[120px] text-center">
+                  {(() => {
+                    const [year, month] = selectedMonth.split('-').map(Number);
+                    const date = new Date(year, month - 1);
+                    return date.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+                  })()}
+                </p>
+                <button
+                  onClick={goToNextMonth}
+                  className="p-1 hover:bg-gray-100 rounded transition text-gray-600 hover:text-gray-900"
+                  title="Mes siguiente"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
+                </button>
+                <button
+                  onClick={goToCurrentMonth}
+                  className="ml-2 px-2 py-1 text-xs bg-indigo-50 text-indigo-600 rounded hover:bg-indigo-100 transition font-medium"
+                  title="Ir al mes actual"
+                >
+                  Hoy
+                </button>
+              </div>
             </div>
             <div className="text-right">
               <p className="text-xs text-gray-500 font-medium">Total Ingresos</p>
