@@ -3,11 +3,25 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/AuthContext';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { Venue, Court } from '@/types';
 import { createVenueWithCourts, updateVenue, addCourts, deleteCourt } from '@/services/dataService';
 import { useOwnerVenues } from '@/hooks/useData';
 import { ManageVenues } from '@/components/ManageVenues';
-import { AddCourtModal } from '@/components/AddCourtModal';
+
+// ✅ CODE SPLITTING: Cargar modal pesado solo cuando se necesite
+const AddCourtModal = dynamic(
+    () => import('@/components/AddCourtModal').then(mod => ({ default: mod.AddCourtModal })),
+    {
+        loading: () => (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
+            </div>
+        ),
+        ssr: false, // Modal no necesita SSR
+    }
+);
+
 import { Toast } from '@/components/Toast';
 
 export default function VenuesPage() {
@@ -114,7 +128,7 @@ export default function VenuesPage() {
 
     if (isLoading || isLoadingVenues) {
         return (
-             <div className="min-h-screen flex items-center justify-center">
+            <div className="min-h-screen flex items-center justify-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
             </div>
         );

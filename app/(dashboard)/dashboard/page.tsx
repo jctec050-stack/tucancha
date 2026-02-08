@@ -3,11 +3,25 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/AuthContext';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { getLocalDateString } from '@/utils/dateUtils';
 import { Venue, Booking, DisabledSlot } from '@/types';
 import { getDisabledSlots, getOwnerVenues } from '@/services/dataService'; // FIX: Imported getOwnerVenues
 import { useBookingsByDate, useMonthlyBookings } from '@/hooks/useData';
-import { OwnerDashboard } from '@/components/OwnerDashboard';
+
+// ✅ CODE SPLITTING: Cargar OwnerDashboard solo cuando sea necesario
+const OwnerDashboard = dynamic(
+    () => import('@/components/OwnerDashboard').then(mod => ({ default: mod.OwnerDashboard })),
+    {
+        loading: () => (
+            <div className="flex items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+            </div>
+        ),
+        ssr: false, // Dashboard no necesita SSR
+    }
+);
+
 import { TermsModal } from '@/components/TermsModal';
 import { Toaster, toast } from 'react-hot-toast';
 import { ReactivationModal } from '@/components/ReactivationModal';
