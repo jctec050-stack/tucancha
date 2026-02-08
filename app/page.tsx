@@ -219,7 +219,7 @@ export default function LandingPage() {
                                         <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mb-4">
                                             <div className="h-32 bg-gray-200 rounded-xl mb-4 relative overflow-hidden">
                                                 <img
-                                                    src="https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=400&h=300&fit=crop&q=80"
+                                                    src="https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?w=400&h=300&fit=crop&q=80"
                                                     alt="Padel Center Asunción"
                                                     className="w-full h-full object-cover"
                                                 />
@@ -229,7 +229,7 @@ export default function LandingPage() {
                                                 <h4 className="font-bold text-gray-900">Padel Center Asunción</h4>
                                                 <span className="text-indigo-600 font-bold text-sm">4.8 ★</span>
                                             </div>
-                                            <p className="text-xs text-gray-500 mb-4">Av. España 1234</p>
+                                            <div className="text-xs text-gray-500 mb-4">Av. España 1234</div>
                                             <div className="flex gap-2">
                                                 <div className="flex-1 bg-indigo-50 py-2 rounded-lg text-center text-indigo-600 text-xs font-bold">18:00</div>
                                                 <div className="flex-1 bg-indigo-50 py-2 rounded-lg text-center text-indigo-600 text-xs font-bold">19:00</div>
@@ -241,7 +241,7 @@ export default function LandingPage() {
                                         <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
                                             <div className="h-32 bg-gray-200 rounded-xl mb-4 relative overflow-hidden">
                                                 <img
-                                                    src="https://images.unsplash.com/photo-1622279457486-62dcc4a431d6?w=400&h=300&fit=crop&q=80"
+                                                    src="https://images.unsplash.com/photo-1617883861744-1cbfad09856d?w=400&h=300&fit=crop&q=80"
                                                     alt="World Padel Tour"
                                                     className="w-full h-full object-cover"
                                                 />
