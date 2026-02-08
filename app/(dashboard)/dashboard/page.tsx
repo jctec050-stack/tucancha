@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { getLocalDateString } from '@/utils/dateUtils';
 import { Venue, Booking, DisabledSlot } from '@/types';
 import { getDisabledSlots, getOwnerVenues } from '@/services/dataService'; // FIX: Imported getOwnerVenues
-import { useBookingsByDate } from '@/hooks/useData';
+import { useBookingsByDate, useMonthlyBookings } from '@/hooks/useData';
 import { OwnerDashboard } from '@/components/OwnerDashboard';
 import { TermsModal } from '@/components/TermsModal';
 import { Toaster, toast } from 'react-hot-toast';
@@ -23,7 +23,14 @@ export default function DashboardPage() {
     const [venuesLoading, setVenuesLoading] = useState(true);
     const [selectedDate, setSelectedDate] = useState<string>(getLocalDateString());
 
+    // Estado para el mes seleccionado en el historial
+    const [selectedMonth, setSelectedMonth] = useState<string>(() => {
+        const today = new Date();
+        return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+    });
+
     const { bookings, isLoading: bookingsLoading } = useBookingsByDate(user?.id, selectedDate);
+    const { bookings: monthlyBookings, isLoading: monthlyLoading } = useMonthlyBookings(user?.id, selectedMonth);
     const [disabledSlots, setDisabledSlots] = useState<DisabledSlot[]>([]);
     const [loadingSlots, setLoadingSlots] = useState(false);
 
@@ -340,7 +347,7 @@ export default function DashboardPage() {
         router.push('/');
     };
 
-    if (isLoading || venuesLoading || bookingsLoading || checkingTerms) {
+    if (isLoading || venuesLoading || bookingsLoading || monthlyLoading || checkingTerms) {
         return (
             <div className="min-h-screen flex items-center justify-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
@@ -444,10 +451,13 @@ export default function DashboardPage() {
             ) : (
                 <OwnerDashboard
                     bookings={bookings}
+                    monthlyBookings={monthlyBookings}
                     disabledSlots={disabledSlots}
                     venue={venues[0]} // Currently showing first venue, could add selector
                     selectedDate={selectedDate}
                     onDateChange={setSelectedDate}
+                    selectedMonth={selectedMonth}
+                    onMonthChange={setSelectedMonth}
                 />
             )}
         </main>

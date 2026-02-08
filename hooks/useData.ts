@@ -14,8 +14,8 @@ const disabledSlotsFetcher = (key: string[]) => {
 
 export function useVenues() {
     const { data, error, isLoading, mutate } = useSWR<Venue[]>('venues', venuesFetcher, {
-        revalidateOnFocus: false, 
-        dedupingInterval: 60000, 
+        revalidateOnFocus: false,
+        dedupingInterval: 60000,
     });
 
     return {
@@ -125,6 +125,33 @@ export function useBookingsByDate(ownerId: string | undefined, date: string) {
         mutate
     };
 }
+
+export function useMonthlyBookings(ownerId: string | undefined, selectedMonth: string) {
+    // selectedMonth format: "YYYY-MM"
+    const [year, month] = selectedMonth.split('-').map(Number);
+
+    // Calculate first and last day of the month
+    const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+
+    // Calculate last day of the month
+    const lastDay = new Date(year, month, 0).getDate();
+    const endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+
+    const { bookings, isLoading, isError, mutate } = useBookings({
+        ownerId,
+        startDate,
+        endDate,
+        limit: 5000 // High limit to get all bookings for the month
+    });
+
+    return {
+        bookings,
+        isLoading,
+        isError,
+        mutate
+    };
+}
+
 
 export function useDisabledSlots(venueId: string | null, date: string | null) {
     const shouldFetch = venueId && date;

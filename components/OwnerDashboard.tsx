@@ -25,20 +25,26 @@ interface ScheduleItem {
 
 interface OwnerDashboardProps {
   bookings: Booking[];
+  monthlyBookings: Booking[];
   disabledSlots?: DisabledSlot[];
   venue: Venue;
   selectedDate: string;
   onDateChange: (date: string) => void;
+  selectedMonth: string;
+  onMonthChange: (month: string) => void;
 }
 
-export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ bookings, disabledSlots, venue, selectedDate, onDateChange }) => {
+export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
+  bookings,
+  monthlyBookings,
+  disabledSlots,
+  venue,
+  selectedDate,
+  onDateChange,
+  selectedMonth,
+  onMonthChange
+}) => {
   const [showActiveBookingsModal, setShowActiveBookingsModal] = useState(false);
-
-  // Estado independiente para el mes del historial
-  const [selectedMonth, setSelectedMonth] = useState(() => {
-    const today = new Date();
-    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
-  });
 
   // Memoize daily stats
   const { dailyBookings, dailyActiveBookings, dailyRevenue } = useMemo(() => {
@@ -76,13 +82,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ bookings, disabl
 
   // Memoize Monthly History and Revenue
   const { monthlyHistory, monthlyRevenue } = useMemo(() => {
-    const [year, month] = selectedMonth.split('-').map(Number);
-
-    // Filter bookings for the selected month and year
-    const monthlyBookings = bookings.filter(b => {
-      const [bYear, bMonth] = b.date.split('-').map(Number);
-      return bYear === year && bMonth === month;
-    });
+    // Use monthlyBookings prop directly (already filtered by month in the parent component)
 
     // Calculate total revenue for the month (only ACTIVE or COMPLETED)
     const totalRevenue = monthlyBookings
@@ -138,27 +138,27 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ bookings, disabl
     });
 
     return { monthlyHistory: finalHistory, monthlyRevenue: totalRevenue };
-  }, [bookings, selectedMonth]);
+  }, [monthlyBookings]);
 
   // Funciones de navegación mensual
   const goToPreviousMonth = () => {
     const [year, month] = selectedMonth.split('-').map(Number);
     const date = new Date(year, month - 2); // month - 2 porque necesitamos ir al mes anterior
     const newMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-    setSelectedMonth(newMonth);
+    onMonthChange(newMonth);
   };
 
   const goToNextMonth = () => {
     const [year, month] = selectedMonth.split('-').map(Number);
     const date = new Date(year, month); // month es 1-indexed en el string, así que esto nos da el siguiente mes
     const newMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-    setSelectedMonth(newMonth);
+    onMonthChange(newMonth);
   };
 
   const goToCurrentMonth = () => {
     const today = new Date();
     const newMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
-    setSelectedMonth(newMonth);
+    onMonthChange(newMonth);
   };
 
 
