@@ -219,7 +219,7 @@ export default function LandingPage() {
                                         <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mb-4">
                                             <div className="h-32 bg-gray-200 rounded-xl mb-4 relative overflow-hidden">
                                                 <img
-                                                    src="https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?w=400&h=300&fit=crop&q=80"
+                                                    src="/padel1.jpg"
                                                     alt="Padel Center Asunción"
                                                     className="w-full h-full object-cover"
                                                 />
@@ -241,7 +241,7 @@ export default function LandingPage() {
                                         <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
                                             <div className="h-32 bg-gray-200 rounded-xl mb-4 relative overflow-hidden">
                                                 <img
-                                                    src="https://images.unsplash.com/photo-1617883861744-1cbfad09856d?w=400&h=300&fit=crop&q=80"
+                                                    src="/padel2.jpg"
                                                     alt="World Padel Tour"
                                                     className="w-full h-full object-cover"
                                                 />
