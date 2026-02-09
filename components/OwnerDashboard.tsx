@@ -258,15 +258,68 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
       { header: 'Estado', dataKey: 'status' }
     ];
 
-    // Prepare data
-    const tableData = dailyActiveBookings.map(booking => ({
-      time: `${booking.start_time.substring(0, 5)} - ${booking.end_time ? booking.end_time.substring(0, 5) : '??:??'}`,
-      court: booking.court_name || 'Cancha',
-      player: booking.player_name || 'Cliente',
-      phone: booking.player_phone || '-',
-      price: booking.price.toLocaleString('es-PY'),
-      status: booking.status
-    }));
+    // Group bookings by player and court
+    const bookingsByPlayerCourt = new Map<string, Booking[]>();
+
+    dailyActiveBookings.forEach(booking => {
+      const key = `${booking.player_id || booking.player_name}-${booking.court_id}`;
+      if (!bookingsByPlayerCourt.has(key)) {
+        bookingsByPlayerCourt.set(key, []);
+      }
+      bookingsByPlayerCourt.get(key)!.push(booking);
+    });
+
+    // Prepare grouped data
+    const tableData: any[] = [];
+
+    bookingsByPlayerCourt.forEach((bookings) => {
+      // Sort by time
+      const sorted = [...bookings].sort((a, b) => a.start_time.localeCompare(b.start_time));
+
+      // Check if consecutive hours
+      const isConsecutive = sorted.length > 1 && sorted.every((booking, index) => {
+        if (index === 0) return true;
+        const prevEnd = sorted[index - 1].end_time?.substring(0, 5);
+        const currentStart = booking.start_time.substring(0, 5);
+        return prevEnd === currentStart;
+      });
+
+      if (isConsecutive && sorted.length > 1) {
+        // Group consecutive bookings
+        const firstStart = sorted[0].start_time.substring(0, 5);
+        const lastEnd = sorted[sorted.length - 1].end_time?.substring(0, 5) || '??:??';
+        const totalPrice = sorted.reduce((sum, b) => sum + b.price, 0);
+        const hoursCount = sorted.length;
+
+        tableData.push({
+          time: `${firstStart} - ${lastEnd} (${hoursCount}h)`,
+          court: sorted[0].court_name || 'Cancha',
+          player: sorted[0].player_name || 'Cliente',
+          phone: sorted[0].player_phone || '-',
+          price: totalPrice.toLocaleString('es-PY'),
+          status: sorted[0].status
+        });
+      } else {
+        // Add individual bookings (not consecutive)
+        sorted.forEach(booking => {
+          tableData.push({
+            time: `${booking.start_time.substring(0, 5)} - ${booking.end_time ? booking.end_time.substring(0, 5) : '??:??'}`,
+            court: booking.court_name || 'Cancha',
+            player: booking.player_name || 'Cliente',
+            phone: booking.player_phone || '-',
+            price: booking.price.toLocaleString('es-PY'),
+            status: booking.status
+          });
+        });
+      }
+    });
+
+    // Sort by time
+    tableData.sort((a, b) => {
+      const timeA = a.time.split(' - ')[0];
+      const timeB = b.time.split(' - ')[0];
+      return timeA.localeCompare(timeB);
+    });
 
     // Add total revenue row
     const totalRevenue = dailyActiveBookings.reduce((sum, b) => sum + b.price, 0);
