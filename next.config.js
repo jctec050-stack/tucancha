@@ -20,14 +20,8 @@ const nextConfig = {
     // Comprimir outputs
     compress: true,
 
-    // Optimización de fuentes
-    optimizeFonts: true,
-
     // Configuración de producción
     poweredByHeader: false,
-
-    // SWC minification (más rápido que Terser)
-    swcMinify: true,
 }
 
 module.exports = nextConfig

@@ -95,9 +95,9 @@ export async function POST(request: Request) {
       { success: true, messageId: info.messageId },
       {
         headers: {
-          'X-RateLimit-Limit': '10',
-          'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
-          'X-RateLimit-Reset': rateLimitResult.reset.toString(),
+          'X-RateLimit-Limit': limit.toString(),
+          'X-RateLimit-Remaining': remaining.toString(),
+          'X-RateLimit-Reset': reset.toString(),
         },
       }
     );
