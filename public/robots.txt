@@ -1,0 +1,44 @@
+# robots.txt para TuCancha
+# https://tucancha.com.py
+
+# Permitir a todos los bots rastrear el sitio
+User-agent: *
+Allow: /
+
+# Bloquear rutas de administración y privadas
+Disallow: /dashboard/
+Disallow: /admin/
+Disallow: /api/
+
+# Bloquear páginas de autenticación
+Disallow: /login
+Disallow: /register
+Disallow: /reset-password
+
+# Permitir específicamente las páginas públicas importantes
+Allow: /$
+Allow: /terms
+
+# Sitemap
+Sitemap: https://tucancha.com.py/sitemap.xml
+
+# Configuración específica para Google
+User-agent: Googlebot
+Allow: /
+
+# Configuración para Bing
+User-agent: Bingbot
+Allow: /
+
+# Bloquear bots que consumen recursos innecesariamente
+User-agent: AhrefsBot
+Crawl-delay: 10
+
+User-agent: SemrushBot
+Crawl-delay: 10
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
