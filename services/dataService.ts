@@ -633,7 +633,7 @@ export const createBooking = async (
         }
 
         // --------------------------------------------
-        // NOTIFY OWNER
+        // NOTIFY OWNER & PLAYER
         // --------------------------------------------
         if (shouldNotify) {
             try {
@@ -644,14 +644,26 @@ export const createBooking = async (
                     .eq('id', booking.venue_id)
                     .single();
 
-                if (venue && venue.owner_id) {
+                if (venue) {
                     const dateFormatted = new Date(booking.date).toLocaleDateString('es-PY');
                     const startTime = booking.start_time?.substring(0, 5) || '??:??';
 
+                    // Notify Owner
+                    if (venue.owner_id) {
+                        await createNotification(
+                            venue.owner_id,
+                            'Nueva Reserva Recibida',
+                            `Nueva reserva en ${venue.name} para el ${dateFormatted} a las ${startTime}hs`,
+                            'BOOKING',
+                            { booking_id: data.id, venue_id: booking.venue_id }
+                        );
+                    }
+
+                    // Notify Player
                     await createNotification(
-                        venue.owner_id,
-                        'Nueva Reserva Recibida',
-                        `Nueva reserva en ${venue.name} para el ${dateFormatted} a las ${startTime}hs`,
+                        booking.player_id,
+                        'Reserva Confirmada',
+                        `Tu reserva en ${venue.name} para el ${dateFormatted} a las ${startTime}hs fue confirmada`,
                         'BOOKING',
                         { booking_id: data.id, venue_id: booking.venue_id }
                     );
@@ -690,8 +702,7 @@ export const notifyOwnerOfBookingBatch = async (
             .eq('id', venueId)
             .single();
 
-        if (!venue || !venue.owner_id) return;
-
+        if (!venue) return;
         if (bookings.length === 0) return;
 
         // Sort bookings by time
@@ -710,13 +721,28 @@ export const notifyOwnerOfBookingBatch = async (
         const [year, month, day] = date.split('-');
         const dateFormatted = `${day}/${month}/${year}`;
 
-        await createNotification(
-            venue.owner_id,
-            'Nueva Reserva Recibida',
-            `Nueva reserva en ${venue.name} para el ${dateFormatted} de ${start} a ${end}hs`,
-            'BOOKING',
-            { booking_id: sorted[0].id, venue_id: venueId } // Link to first booking
-        );
+        // Notify Owner
+        if (venue.owner_id) {
+            await createNotification(
+                venue.owner_id,
+                'Nueva Reserva Recibida',
+                `Nueva reserva en ${venue.name} para el ${dateFormatted} de ${start} a ${end}hs`,
+                'BOOKING',
+                { booking_id: sorted[0].id, venue_id: venueId } // Link to first booking
+            );
+        }
+
+        // Notify Player
+        const playerId = sorted[0].player_id;
+        if (playerId) {
+            await createNotification(
+                playerId,
+                'Reserva Confirmada',
+                `Tu reserva en ${venue.name} para el ${dateFormatted} de ${start} a ${end}hs fue confirmada`,
+                'BOOKING',
+                { booking_id: sorted[0].id, venue_id: venueId }
+            );
+        }
 
     } catch (error) {
         console.error('❌ Error sending batch notification:', error);
