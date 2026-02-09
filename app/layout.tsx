@@ -11,6 +11,13 @@ export const metadata = {
     title: 'TuCancha! - Reservá tu Cancha',
     description: 'Sistema de gestión y reserva de canchas de padel y beach tennis',
     metadataBase: new URL('https://tucancha.com.py'),
+    // Viewport configuration para optimización móvil
+    viewport: {
+        width: 'device-width',
+        initialScale: 1,
+        maximumScale: 5,
+        userScalable: true,
+    },
     icons: {
         icon: [
             { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
