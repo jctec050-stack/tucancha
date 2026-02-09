@@ -1,17 +1,17 @@
 
 import { NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
-import { checkRateLimit, getClientIP } from '@/lib/rate-limit';
+import { emailRatelimit, getClientIP } from '@/lib/rate-limit-redis';
 
 export async function POST(request: Request) {
   // ============================================
-  // RATE LIMITING: 10 requests por minuto
+  // RATE LIMITING: 10 requests por minuto (Upstash Redis)
   // ============================================
   const clientIP = getClientIP(request);
-  const rateLimitResult = checkRateLimit(clientIP, 10, 60000); // 10 req/min
+  const { success, limit, remaining, reset } = await emailRatelimit.limit(clientIP);
 
-  if (!rateLimitResult.success) {
-    const retryAfter = Math.ceil((rateLimitResult.reset - Date.now()) / 1000);
+  if (!success) {
+    const retryAfter = Math.ceil((reset - Date.now()) / 1000);
 
     return NextResponse.json(
       {
@@ -21,9 +21,9 @@ export async function POST(request: Request) {
       {
         status: 429,
         headers: {
-          'X-RateLimit-Limit': '10',
-          'X-RateLimit-Remaining': '0',
-          'X-RateLimit-Reset': rateLimitResult.reset.toString(),
+          'X-RateLimit-Limit': limit.toString(),
+          'X-RateLimit-Remaining': remaining.toString(),
+          'X-RateLimit-Reset': reset.toString(),
           'Retry-After': retryAfter.toString(),
         },
       }
