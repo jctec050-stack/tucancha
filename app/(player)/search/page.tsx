@@ -286,6 +286,30 @@ export default function SearchPage() {
                     }
                 }).catch(err => console.error('Error fetching owner profile for email:', err));
 
+                // 3. Send Push Notification (Non-blocking)
+                const firstBooking = bookingsForEmail[0];
+                const courtName = firstBooking.courtName;
+                const timeRange = bookingsForEmail.length > 1
+                    ? `${firstBooking.time} - ${bookingsForEmail[bookingsForEmail.length - 1].time}`
+                    : firstBooking.time;
+
+                fetch('/api/send-push', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: user.id,
+                        title: '✅ Reserva Confirmada',
+                        body: `${selectedVenue.name} - ${courtName} el ${selectedDate} a las ${timeRange}`,
+                        icon: '/icons/icon-192x192.png',
+                        url: '/bookings',
+                        data: {
+                            bookingIds: successfulBookings.map(b => b.id),
+                            venueId: selectedVenue.id,
+                            date: selectedDate
+                        }
+                    })
+                }).catch(err => console.error('Error sending push notification:', err));
+
             } catch (emailSetupError) {
                 console.error('Error setting up email data:', emailSetupError);
             }

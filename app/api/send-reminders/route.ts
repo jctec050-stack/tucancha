@@ -155,7 +155,46 @@ export async function GET(request: Request) {
                     throw new Error(`Email API returned ${emailResponse.status}`);
                 }
 
-                // Registrar notificación
+                console.log(`✅ Email enviado a ${playerEmail}`);
+
+                // Enviar Push Notification
+                try {
+                    const pushResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/send-push`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            userId: booking.player_id,
+                            title: '⚽ Recordatorio: Tu reserva es hoy',
+                            body: `${venue?.name || 'Complejo'} - ${court?.name || 'Cancha'} a las ${booking.start_time.substring(0, 5)}`,
+                            icon: '/icons/icon-192x192.png',
+                            url: '/bookings',
+                            data: {
+                                bookingId: booking.id,
+                                venueId: booking.venue_id,
+                                date: booking.date
+                            }
+                        })
+                    });
+
+                    if (pushResponse.ok) {
+                        console.log(`✅ Push enviado a user ${booking.player_id}`);
+
+                        // Registrar notificación push
+                        await supabase
+                            .from('booking_notifications')
+                            .insert({
+                                booking_id: booking.id,
+                                notification_type: 'PUSH',
+                                status: 'SENT'
+                            });
+                    }
+                } catch (pushError) {
+                    console.error(`⚠️ Error enviando push (no crítico):`, pushError);
+                }
+
+                // Registrar notificación de email
                 const { error: insertError } = await supabase
                     .from('booking_notifications')
                     .insert({
