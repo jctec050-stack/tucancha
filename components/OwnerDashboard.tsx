@@ -26,6 +26,7 @@ interface ScheduleItem {
 interface OwnerDashboardProps {
   bookings: Booking[];
   monthlyBookings: Booking[];
+  chartBookings: Booking[]; // Bookings for the last 7 days for the revenue chart
   disabledSlots?: DisabledSlot[];
   venue: Venue;
   selectedDate: string;
@@ -37,6 +38,7 @@ interface OwnerDashboardProps {
 export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
   bookings,
   monthlyBookings,
+  chartBookings,
   disabledSlots,
   venue,
   selectedDate,
@@ -71,14 +73,14 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
     for (let i = 6; i >= 0; i--) {
       const dStr = addDays(selectedDate, -i);
 
-      const dayRevenue = bookings
+      const dayRevenue = chartBookings
         .filter(b => b.date === dStr && (b.status === 'ACTIVE' || b.status === 'COMPLETED'))
         .reduce((sum, b) => sum + b.price, 0);
 
       data.push({ name: dStr, revenue: dayRevenue });
     }
     return data;
-  }, [bookings, selectedDate]);
+  }, [chartBookings, selectedDate]);
 
   // Memoize Monthly History and Revenue
   const { monthlyHistory, monthlyRevenue } = useMemo(() => {

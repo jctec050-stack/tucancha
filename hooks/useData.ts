@@ -152,6 +152,30 @@ export function useMonthlyBookings(ownerId: string | undefined, selectedMonth: s
     };
 }
 
+export function useBookingsForChart(ownerId: string | undefined, endDate: string) {
+    // Get bookings for the last 7 days (from endDate - 6 days to endDate)
+    // Calculate start date (6 days before endDate)
+    const end = new Date(endDate);
+    const start = new Date(end);
+    start.setDate(start.getDate() - 6);
+
+    const startDate = start.toISOString().split('T')[0];
+
+    const { bookings, isLoading, isError, mutate } = useBookings({
+        ownerId,
+        startDate,
+        endDate,
+        limit: 1000 // High limit to get all bookings for the week
+    });
+
+    return {
+        bookings,
+        isLoading,
+        isError,
+        mutate
+    };
+}
+
 
 export function useDisabledSlots(venueId: string | null, date: string | null) {
     const shouldFetch = venueId && date;

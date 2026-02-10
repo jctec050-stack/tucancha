@@ -7,7 +7,7 @@ import dynamic from 'next/dynamic';
 import { getLocalDateString } from '@/utils/dateUtils';
 import { Venue, Booking, DisabledSlot } from '@/types';
 import { getDisabledSlots, getOwnerVenues } from '@/services/dataService'; // FIX: Imported getOwnerVenues
-import { useBookingsByDate, useMonthlyBookings } from '@/hooks/useData';
+import { useBookingsByDate, useMonthlyBookings, useBookingsForChart } from '@/hooks/useData';
 
 // ✅ CODE SPLITTING: Cargar OwnerDashboard solo cuando sea necesario
 const OwnerDashboard = dynamic(
@@ -45,6 +45,7 @@ export default function DashboardPage() {
 
     const { bookings, isLoading: bookingsLoading } = useBookingsByDate(user?.id, selectedDate);
     const { bookings: monthlyBookings, isLoading: monthlyLoading } = useMonthlyBookings(user?.id, selectedMonth);
+    const { bookings: chartBookings, isLoading: chartLoading } = useBookingsForChart(user?.id, selectedDate);
     const [disabledSlots, setDisabledSlots] = useState<DisabledSlot[]>([]);
     const [loadingSlots, setLoadingSlots] = useState(false);
 
@@ -361,7 +362,7 @@ export default function DashboardPage() {
         router.push('/');
     };
 
-    if (isLoading || venuesLoading || bookingsLoading || monthlyLoading || checkingTerms) {
+    if (isLoading || venuesLoading || bookingsLoading || monthlyLoading || chartLoading || checkingTerms) {
         return (
             <div className="min-h-screen flex items-center justify-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
@@ -466,6 +467,7 @@ export default function DashboardPage() {
                 <OwnerDashboard
                     bookings={bookings}
                     monthlyBookings={monthlyBookings}
+                    chartBookings={chartBookings}
                     disabledSlots={disabledSlots}
                     venue={venues[0]} // Currently showing first venue, could add selector
                     selectedDate={selectedDate}
