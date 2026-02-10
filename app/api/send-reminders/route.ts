@@ -32,8 +32,9 @@ export async function GET(request: Request) {
         const targetDate = threeHoursLater.toISOString().split('T')[0]; // YYYY-MM-DD
         const targetTimeMin = threeHoursLater.toTimeString().substring(0, 5); // HH:mm
         const targetTimeMax = fourHoursLater.toTimeString().substring(0, 5); // HH:mm
+        const targetTime = threeHoursLater.toTimeString().substring(0, 5); // HH:mm
 
-        console.log(`📅 Buscando reservas para ${targetDate} entre ${targetTimeMin} y ${targetTimeMax}`);
+        console.log(`📅 Buscando reservas para ${today} que empiecen antes de ${targetTime}`);
 
         // ============================================
         // 3. BUSCAR RESERVAS PRÓXIMAS
@@ -67,9 +68,8 @@ export async function GET(request: Request) {
         )
       `)
             .eq('status', 'ACTIVE')
-            .eq('date', targetDate)
-            .gte('start_time', targetTimeMin)
-            .lt('start_time', targetTimeMax);
+            .eq('date', today)
+            .lte('start_time', targetTime); // Solo las que empiezan antes de ahora+3h
 
         if (bookingsError) {
             console.error('❌ Error fetching bookings:', bookingsError);
