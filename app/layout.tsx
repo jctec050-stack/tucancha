@@ -3,6 +3,7 @@ import { AuthProvider } from '@/AuthContext';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { PushNotificationPrompt } from '@/components/PushNotificationPrompt';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -19,6 +20,12 @@ export const metadata = {
     title: 'TuCancha! - Reservá tu Cancha',
     description: 'Sistema de gestión y reserva de canchas de padel y beach tennis',
     metadataBase: new URL('https://tucancha.com.py'),
+    manifest: '/manifest.json',
+    appleWebApp: {
+        capable: true,
+        statusBarStyle: 'default',
+        title: 'TuCancha',
+    },
     icons: {
         icon: [
             { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
@@ -63,6 +70,7 @@ export default function RootLayout({
                             </div>
                             <Footer />
                         </div>
+                        <PushNotificationPrompt />
                     </AuthProvider>
                 </ErrorBoundary>
             </body>
