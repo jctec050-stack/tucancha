@@ -24,6 +24,7 @@ export default function SearchPage() {
     // State
     const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
     const [selectedDate, setSelectedDate] = useState<string>(getLocalDateString());
+    const [searchQuery, setSearchQuery] = useState<string>('');
 
     // Disabled slots depend on selected venue and date
     const { disabledSlots, isLoading: slotsLoading } = useDisabledSlots(selectedVenue?.id || null, selectedDate);
@@ -92,6 +93,29 @@ export default function SearchPage() {
 
         return [...sorted, ...venuesWithoutCoords];
     }, [venues, userLocation]);
+
+    // Filter venues by search query (only if not selected a venue yet)
+    const filteredVenues = useMemo(() => {
+        if (!searchQuery.trim()) return sortedVenues;
+
+        const query = searchQuery.toLowerCase().trim();
+        return sortedVenues.filter(venue => {
+            // Search by venue name
+            if (venue.name.toLowerCase().includes(query)) return true;
+
+            // Search by court names
+            const hasMatchingCourt = venue.courts.some(court =>
+                court.name.toLowerCase().includes(query)
+            );
+            if (hasMatchingCourt) return true;
+
+            // Search by court type
+            const hasMatchingType = venue.courts.some(court =>
+                court.type.toLowerCase().includes(query)
+            );
+            return hasMatchingType;
+        });
+    }, [sortedVenues, searchQuery]);
 
     const handleSlotSelect = (venue: Venue, court: Court, time: string) => {
         // Validation: Past Time Check
@@ -303,61 +327,110 @@ export default function SearchPage() {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {sortedVenues.map((v) => (
-                            <div key={v.id} className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition group cursor-pointer" onClick={() => setSelectedVenue(v)}>
-                                <div className="relative h-48">
-                                    {v.image_url ? (
-                                        <img src={v.image_url} alt={v.name} className="w-full h-full object-contain bg-gray-50 p-4 group-hover:scale-105 transition duration-500" />
-                                    ) : (
-                                        <div className="w-full h-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center">
-                                            <svg className="w-16 h-16 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                            </svg>
-                                        </div>
-                                    )}
-                                    {userLocation && v.latitude && v.longitude && (() => {
-                                        const { calculateDistance } = require('@/lib/geocoding');
-                                        const distance = calculateDistance(userLocation.lat, userLocation.lng, v.latitude, v.longitude);
-                                        return (
-                                            <div className="absolute top-4 left-4 bg-indigo-600 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
-                                                📍 {distance.toFixed(1)} km
-                                            </div>
-                                        );
-                                    })()}
-                                    <div className="absolute top-4 right-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-indigo-600 uppercase tracking-wider shadow-sm">
-                                        Abierto: {v.opening_hours}
-                                    </div>
-                                </div>
-                                <div className="p-4 md:p-6">
-                                    <h3 className="text-lg font-bold text-gray-900">{v.name}</h3>
-                                    <div className="flex items-start justify-between gap-2 mt-1 mb-4">
-                                        <p className="text-gray-500 text-xs line-clamp-2">{v.address}</p>
-                                        <a
-                                            href={`https://www.google.com/maps/search/?api=1&query=${v.latitude && v.longitude ? `${v.latitude},${v.longitude}` : encodeURIComponent(v.address)}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            onClick={(e) => e.stopPropagation()}
-                                            className="text-indigo-600 hover:text-indigo-800 shrink-0 bg-indigo-50 p-2 rounded-lg hover:bg-indigo-100 transition active:scale-95 touch-manipulation"
-                                            title="Ver en mapa"
-                                        >
-                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                                        </a>
-                                    </div>
-                                    <div className="flex items-center gap-2 mb-6 flex-wrap">
-                                        {Array.from(new Set(v.courts.map(c => c.type))).map(type => (
-                                            <span key={type} className="px-2 py-1 bg-gray-100 text-gray-600 text-[10px] font-bold rounded uppercase tracking-tighter">
-                                                {type}
-                                            </span>
-                                        ))}
-                                    </div>
-                                    <button className="w-full py-3 bg-indigo-50 text-indigo-600 font-bold rounded-xl hover:bg-indigo-600 hover:text-white transition active:scale-95 touch-manipulation">
-                                        Ver Disponibilidad
-                                    </button>
-                                </div>
+                    {/* Search Bar */}
+                    <div className="mb-6">
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
                             </div>
-                        ))}
+                            <input
+                                type="text"
+                                placeholder="Buscar por nombre de complejo o cancha..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="w-full pl-12 pr-4 py-4 border-2 border-gray-200 rounded-2xl focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 transition outline-none text-gray-900 placeholder-gray-400"
+                            />
+                            {searchQuery && (
+                                <button
+                                    onClick={() => setSearchQuery('')}
+                                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 transition"
+                                >
+                                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            )}
+                        </div>
+                        {searchQuery && (
+                            <p className="mt-2 text-sm text-gray-500">
+                                Mostrando {filteredVenues.length} {filteredVenues.length === 1 ? 'resultado' : 'resultados'} para "{searchQuery}"
+                            </p>
+                        )}
                     </div>
+
+                    {filteredVenues.length === 0 ? (
+                        <div className="text-center py-16">
+                            <svg className="mx-auto h-16 w-16 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <h3 className="mt-4 text-lg font-semibold text-gray-900">No se encontraron resultados</h3>
+                            <p className="mt-2 text-sm text-gray-500">Intenta buscar con otros términos o limpia el filtro.</p>
+                            <button
+                                onClick={() => setSearchQuery('')}
+                                className="mt-4 px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+                            >
+                                Limpiar búsqueda
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {filteredVenues.map((v) => (
+                                <div key={v.id} className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition group cursor-pointer" onClick={() => setSelectedVenue(v)}>
+                                    <div className="relative h-48">
+                                        {v.image_url ? (
+                                            <img src={v.image_url} alt={v.name} className="w-full h-full object-contain bg-gray-50 p-4 group-hover:scale-105 transition duration-500" />
+                                        ) : (
+                                            <div className="w-full h-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center">
+                                                <svg className="w-16 h-16 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                </svg>
+                                            </div>
+                                        )}
+                                        {userLocation && v.latitude && v.longitude && (() => {
+                                            const { calculateDistance } = require('@/lib/geocoding');
+                                            const distance = calculateDistance(userLocation.lat, userLocation.lng, v.latitude, v.longitude);
+                                            return (
+                                                <div className="absolute top-4 left-4 bg-indigo-600 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
+                                                    📍 {distance.toFixed(1)} km
+                                                </div>
+                                            );
+                                        })()}
+                                        <div className="absolute top-4 right-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-indigo-600 uppercase tracking-wider shadow-sm">
+                                            Abierto: {v.opening_hours}
+                                        </div>
+                                    </div>
+                                    <div className="p-4 md:p-6">
+                                        <h3 className="text-lg font-bold text-gray-900">{v.name}</h3>
+                                        <div className="flex items-start justify-between gap-2 mt-1 mb-4">
+                                            <p className="text-gray-500 text-xs line-clamp-2">{v.address}</p>
+                                            <a
+                                                href={`https://www.google.com/maps/search/?api=1&query=${v.latitude && v.longitude ? `${v.latitude},${v.longitude}` : encodeURIComponent(v.address)}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                onClick={(e) => e.stopPropagation()}
+                                                className="text-indigo-600 hover:text-indigo-800 shrink-0 bg-indigo-50 p-2 rounded-lg hover:bg-indigo-100 transition active:scale-95 touch-manipulation"
+                                                title="Ver en mapa"
+                                            >
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                            </a>
+                                        </div>
+                                        <div className="flex items-center gap-2 mb-6 flex-wrap">
+                                            {Array.from(new Set(v.courts.map(c => c.type))).map(type => (
+                                                <span key={type} className="px-2 py-1 bg-gray-100 text-gray-600 text-[10px] font-bold rounded uppercase tracking-tighter">
+                                                    {type}
+                                                </span>
+                                            ))}
+                                        </div>
+                                        <button className="w-full py-3 bg-indigo-50 text-indigo-600 font-bold rounded-xl hover:bg-indigo-600 hover:text-white transition active:scale-95 touch-manipulation">
+                                            Ver Disponibilidad
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             ) : (
                 // View 2: Venue Details & Booking
