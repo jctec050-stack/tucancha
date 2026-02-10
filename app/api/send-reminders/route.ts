@@ -22,19 +22,18 @@ export async function GET(request: Request) {
         console.log('🕐 [CRON] Iniciando envío de recordatorios...');
 
         // ============================================
-        // 2. CALCULAR VENTANA DE TIEMPO (3 horas desde ahora)
+        // 2. CALCULAR VENTANA DE TIEMPO
         // ============================================
+        // Como el cron se ejecuta 1 vez al día (plan Hobby), buscamos TODAS las reservas
+        // del día actual y enviamos recordatorios para las que estén a 3 horas o menos
         const now = new Date();
-        const threeHoursLater = new Date(now.getTime() + 3 * 60 * 60 * 1000);
-        const fourHoursLater = new Date(now.getTime() + 4 * 60 * 60 * 1000);
+        const today = now.toISOString().split('T')[0]; // YYYY-MM-DD
 
-        // Formatear para comparación con DB
-        const targetDate = threeHoursLater.toISOString().split('T')[0]; // YYYY-MM-DD
-        const targetTimeMin = threeHoursLater.toTimeString().substring(0, 5); // HH:mm
-        const targetTimeMax = fourHoursLater.toTimeString().substring(0, 5); // HH:mm
+        // Calcular hora actual + 3 horas para el filtro
+        const threeHoursLater = new Date(now.getTime() + 3 * 60 * 60 * 1000);
         const targetTime = threeHoursLater.toTimeString().substring(0, 5); // HH:mm
 
-        console.log(`📅 Buscando reservas para ${today} que empiecen antes de ${targetTime}`);
+        console.log(`📅 Buscando reservas para hoy ${today} que empiecen antes de ${targetTime}`);
 
         // ============================================
         // 3. BUSCAR RESERVAS PRÓXIMAS
