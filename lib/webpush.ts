@@ -5,17 +5,29 @@ const webpush = require('web-push');
 // CONFIGURACIÓN VAPID
 // ============================================
 
-const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!;
-const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY!;
+const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
 const vapidSubject = process.env.VAPID_SUBJECT || 'mailto:contacto@tucancha.com';
 
-// Configurar web-push con las VAPID keys
-if (vapidPublicKey && vapidPrivateKey) {
-    webpush.setVapidDetails(
-        vapidSubject,
-        vapidPublicKey,
-        vapidPrivateKey
-    );
+// Variable para trackear si ya se configuró
+let isVapidConfigured = false;
+
+// Función para configurar VAPID solo cuando se necesite (lazy initialization)
+function ensureVapidConfigured() {
+    if (isVapidConfigured) return;
+
+    if (vapidPublicKey && vapidPrivateKey) {
+        try {
+            webpush.setVapidDetails(
+                vapidSubject,
+                vapidPublicKey,
+                vapidPrivateKey
+            );
+            isVapidConfigured = true;
+        } catch (error) {
+            console.error('Error configurando VAPID keys:', error);
+        }
+    }
 }
 
 // ============================================
@@ -60,6 +72,9 @@ export async function sendPushNotification(
     payload: PushNotificationPayload
 ): Promise<{ success: boolean; error?: string }> {
     try {
+        // Configurar VAPID si aún no está configurado
+        ensureVapidConfigured();
+
         // Validar que las VAPID keys están configuradas
         if (!vapidPublicKey || !vapidPrivateKey) {
             throw new Error('VAPID keys no están configuradas');
