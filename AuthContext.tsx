@@ -31,10 +31,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             fetchingProfileRef.current = userId;
         }
 
+        // 🔥 OPTIMIZACIÓN 1: Cargar cache inmediatamente para mejor UX
+        if (retryCount === 0) {
+            const cachedProfile = localStorage.getItem(`profile_${userId}`);
+            if (cachedProfile) {
+                try {
+                    const cached = JSON.parse(cachedProfile);
+                    // Mostrar cache inmediatamente (UX fluida)
+                    setUser(cached);
+                    console.log('📦 Usando perfil cacheado');
+                } catch (e) {
+                    // Cache corrupto, ignorar
+                    localStorage.removeItem(`profile_${userId}`);
+                }
+            }
+        }
+
         try {
-            // Add timeout to prevent hanging indefinitely
-            const timeoutPromise = new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Profile fetch timed out')), 15000)
+            // 🔥 OPTIMIZACIÓN 2: Timeout reducido de 15s → 8s
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Profile fetch timed out')), 8000)
             );
 
             const fetchPromise = supabase
@@ -43,24 +59,34 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 .eq('id', userId)
                 .maybeSingle();
 
-            // Cast to any because Promise.race type inference can be tricky with different return types
             const result = await Promise.race([fetchPromise, timeoutPromise]) as any;
             const { data, error } = result;
 
             if (error) {
                 console.error('❌ Error fetching profile:', error);
-                console.error('Error details:', JSON.stringify(error, null, 2));
+
+                // 🔥 OPTIMIZACIÓN 3: No limpiar user si falla (mantener cache)
+                // Solo loguear el error, el usuario sigue viendo sus datos cacheados
+                if (retryCount === 0) {
+                    console.log('⚠️ Usando datos cacheados debido a error en fetch');
+                }
                 return;
             }
 
             if (data) {
-                setUser({
+                const userData = {
                     id: userId,
                     email: email,
                     name: data.full_name,
                     role: data.role as UserRole,
                     phone: data.phone
-                });
+                };
+
+                setUser(userData);
+
+                // 🔥 OPTIMIZACIÓN 4: Guardar en cache para siguiente vez
+                localStorage.setItem(`profile_${userId}`, JSON.stringify(userData));
+                console.log('✅ Perfil actualizado y cacheado');
             } else {
                 // Profile doesn't exist (likely an old user from before DB reset)
                 if (retryCount >= 2) {
@@ -90,7 +116,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             if (e.name === 'AbortError' || e.message?.includes('AbortError')) {
                 return;
             }
+
+            // 🔥 OPTIMIZACIÓN 5: No hacer crash si hay timeout, solo loguear
             console.error('❌ Exception fetching profile:', e);
+
+            // Si es timeout y tenemos cache, está bien (usuario ya ve sus datos)
+            if (e.message?.includes('timed out')) {
+                console.log('⏱️ Timeout - usando datos cacheados');
+            }
         } finally {
             // Clear the lock only if this is the root call
             if (retryCount === 0) {
@@ -213,7 +246,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (data.user) {
             return { success: true };
         }
-        
+
         return { success: false, error: 'Error desconocido' };
     };
 
@@ -231,8 +264,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
 
     const logout = async () => {
+        // Get current user ID before clearing
+        const currentUserId = user?.id;
+
         // Optimistic logout: clear state immediately for instant UI response
         setUser(null);
+
+        // 🔥 Limpiar cache de localStorage
+        if (currentUserId) {
+            localStorage.removeItem(`profile_${currentUserId}`);
+            console.log('🗑️ Cache de perfil limpiado');
+        }
 
         // Sign out in background
         try {
