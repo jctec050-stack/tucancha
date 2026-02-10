@@ -19,7 +19,11 @@ export const BookingSchema = z.object({
   end_time: z.string().regex(timeRegex, { message: "Formato de hora inválido (HH:mm)" }).optional(),
   price: z.number().int().positive({ message: "El precio debe ser un número positivo" }),
   status: z.enum(['PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED', 'ACTIVE']).optional(),
-  payment_status: z.enum(['PENDING', 'PAID', 'PARTIAL', 'REFUNDED']).optional()
+  payment_status: z.enum(['PENDING', 'PAID', 'PARTIAL', 'REFUNDED']).optional(),
+  // Optional fields for manual bookings and recurring bookings
+  player_name: z.string().optional(),
+  player_phone: z.string().optional(),
+  notes: z.string().optional(),
 });
 
 export const ProfileSchema = z.object({
