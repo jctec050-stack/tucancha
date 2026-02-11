@@ -66,17 +66,26 @@ export const usePushNotifications = (userId?: string) => {
             let registration = await navigator.serviceWorker.getRegistration();
             
             if (!registration) {
-                console.log('⚠️ No SW found, waiting for ready...');
-                // Fallback to wait
+                console.log('⚠️ No SW found, trying to register manually...');
                 try {
-                    registration = await Promise.race([
-                        navigator.serviceWorker.ready,
-                        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Timeout waiting for SW')), 4000))
-                    ]) as ServiceWorkerRegistration;
-                } catch (e) {
-                    console.error('❌ Service Worker not ready:', e);
-                    toast.error('Error: Service Worker no disponible. Recarga la página.');
-                    return;
+                    // Force registration if missing (fixes Next.js PWA issues in some browsers)
+                    registration = await navigator.serviceWorker.register('/custom-sw.js');
+                    console.log('✅ Manual registration success:', registration);
+                } catch (regError) {
+                    console.error('❌ Manual registration failed:', regError);
+                    
+                    // Fallback to waiting for ready
+                    console.log('⏳ Waiting for ready state...');
+                    try {
+                         registration = await Promise.race([
+                            navigator.serviceWorker.ready,
+                            new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Timeout waiting for SW')), 4000))
+                        ]) as ServiceWorkerRegistration;
+                    } catch (e) {
+                        console.error('❌ Service Worker not ready:', e);
+                        toast.error('Error: Service Worker no disponible. Recarga la página.');
+                        return;
+                    }
                 }
             }
 
