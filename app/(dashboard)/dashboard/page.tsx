@@ -28,13 +28,9 @@ import { ReactivationModal } from '@/components/ReactivationModal';
 import { supabase } from '@/lib/supabase';
 import { getBookings } from '@/services/dataService';
 
-// Imports needed
-import { usePushNotifications } from '@/hooks/usePushNotifications';
-
 export default function DashboardPage() {
     const { user, isLoading, logout } = useAuth();
     // ... existing state ...
-    const { subscribe, isSubscribed, permission } = usePushNotifications();
 
     // ... existing effects ...
 
@@ -491,20 +487,6 @@ export default function DashboardPage() {
 
             ) : (
                 <>
-                    <div className="flex flex-wrap justify-end gap-3 mb-4">
-                        {(!isSubscribed || permission === 'default') && (
-                            <button
-                                onClick={async () => {
-                                    const success = await subscribe();
-                                    if (success) toast.success('Dispositivo suscrito correctamente');
-                                    else if (Notification.permission === 'denied') toast.error('Debes habilitar las notificaciones en la configuración del navegador');
-                                }}
-                                className="flex items-center gap-2 text-sm bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg shadow-sm transition"
-                            >
-                                🔔 Activar Notificaciones
-                            </button>
-                        )}
-                    </div>
                     <OwnerDashboard
                         bookings={bookings}
                         monthlyBookings={monthlyBookings}
