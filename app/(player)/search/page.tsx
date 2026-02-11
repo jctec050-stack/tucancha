@@ -19,7 +19,22 @@ export default function SearchPage() {
 
     // SWR Hooks
     const { venues, isLoading: venuesLoading } = useVenues();
-    const { bookings, isLoading: bookingsLoading, mutate: mutateBookings } = useBookings();
+    
+    // Optimization: Fetch bookings only for selected venue and date
+    const { bookings, isLoading: bookingsLoading, mutate: mutateBookings } = useBookings({
+        venueId: selectedVenue?.id,
+        startDate: selectedDate,
+        endDate: selectedDate,
+        enabled: !!selectedVenue
+    });
+
+    // DEBUG: Monitor bookings
+    useEffect(() => {
+        if (selectedVenue) {
+            console.log(`[SearchPage] Checking availability for ${selectedVenue.name} on ${selectedDate}`);
+            console.log('[SearchPage] Bookings fetched:', bookings);
+        }
+    }, [bookings, selectedVenue, selectedDate]);
 
     // State
     const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);

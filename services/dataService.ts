@@ -449,6 +449,7 @@ export const clearAllNotifications = async (userId: string): Promise<boolean> =>
 
 export interface GetBookingsOptions {
     ownerId?: string;
+    venueId?: string;
     playerId?: string;
     page?: number;
     limit?: number;
@@ -466,7 +467,7 @@ export const getBookings = async (
     options: GetBookingsOptions = {}
 ): Promise<PaginatedResult<Booking>> => {
     try {
-        const { ownerId, playerId, page, limit, startDate, endDate, status } = options;
+        const { ownerId, venueId, playerId, page, limit, startDate, endDate, status } = options;
 
         // Base query
         let query = supabase
@@ -481,6 +482,10 @@ export const getBookings = async (
         // Apply Filters
         if (ownerId) {
             query = query.eq('venues.owner_id', ownerId);
+        }
+
+        if (venueId) {
+            query = query.eq('venue_id', venueId);
         }
 
         if (playerId) {

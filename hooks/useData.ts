@@ -46,21 +46,24 @@ export function useOwnerVenues(ownerId: string | undefined) {
 
 interface UseBookingsOptions {
     ownerId?: string;
+    venueId?: string;
     playerId?: string;
     page?: number;
     limit?: number;
     startDate?: string;
     endDate?: string;
     status?: string;
+    enabled?: boolean;
 }
 
 export function useBookings(options: UseBookingsOptions = {}) {
+    const { enabled = true, ...queryOptions } = options;
     // Unique key based on options
-    const key = ['bookings', JSON.stringify(options)];
+    const key = enabled ? ['bookings', JSON.stringify(queryOptions)] : null;
 
     const { data, error, isLoading, mutate } = useSWR(
         key,
-        () => getBookings(options),
+        () => getBookings(queryOptions),
         {
             revalidateOnFocus: true,
             dedupingInterval: 10000,
