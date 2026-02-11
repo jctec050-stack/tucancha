@@ -49,13 +49,25 @@ export function usePushNotifications() {
             setPermission(perm);
 
             if (perm === 'granted') {
-                const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!;
+                const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+                if (!vapidPublicKey) {
+                    console.error('❌ Missing NEXT_PUBLIC_VAPID_PUBLIC_KEY');
+                    return false;
+                }
+
                 const registration = await navigator.serviceWorker.ready;
 
-                const subscription = await registration.pushManager.subscribe({
-                    userVisibleOnly: true,
-                    applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
-                });
+                // Check if already subscribed in browser to avoid error
+                let subscription = await registration.pushManager.getSubscription();
+
+                if (!subscription) {
+                    subscription = await registration.pushManager.subscribe({
+                        userVisibleOnly: true,
+                        applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
+                    });
+                }
+
+                console.log('✅ Browser Subscribed:', subscription.endpoint);
 
                 // Save to DB
                 const response = await fetch('/api/subscribe-push', {
@@ -67,14 +79,18 @@ export function usePushNotifications() {
                     })
                 });
 
-                if (!response.ok) throw new Error('Failed to save subscription');
+                if (!response.ok) {
+                    const errData = await response.json();
+                    throw new Error(errData.error || 'Failed to save subscription');
+                }
 
+                console.log('✅ Subscription saved to DB');
                 setIsSubscribed(true);
                 return true;
             }
         } catch (error) {
             console.error('Error subscribing:', error);
-            // Optionally toast here
+            return false;
         } finally {
             setLoading(false);
         }
