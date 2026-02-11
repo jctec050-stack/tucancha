@@ -17,7 +17,12 @@ export async function POST(request: Request) {
             data
         });
 
-        return NextResponse.json({ success: true, ...result });
+        return NextResponse.json({ 
+            success: true, 
+            sent: result.success, 
+            failed: result.failed,
+            error: result.error 
+        });
 
     } catch (error: any) {
         console.error('Error in /api/send-push:', error);
