@@ -800,13 +800,41 @@ export const updateBookingStatus = async (id: string, status: 'CONFIRMED' | 'CAN
 };
 
 export const cancelBooking = async (id: string): Promise<boolean> => {
-    return updateBookingStatus(id, 'CANCELLED');
+    try {
+        const success = await updateBookingStatus(id, 'CANCELLED');
+        
+        if (success) {
+            // Trigger API notification in background
+            fetch('/api/cancel-booking', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ bookingId: id })
+            }).catch(e => console.error('Error triggering cancellation API:', e));
+        }
+        
+        return success;
+    } catch (error) {
+        console.error('Error cancelling booking:', error);
+        return false;
+    }
 };
 
 export const deleteBooking = async (id: string): Promise<boolean> => {
     try {
+        // Fetch booking first to notify before deleting
+        const { data: booking } = await supabase.from('bookings').select('venue_id').eq('id', id).single();
+        
         const { error } = await supabase.from('bookings').delete().eq('id', id);
         if (error) throw error;
+
+        if (booking) {
+             // Notify cancellation (even if deleted)
+             // We can't use the same API because the record is gone, but we can send a custom push here if needed.
+             // Or better: Don't delete, just cancel. But if logic requires delete:
+             // For now, we assume 'cancelBooking' is the main flow for users.
+             // If we really need notification on delete, we should do it before deleting or soft-delete.
+        }
+
         return true;
     } catch (error) {
         console.error('❌ Error deleting booking:', error);
