@@ -747,6 +747,45 @@ export const notifyOwnerOfBookingBatch = async (
     } catch (error) {
         console.error('❌ Error sending batch notification:', error);
     }
+
+    // --------------------------------------------------------
+    // PUSH NOTIFICATIONS (New Implementation)
+    // --------------------------------------------------------
+    try {
+        // Enviar Push al Dueño
+        if (venue.owner_id) {
+            // Construir payload
+            const pushPayload = {
+                userId: venue.owner_id,
+                title: '🎉 Nueva Reserva Recibida',
+                body: `${venue.name}: ${bookings.length} turno(s) para el ${dateFormatted} a las ${start}hs`,
+                url: '/dashboard', // Llevar al dashboard
+                data: {
+                    venueId,
+                    date,
+                    bookingId: sorted[0].id
+                }
+            };
+
+            // Llamar a nuestra API
+            fetch('/api/send-push', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(pushPayload)
+            }).then(res => {
+                if (res.ok) console.log('✅ Push enviado al Dueño');
+                else console.warn('⚠️ Falló envío push al Dueño');
+            }).catch(e => console.error('Error push owner:', e));
+        }
+
+        // El push al jugador ya se envía en el frontend (search/page.tsx)
+        // Pero por consistencia, podríamos moverlo aquí si quisiéramos centralizar.
+        // Por ahora, dejemos que el frontend lo maneje para "feedback inmediato"
+        // y el backend maneje el aviso "pasivo".
+
+    } catch (pushError) {
+        console.error('❌ Error general enviando push notifications:', pushError);
+    }
 };
 
 export const updateBookingStatus = async (id: string, status: 'CONFIRMED' | 'CANCELLED' | 'COMPLETED'): Promise<boolean> => {
