@@ -4,6 +4,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { PushNotificationPrompt } from '@/components/PushNotificationPrompt';
+import { ReloadPrompt } from '@/components/ReloadPrompt';
 import { BottomNav } from '@/components/layout/BottomNav';
 import './globals.css';
 
@@ -73,6 +74,7 @@ export default function RootLayout({
                             <BottomNav />
                         </div>
                         <PushNotificationPrompt />
+                        <ReloadPrompt />
                     </AuthProvider>
                 </ErrorBoundary>
             </body>
