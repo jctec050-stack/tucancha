@@ -154,6 +154,7 @@ export const Navbar = () => {
                                 notifications={notifications}
                                 onClose={handleCloseNotifications}
                                 onClear={handleClearNotifications}
+                                userId={user.id}
                             />
                         )}
                     </div>

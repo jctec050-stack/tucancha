@@ -1,5 +1,12 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase'; // NOTE: This might be client-side supabase in some setups, but usually fine.Ideally use admin client.
+import { sendPushToUser } from '@/lib/push-notifications';
+import { createClient } from '@supabase/supabase-js';
+
+// Init Admin Client
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const adminDb = createClient(supabaseUrl, supabaseServiceKey);
 
 /**
  * API Route para enviar ANUNCIOS GENERALES (Broadcast)
@@ -7,17 +14,13 @@ import { supabase } from '@/lib/supabase';
  * 
  * Body: {
  *   title: string,
- *   body: string,
+ *   message: string,
  *   url?: string,
- *   segment?: 'ALL' | 'OWNERS' | 'PLAYERS' // Futuro: segmentación
+ *   segment?: 'ALL' | 'OWNERS' | 'PLAYERS'
  * }
  */
 export async function POST(request: Request) {
     try {
-        // Verificar autenticación (solo admin o cron secret por ahora, o endpoint protegido)
-        // Por simplicidad en este paso, asumimos que quien llama tiene permiso o es el mismo frontend admin.
-        // TODO: Agregar middleware de auth o check de rol.
-
         const body = await request.json();
         const { title, message, url, segment = 'ALL' } = body;
 
@@ -25,17 +28,47 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Title and message are required' }, { status: 400 });
         }
 
-        console.log(`📢 (Push Disabled) Intento de anuncio: "${title}" a segmento ${segment}`);
+        console.log(`📢 Enviando anuncio: "${title}" a segmento ${segment}`);
 
-        // Push Notifications have been disabled.
-        // We return success to not break existing clients, but we don't send anything.
+        // 1. Fetch Target Users
+        let query = adminDb.from('profiles').select('id');
+
+        if (segment === 'OWNERS') {
+            query = query.eq('role', 'OWNER');
+        } else if (segment === 'PLAYERS') {
+            query = query.eq('role', 'PLAYER');
+        }
+
+        const { data: users, error } = await query;
+
+        if (error || !users) {
+            throw new Error('Error fetching users for announcement');
+        }
+
+        console.log(`🎯 Usuarios objetivo: ${users.length}`);
+
+        // 2. Send Notifications (Batch)
+        // Send in parallel but maybe limit concurrency if too many users?
+        // For now, Promise.all is fine for hundreds of users.
+        const promises = users.map(user => 
+            sendPushToUser(user.id, {
+                title,
+                body: message,
+                url
+            })
+        );
+
+        const results = await Promise.all(promises);
         
+        const sent = results.reduce((acc, curr) => acc + curr.success, 0);
+        const failed = results.reduce((acc, curr) => acc + curr.failed, 0);
+
         return NextResponse.json({
             success: true,
-            sent: 0,
-            failed: 0,
-            total: 0,
-            message: 'Push notifications are currently disabled.'
+            sent,
+            failed,
+            total: users.length,
+            message: `Enviado a ${sent} dispositivos (${failed} fallos)`
         });
 
     } catch (error: any) {

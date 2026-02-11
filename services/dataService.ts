@@ -1328,3 +1328,42 @@ export const createPayment = async (paymentData: Partial<Payment>): Promise<bool
         return false;
     }
 };
+
+// ============================================
+// PUSH NOTIFICATIONS
+// ============================================
+
+export const savePushSubscription = async (
+    userId: string,
+    subscription: PushSubscription
+): Promise<boolean> => {
+    try {
+        const p256dh = subscription.getKey('p256dh');
+        const auth = subscription.getKey('auth');
+
+        if (!p256dh || !auth) {
+            console.error('❌ Missing keys in subscription');
+            return false;
+        }
+
+        const keys = {
+            p256dh: btoa(String.fromCharCode.apply(null, new Uint8Array(p256dh) as any)),
+            auth: btoa(String.fromCharCode.apply(null, new Uint8Array(auth) as any))
+        };
+
+        const { error } = await supabase
+            .from('push_subscriptions')
+            .upsert({
+                user_id: userId,
+                endpoint: subscription.endpoint,
+                keys: keys,
+                user_agent: navigator.userAgent
+            }, { onConflict: 'user_id, endpoint' });
+
+        if (error) throw error;
+        return true;
+    } catch (error) {
+        console.error('❌ Error saving push subscription:', error);
+        return false;
+    }
+};
