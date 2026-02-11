@@ -142,8 +142,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     console.error('❌ Session error:', error);
                     // Handle invalid refresh token by clearing session
                     if (error.message.includes('Refresh Token Not Found') || error.message.includes('Invalid Refresh Token')) {
-                        await supabase.auth.signOut();
+                        console.log('⚠️ Token inválido detectado, limpiando sesión...');
+                        await supabase.auth.signOut(); // Limpia estado interno de supabase
                         setUser(null);
+                        
+                        // Limpieza agresiva de localStorage para eliminar tokens corruptos
+                        Object.keys(localStorage).forEach(key => {
+                            if (key.startsWith('sb-') && key.endsWith('-auth-token')) {
+                                localStorage.removeItem(key);
+                            }
+                        });
                     }
                     setIsLoading(false);
                     return;
