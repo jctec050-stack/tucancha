@@ -274,7 +274,42 @@ export default function DashboardPage() {
         };
 
         fetchDisabledSlots();
+        fetchDisabledSlots();
     }, [selectedDate, venues]);
+
+    const handleTestNotification = async () => {
+        if (!user) return;
+        const toastId = toast.loading('Enviando notificación de prueba...');
+        try {
+            const res = await fetch('/api/send-push', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: user.id,
+                    title: '🔔 Notificación de Prueba',
+                    body: 'Si ves esto, ¡las notificaciones funcionan correctamente! 🎉',
+                    url: '/dashboard'
+                })
+            });
+            const data = await res.json();
+            toast.dismiss(toastId);
+
+            if (data.success && data.sent > 0) {
+                toast.success('✅ Notificación enviada. Deberías recibirla en instantes.');
+            } else {
+                if (data.sent === 0) {
+                    toast.error('❌ No hay dispositivos suscritos. Asegúrate de activar las notificaciones en este dispositivo.');
+                } else {
+                    toast.error(`❌ Error: ${data.message || 'Fallo desconocido'}`);
+                }
+                console.error('Test push response:', data);
+            }
+        } catch (e) {
+            toast.dismiss(toastId);
+            toast.error('Error de conexión al enviar notificación');
+            console.error(e);
+        }
+    };
 
     const handleAcceptTerms = async () => {
         if (!user) return;
@@ -473,18 +508,37 @@ export default function DashboardPage() {
                         Ir a Mis Complejos
                     </button>
                 </div>
+                // venue={venues[0]} // Currently showing first venue, could add selector
+                // selectedDate={selectedDate}
+                // onDateChange={setSelectedDate}
+                // selectedMonth={selectedMonth}
+                // onMonthChange={setSelectedMonth}
+                // />
+                // )}
+                // This replacement logic needs to be precise based on previous file view. 
+                // Better to replace the block around OwnerDashboard to insert the button above it.
             ) : (
-                <OwnerDashboard
-                    bookings={bookings}
-                    monthlyBookings={monthlyBookings}
-                    chartBookings={chartBookings}
-                    disabledSlots={disabledSlots}
-                    venue={venues[0]} // Currently showing first venue, could add selector
-                    selectedDate={selectedDate}
-                    onDateChange={setSelectedDate}
-                    selectedMonth={selectedMonth}
-                    onMonthChange={setSelectedMonth}
-                />
+                <>
+                    <div className="flex justify-end mb-4">
+                        <button
+                            onClick={handleTestNotification}
+                            className="flex items-center gap-2 text-sm bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg shadow-sm transition"
+                        >
+                            🔔 Probar Notificaciones
+                        </button>
+                    </div>
+                    <OwnerDashboard
+                        bookings={bookings}
+                        monthlyBookings={monthlyBookings}
+                        chartBookings={chartBookings}
+                        disabledSlots={disabledSlots}
+                        venue={venues[0]} // Currently showing first venue, could add selector
+                        selectedDate={selectedDate}
+                        onDateChange={setSelectedDate}
+                        selectedMonth={selectedMonth}
+                        onMonthChange={setSelectedMonth}
+                    />
+                </>
             )}
         </main>
     );

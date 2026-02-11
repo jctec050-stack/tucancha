@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 import { sendBatchPushNotifications, type PushNotificationPayload, type WebPushSubscription } from '@/lib/webpush';
 
 /**
@@ -26,8 +26,8 @@ export async function POST(request: Request) {
             );
         }
 
-        // Obtener todas las subscriptions del usuario
-        const { data: subscriptions, error: fetchError } = await supabase
+        // Obtener todas las subscriptions del usuario (Usando Admin Client para bypass RLS)
+        const { data: subscriptions, error: fetchError } = await supabaseAdmin
             .from('push_subscriptions')
             .select('endpoint, keys')
             .eq('user_id', userId);
@@ -70,7 +70,7 @@ export async function POST(request: Request) {
 
         // Limpiar subscriptions expirados
         if (result.expired.length > 0) {
-            const { error: deleteError } = await supabase
+            const { error: deleteError } = await supabaseAdmin
                 .from('push_subscriptions')
                 .delete()
                 .eq('user_id', userId)

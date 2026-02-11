@@ -18,6 +18,8 @@ Los scripts deben ejecutarse en este orden:
 2. `02_create_schema.sql` - Crea la nueva estructura de tablas
 3. `03_rls_policies.sql` - Configura las políticas de seguridad
 4. `04_storage_setup.sql` - Configura los buckets de almacenamiento
+5. `28_create_push_subscriptions.sql` - Crea tabla para notificaciones push
+6. `29_secure_push_subscriptions.sql` - Asegura tabla de notificaciones con RLS
 
 ## 📝 Pasos de Migración
 
@@ -154,6 +156,18 @@ CREATE TRIGGER create_subscription_on_owner_signup
     FOR EACH ROW
     EXECUTE FUNCTION create_default_subscription();
 ```
+
+## ✅ Verificación Final
+
+### Paso 7: Configurar Notificaciones Push
+
+1. En SQL Editor, crea una nueva query
+2. Copia y pega el contenido de `28_create_push_subscriptions.sql`
+3. Haz clic en **Run**
+4. Copia y pega el contenido de `29_secure_push_subscriptions.sql`
+5. Haz clic en **Run**
+
+**Verificación**: La tabla `push_subscriptions` debe existir y tener políticas RLS activas.
 
 ## ✅ Verificación Final
 
