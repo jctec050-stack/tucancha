@@ -83,8 +83,17 @@ export function usePushNotifications() {
             // 3. Service Worker Ready (with timeout)
             toast.loading('Conectando con Service Worker...', { id: toastId });
 
+            // Intenta registrar manualmente si no hay controller (especialmente en dev o primera carga)
+            if (!navigator.serviceWorker.controller) {
+                try {
+                    await navigator.serviceWorker.register('/sw.js');
+                } catch (regError) {
+                    console.warn('Manual SW registration failed:', regError);
+                }
+            }
+
             const swTimeout = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('El Service Worker tardó demasiado en responder. Intenta recargar la página.')), 4000)
+                setTimeout(() => reject(new Error('El Service Worker tardó demasiado en responder. Intenta recargar la página.')), 10000)
             );
 
             let registration: ServiceWorkerRegistration;
@@ -92,8 +101,15 @@ export function usePushNotifications() {
                 registration = await Promise.race([navigator.serviceWorker.ready, swTimeout]) as ServiceWorkerRegistration;
             } catch (swError: any) {
                 console.error('SW Ready Error:', swError);
-                toast.error(swError.message || 'Error de Service Worker', { id: toastId });
-                return false;
+                
+                // Intento final: recuperar registro existente
+                const existingReg = await navigator.serviceWorker.getRegistration();
+                if (existingReg) {
+                    registration = existingReg;
+                } else {
+                    toast.error(swError.message || 'Error de Service Worker', { id: toastId });
+                    return false;
+                }
             }
 
             // 4. Check/Create Subscription
