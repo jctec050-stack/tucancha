@@ -568,8 +568,8 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
         </div>
 
         <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col h-[380px]">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex-1">
+          <div className="flex flex-col md:flex-row md:items-center justify-between mb-4">
+            <div className="flex-1 w-full md:w-auto">
               <h5 className="text-lg font-bold text-gray-800 mb-2">Historial del Mes</h5>
               <div className="flex items-center gap-2">
                 <button
@@ -602,13 +602,12 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
                 </button>
               </div>
             </div>
-            <div className="text-right">
+            <div className="w-full md:w-auto mt-4 md:mt-0 flex flex-row md:flex-col justify-between md:justify-end items-center md:items-end text-right">
               <p className="text-xs text-gray-500 font-medium">Total Ingresos</p>
-              <p className={`${
-                monthlyRevenue.toString().length > 9 ? 'text-sm' : 
-                monthlyRevenue.toString().length > 7 ? 'text-base' : 
-                'text-xl'
-              } font-bold text-green-600 transition-all duration-300`}>
+              <p className={`${monthlyRevenue.toString().length > 9 ? 'text-sm' :
+                  monthlyRevenue.toString().length > 7 ? 'text-base' :
+                    'text-xl'
+                } font-bold text-green-600 transition-all duration-300`}>
                 Gs. {monthlyRevenue.toLocaleString('es-PY')}
               </p>
             </div>
@@ -816,9 +815,9 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
                       <div className="flex items-center gap-4">
                         {/* Ranking Position */}
                         <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${index === 0 ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-white shadow-lg' :
-                            index === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-500 text-white shadow-md' :
-                              index === 2 ? 'bg-gradient-to-br from-orange-400 to-orange-600 text-white shadow-md' :
-                                'bg-gray-100 text-gray-600'
+                          index === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-500 text-white shadow-md' :
+                            index === 2 ? 'bg-gradient-to-br from-orange-400 to-orange-600 text-white shadow-md' :
+                              'bg-gray-100 text-gray-600'
                           }`}>
                           {index === 0 ? '👑' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`}
                         </div>
