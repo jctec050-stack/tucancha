@@ -57,11 +57,18 @@
             "purpose": "any maskable"
         }
     ],
+    "categories": [
+        "sports",
+        "productivity",
+        "utilities"
+    ],
+    "orientation": "portrait",
     "screenshots": [
         {
             "src": "/screenshots/mobile-1.png",
             "sizes": "540x720",
-            "type": "image/png"
+            "type": "image/png",
+            "form_factor": "narrow"
         }
     ]
 }

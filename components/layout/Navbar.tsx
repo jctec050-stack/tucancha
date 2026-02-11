@@ -14,7 +14,6 @@ export const Navbar = () => {
     const pathname = usePathname();
     const router = useRouter();
     const [showNotifications, setShowNotifications] = useState(false);
-    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [notifications, setNotifications] = useState<Notification[]>([]);
 
     useEffect(() => {
@@ -78,7 +77,7 @@ export const Navbar = () => {
 
     // Define navigation items based on role
     let navItems: { label: string; href: string }[] = [];
-    
+
     if (user.role === 'ADMIN') {
         navItems = [
             { label: '👮 Panel Admin', href: '/admin/dashboard' },
@@ -101,28 +100,15 @@ export const Navbar = () => {
         <nav className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-200 shadow-sm transition-all duration-300">
             <div className="px-4 md:px-8 py-3 md:py-4 flex items-center justify-between">
                 <div className="flex items-center gap-3 md:gap-4">
-                    {/* Mobile Menu Button */}
-                    <button 
-                        className="md:hidden p-2.5 text-gray-600 hover:bg-gray-100 rounded-xl transition-colors active:scale-95 touch-manipulation"
-                        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                        aria-label="Menu"
-                    >
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            {isMobileMenuOpen ? (
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                            ) : (
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
-                            )}
-                        </svg>
-                    </button>
+
 
                     {/* Logo */}
-                    <Link 
+                    <Link
                         href={
-                            user.role === 'OWNER' ? '/dashboard' : 
-                            user.role === 'ADMIN' ? '/admin/dashboard' : 
-                            '/search'
-                        } 
+                            user.role === 'OWNER' ? '/dashboard' :
+                                user.role === 'ADMIN' ? '/admin/dashboard' :
+                                    '/search'
+                        }
                         className="flex items-center cursor-pointer active:scale-95 transition-transform"
                     >
                         <img src="/logo.png" alt="TuCancha" className="w-10 h-10 md:w-16 md:h-16 object-contain" />
@@ -136,11 +122,10 @@ export const Navbar = () => {
                                 <Link
                                     key={item.href}
                                     href={item.href}
-                                    className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${
-                                        isActive
-                                            ? 'bg-indigo-50 text-indigo-600'
-                                            : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                                    }`}
+                                    className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${isActive
+                                        ? 'bg-indigo-50 text-indigo-600'
+                                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                                        }`}
                                 >
                                     {item.label}
                                 </Link>
@@ -191,37 +176,7 @@ export const Navbar = () => {
                 </div>
             </div>
 
-            {/* Mobile Navigation Menu */}
-            {isMobileMenuOpen && (
-                <div className="md:hidden border-t border-gray-100 bg-white">
-                    <div className="p-4 space-y-2">
-                         <div className="flex items-center gap-3 mb-4 px-2">
-                            <div className="w-8 h-8 rounded-full bg-indigo-200 border border-indigo-300"></div>
-                            <div>
-                                <p className="text-sm font-bold text-gray-900">{user.name}</p>
-                                <p className="text-xs text-gray-500">{user.email}</p>
-                            </div>
-                        </div>
-                        {navItems.map((item) => {
-                            const isActive = pathname === item.href;
-                            return (
-                                <Link
-                                    key={item.href}
-                                    href={item.href}
-                                    onClick={() => setIsMobileMenuOpen(false)}
-                                    className={`block px-4 py-3 rounded-lg font-bold text-base transition-all ${
-                                        isActive
-                                            ? 'bg-indigo-50 text-indigo-600'
-                                            : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                                    }`}
-                                >
-                                    {item.label}
-                                </Link>
-                            );
-                        })}
-                    </div>
-                </div>
-            )}
+
         </nav>
     );
 };
