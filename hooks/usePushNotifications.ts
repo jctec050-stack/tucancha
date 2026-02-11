@@ -26,15 +26,34 @@ export const usePushNotifications = (userId?: string) => {
         if ('serviceWorker' in navigator && 'PushManager' in window) {
             setIsSupported(true);
             
-            // Check current subscription
-            navigator.serviceWorker.ready.then(registration => {
-                registration.pushManager.getSubscription().then(subscription => {
-                    if (subscription) {
-                        setIsSubscribed(true);
+            const checkSubscription = async () => {
+                try {
+                    // Check if controller is active (fast check)
+                    if (navigator.serviceWorker.controller) {
+                        const registration = await navigator.serviceWorker.ready;
+                        const subscription = await registration.pushManager.getSubscription();
+                        if (subscription) setIsSubscribed(true);
+                    } else {
+                        // Wait for SW ready with timeout (1s - reduced for faster UI)
+                        const registration = await Promise.race([
+                            navigator.serviceWorker.ready,
+                            new Promise<never>((_, reject) => 
+                                setTimeout(() => reject(new Error('Service Worker ready timeout')), 1000)
+                            )
+                        ]) as ServiceWorkerRegistration;
+
+                        const subscription = await registration.pushManager.getSubscription();
+                        if (subscription) setIsSubscribed(true);
                     }
+                } catch (error) {
+                    // console.warn('⚠️ Push notification check timed out or failed:', error);
+                    // Non-blocking error: just stop loading so button is enabled
+                } finally {
                     setIsLoading(false);
-                });
-            });
+                }
+            };
+
+            checkSubscription();
         } else {
             setIsSupported(false);
             setIsLoading(false);
@@ -46,6 +65,7 @@ export const usePushNotifications = (userId?: string) => {
         setIsLoading(true);
 
         try {
+            // Ensure SW is ready (or try to register if missing - handled by next-pwa usually)
             const registration = await navigator.serviceWorker.ready;
             
             // Check permission
@@ -74,7 +94,9 @@ export const usePushNotifications = (userId?: string) => {
                 setIsSubscribed(true);
                 toast.success('¡Notificaciones activadas!');
             } else {
-                toast.error('Error al guardar la suscripción');
+                // If saving failed but subscription succeeded locally, maybe we should unsubscribe?
+                // For now, keep it simple.
+                toast.error('Error al guardar en servidor');
             }
 
         } catch (error) {
@@ -99,6 +121,7 @@ export const usePushNotifications = (userId?: string) => {
             }
         } catch (error) {
             console.error('Error unsubscribing:', error);
+            toast.error('Error al desactivar');
         } finally {
             setIsLoading(false);
         }

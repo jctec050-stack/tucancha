@@ -5,6 +5,7 @@ import { Footer } from '@/components/layout/Footer';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ReloadPrompt } from '@/components/ReloadPrompt';
 import { BottomNav } from '@/components/layout/BottomNav';
+import { Toaster } from 'react-hot-toast';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -65,6 +66,7 @@ export default function RootLayout({
                 <ErrorBoundary>
                     <AuthProvider>
                         <div className="flex flex-col min-h-screen">
+                            <Toaster position="top-center" />
                             <Navbar />
                             <div className="flex-grow pb-16 md:pb-0">
                                 {children}
