@@ -704,7 +704,7 @@ export default function SearchPage() {
 
                     {/* Booking Footer */}
                     {selectedSlots.length > 0 && (
-                        <div className="fixed bottom-4 md:bottom-6 left-4 right-4 md:left-1/2 md:right-auto md:transform md:-translate-x-1/2 z-50 animate-in slide-in-from-bottom-4 fade-in">
+                        <div className="fixed bottom-20 md:bottom-6 left-4 right-4 md:left-1/2 md:right-auto md:transform md:-translate-x-1/2 z-50 animate-in slide-in-from-bottom-4 fade-in">
                             <div className="bg-gray-900 text-white rounded-2xl shadow-2xl px-4 md:px-8 py-3 md:py-4 flex flex-col sm:flex-row items-center gap-3 md:gap-8 md:min-w-[320px]">
                                 <div className="text-center sm:text-left">
                                     <p className="text-gray-400 text-xs font-bold uppercase mb-0.5">Total a Pagar</p>
