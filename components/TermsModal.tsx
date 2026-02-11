@@ -4,9 +4,10 @@ interface TermsModalProps {
     isOpen: boolean;
     onAccept: () => void;
     onReject: () => void;
+    userEmail?: string;
 }
 
-export const TermsModal: React.FC<TermsModalProps> = ({ isOpen, onAccept, onReject }) => {
+export const TermsModal: React.FC<TermsModalProps> = ({ isOpen, onAccept, onReject, userEmail }) => {
     if (!isOpen) return null;
 
     return (
@@ -30,10 +31,15 @@ export const TermsModal: React.FC<TermsModalProps> = ({ isOpen, onAccept, onReje
                                     Bienvenido a TuCancha - Tu Socio de Negocios
                                 </h3>
                                 <div className="mt-4">
+                                    {userEmail && (
+                                        <div className="inline-block bg-gray-100 rounded-full px-3 py-1 text-xs font-semibold text-gray-600 mb-4 border border-gray-200">
+                                            Logueado como: {userEmail}
+                                        </div>
+                                    )}
                                     <p className="text-sm text-gray-500 mb-4">
                                         Gracias por unirte a TuCancha! Para comenzar, por favor acepta nuestros términos de servicio diseñados para impulsar tu crecimiento.
                                     </p>
-                                    
+
                                     <div className="bg-indigo-50 rounded-xl p-4 mb-4 border border-indigo-100">
                                         <h4 className="font-bold text-indigo-900 text-sm mb-2">🎁 Prueba Gratuita</h4>
                                         <p className="text-sm text-indigo-700">

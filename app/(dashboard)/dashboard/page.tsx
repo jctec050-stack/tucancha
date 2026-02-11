@@ -87,6 +87,15 @@ export default function DashboardPage() {
                     .limit(1)
                     .maybeSingle();
 
+
+
+                if (error) {
+                    console.error('❌ Error checking subscription:', error);
+                    // If network error, don't assume they are new. Don't show TermsModal.
+                    // Just show a subtle toast or retry could be better, but blocking false-positive is priority.
+                    return;
+                }
+
                 if (!sub) {
                     // No subscription found -> Check if user is newly registered (e.g. within last minute) or simply hasn't accepted terms
                     // Logic: If no sub exists, it means they haven't accepted terms yet.
@@ -378,6 +387,7 @@ export default function DashboardPage() {
                 isOpen={showTermsModal}
                 onAccept={handleAcceptTerms}
                 onReject={handleRejectTerms}
+                userEmail={user?.email}
             />
 
             <ReactivationModal
