@@ -39,20 +39,25 @@ export function usePushNotifications() {
     const checkSubscription = async () => {
         if (!('serviceWorker' in navigator)) return;
         try {
-            const registration = await navigator.serviceWorker.ready;
+            // Add timeout to avoid hanging on check
+            const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('SW ready timeout')), 2000));
+            const registration = await Promise.race([navigator.serviceWorker.ready, timeout]) as ServiceWorkerRegistration;
+
             const subscription = await registration.pushManager.getSubscription();
             setIsSubscribed(!!subscription);
         } catch (error) {
-            console.error('Error checking subscription:', error);
+            // Silent error on check
+            console.warn('Error checking subscription:', error);
         }
     };
 
     const subscribe = async () => {
         if (!user) return false;
         setLoading(true);
-        const toastId = toast.loading('Suscribiendo dispositivo...');
+        const toastId = toast.loading('Solicitando permisos...');
 
         try {
+            // 1. Check Permissions
             const perm = await Notification.requestPermission();
             setPermission(perm);
 
@@ -61,22 +66,39 @@ export function usePushNotifications() {
                 return false;
             }
 
+            // 2. config Check
             const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 
             if (!vapidPublicKey) {
                 console.error('❌ Missing NEXT_PUBLIC_VAPID_PUBLIC_KEY');
-                toast.error('Error de configuración: Falta VAPID KEY', { id: toastId });
+                toast.error('Error config: VAPID KEY missing', { id: toastId });
                 return false;
             }
 
             if (!('serviceWorker' in navigator)) {
-                toast.error('Navegador no soporta Service Workers', { id: toastId });
+                toast.error('Navegador no soporta SW', { id: toastId });
                 return false;
             }
 
-            const registration = await navigator.serviceWorker.ready;
+            // 3. Service Worker Ready (with timeout)
+            toast.loading('Conectando con Service Worker...', { id: toastId });
 
-            // Check if already subscribed in browser to avoid error
+            const swTimeout = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('El Service Worker tardó demasiado en responder. Intenta recargar la página.')), 4000)
+            );
+
+            let registration: ServiceWorkerRegistration;
+            try {
+                registration = await Promise.race([navigator.serviceWorker.ready, swTimeout]) as ServiceWorkerRegistration;
+            } catch (swError: any) {
+                console.error('SW Ready Error:', swError);
+                toast.error(swError.message || 'Error de Service Worker', { id: toastId });
+                return false;
+            }
+
+            // 4. Check/Create Subscription
+            toast.loading('Creando suscripción...', { id: toastId });
+
             let subscription = await registration.pushManager.getSubscription();
 
             if (!subscription) {
@@ -87,14 +109,16 @@ export function usePushNotifications() {
                     });
                 } catch (subError: any) {
                     console.error('PushManager Subscribe Error:', subError);
-                    toast.error(`Error al solicitar push: ${subError.message}`, { id: toastId });
+                    toast.error(`Error al crear suscripción push: ${subError.message}`, { id: toastId });
                     return false;
                 }
             }
 
             console.log('✅ Browser Subscribed:', subscription.endpoint);
 
-            // Save to DB
+            // 5. Save to DB
+            toast.loading('Guardando en servidor...', { id: toastId });
+
             const response = await fetch('/api/subscribe-push', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -106,18 +130,17 @@ export function usePushNotifications() {
 
             if (!response.ok) {
                 const errData = await response.json();
-                const errMsg = errData.error || 'Fallo al guardar en servidor';
+                const errMsg = errData.error || 'Server rejected subscription';
                 throw new Error(errMsg);
             }
 
-            console.log('✅ Subscription saved to DB');
             setIsSubscribed(true);
-            toast.success('¡Dispositivo suscrito con éxito!', { id: toastId });
+            toast.success('¡Suscripción exitosa!', { id: toastId });
             return true;
 
         } catch (error: any) {
             console.error('Error subscribing:', error);
-            toast.error(`Error de suscripción: ${error.message || 'Desconocido'}`, { id: toastId });
+            toast.error(`Error final: ${error.message || 'Desconocido'}`, { id: toastId });
             return false;
         } finally {
             setLoading(false);
