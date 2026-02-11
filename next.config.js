@@ -3,6 +3,7 @@ const withPWA = require('next-pwa')({
     dest: 'public',
     register: true,
     skipWaiting: true,
+    importScripts: ['/custom-sw.js'], // Import custom logic
     disable: process.env.NODE_ENV === 'development',
     runtimeCaching: [
         {
