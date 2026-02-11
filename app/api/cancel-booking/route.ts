@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
-import { generateCancellationEmail } from '@/lib/email-templates';
+import { sendPushToUser } from '@/lib/push-notifications';
 
 /**
  * API Route para cancelar reserva y notificar
@@ -31,14 +31,16 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
         }
 
-        // 2. Actualizar estado a CANCELLED
-        const { error: updateError } = await supabase
-            .from('bookings')
-            .update({ status: 'CANCELLED' })
-            .eq('id', bookingId);
+        // 2. Actualizar estado a CANCELLED (si no lo está ya)
+        if (booking.status !== 'CANCELLED') {
+            const { error: updateError } = await supabase
+                .from('bookings')
+                .update({ status: 'CANCELLED' })
+                .eq('id', bookingId);
 
-        if (updateError) {
-            throw updateError;
+            if (updateError) {
+                throw updateError;
+            }
         }
 
         console.log(`✅ Reserva ${bookingId} cancelada`);
@@ -51,19 +53,20 @@ export async function POST(request: Request) {
         const date = booking.date;
         const time = booking.start_time?.substring(0, 5);
 
-        // A. Notificar al Dueño por Push
+        // A. Notificar al Dueño por Push (Directo, sin fetch interno)
         if (ownerId) {
-            fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/send-push`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    userId: ownerId,
+            console.log(`Intentando enviar push al dueño: ${ownerId}`);
+            try {
+                const pushResult = await sendPushToUser(ownerId, {
                     title: '❌ Reserva Cancelada',
                     body: `${playerName} canceló su reserva en ${venueName} para el ${date} a las ${time}hs`,
                     url: '/dashboard',
                     data: { bookingId, type: 'CANCELLATION' }
-                })
-            }).catch(e => console.error('Error push cancellation owner:', e));
+                });
+                console.log('Push result:', pushResult);
+            } catch (pushError) {
+                console.error('Error enviando push directo:', pushError);
+            }
         }
 
         // B. Notificar al Dueño por Email (Opcional, si tiene email configurado)
