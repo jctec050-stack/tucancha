@@ -33,7 +33,7 @@ export const generatePlayerBookingEmail = (
       // Note: time format is HH:mm or HH:mm:ss. We use substring(0,5) usually.
       const currentEndSimple = current.endTime.substring(0, 5);
       const nextStartSimple = next.time.substring(0, 5);
-      
+
       if (isSameDate && isSameCourt && currentEndSimple === nextStartSimple) {
         // Merge
         current.endTime = nextEndTime;
@@ -171,7 +171,7 @@ export const generateOwnerNotificationEmail = (
       const isSameCourt = current.courtName === next.courtName;
       const currentEndSimple = current.endTime.substring(0, 5);
       const nextStartSimple = next.time.substring(0, 5);
-      
+
       if (isSameDate && isSameCourt && currentEndSimple === nextStartSimple) {
         current.endTime = nextEndTime;
       } else {
@@ -234,6 +234,50 @@ export const generateOwnerNotificationEmail = (
           <ul>
             ${bookingRows}
           </ul>
+
+          <p>Ingresa a tu panel para ver más detalles.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+};
+
+export const generateCancellationEmail = (
+  venueName: string,
+  playerName: string,
+  bookings: { date: string; time: string; courtName: string }[]
+) => {
+  const [year, month, day] = bookings[0].date.split('-');
+  const dateFormatted = `${day}/${month}/${year}`;
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body { font-family: sans-serif; color: #333; line-height: 1.6; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px; }
+        .header { margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .content { margin-bottom: 20px; }
+        .highlight { background-color: #fef2f2; padding: 15px; border-radius: 8px; border: 1px solid #fecaca; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h2 style="color: #991b1b;">Reserva Cancelada</h2>
+          <p>Una reserva en <strong>${venueName}</strong> ha sido cancelada.</p>
+        </div>
+
+        <div class="content">
+          <div class="highlight">
+            <p><strong>Cliente:</strong> ${playerName}</p>
+            <p><strong>Fecha:</strong> ${dateFormatted}</p>
+            <p><strong>Horario:</strong> ${bookings[0].time}</p>
+            <p><strong>Cancha:</strong> ${bookings[0].courtName}</p>
+          </div>
 
           <p>Ingresa a tu panel para ver más detalles.</p>
         </div>
