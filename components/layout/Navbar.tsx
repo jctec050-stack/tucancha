@@ -64,11 +64,13 @@ export const Navbar = () => {
 
     const handleLogout = async () => {
         try {
+            // Optimistic UI update
             await logout();
-            router.push('/login');
+            // Force hard reload to clear all memory/states/subscriptions
+            // This prevents the "freeze" issue on PWA when switching users
+            window.location.href = '/login';
         } catch (error) {
             console.error('Logout error:', error);
-            // Force reload as fallback
             window.location.href = '/login';
         }
     };

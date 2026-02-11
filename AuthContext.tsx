@@ -271,10 +271,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setUser(null);
 
         // 🔥 Limpiar cache de localStorage
-        if (currentUserId) {
-            localStorage.removeItem(`profile_${currentUserId}`);
-            console.log('🗑️ Cache de perfil limpiado');
-        }
+        // Limpiamos TODOS los perfiles cacheados para evitar conflictos o basura
+        Object.keys(localStorage).forEach(key => {
+            if (key.startsWith('profile_')) {
+                localStorage.removeItem(key);
+            }
+        });
+        console.log('🗑️ Cache de perfiles limpiado completamente');
 
         // Sign out in background
         try {
