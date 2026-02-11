@@ -604,7 +604,13 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
             </div>
             <div className="text-right">
               <p className="text-xs text-gray-500 font-medium">Total Ingresos</p>
-              <p className="text-xl font-bold text-green-600">Gs. {monthlyRevenue.toLocaleString('es-PY')}</p>
+              <p className={`${
+                monthlyRevenue.toString().length > 9 ? 'text-sm' : 
+                monthlyRevenue.toString().length > 7 ? 'text-base' : 
+                'text-xl'
+              } font-bold text-green-600 transition-all duration-300`}>
+                Gs. {monthlyRevenue.toLocaleString('es-PY')}
+              </p>
             </div>
           </div>
 
