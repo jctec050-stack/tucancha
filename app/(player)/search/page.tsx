@@ -17,6 +17,11 @@ export default function SearchPage() {
     const { user, isLoading: authLoading } = useAuth();
     const router = useRouter();
 
+    // State
+    const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
+    const [selectedDate, setSelectedDate] = useState<string>(getLocalDateString());
+    const [searchQuery, setSearchQuery] = useState<string>('');
+
     // SWR Hooks
     const { venues, isLoading: venuesLoading } = useVenues();
     
@@ -35,11 +40,6 @@ export default function SearchPage() {
             console.log('[SearchPage] Bookings fetched:', bookings);
         }
     }, [bookings, selectedVenue, selectedDate]);
-
-    // State
-    const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
-    const [selectedDate, setSelectedDate] = useState<string>(getLocalDateString());
-    const [searchQuery, setSearchQuery] = useState<string>('');
 
     // Disabled slots depend on selected venue and date
     const { disabledSlots, isLoading: slotsLoading } = useDisabledSlots(selectedVenue?.id || null, selectedDate);
