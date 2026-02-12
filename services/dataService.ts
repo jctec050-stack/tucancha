@@ -537,7 +537,7 @@ export const getBookings = async (
             venue_longitude: (b.venues as any)?.longitude,
             court_name: (b.courts as any)?.name,
             court_type: (b.courts as any)?.type
-        })) as Booking[];
+        })) as unknown as Booking[];
 
         return {
             data: mappedData,
