@@ -124,6 +124,7 @@ export const Navbar = () => {
                                 <Link
                                     key={item.href}
                                     href={item.href}
+                                    prefetch={true} // Explicit prefetch
                                     className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${isActive
                                         ? 'bg-indigo-50 text-indigo-600'
                                         : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'

@@ -9,9 +9,12 @@ import { generatePlayerBookingEmail, generateOwnerNotificationEmail } from '@/li
 import { TIME_SLOTS } from '@/constants';
 import { CourtCard } from '@/components/CourtCard';
 import { Toast } from '@/components/Toast';
-import { ConfirmationModal } from '@/components/ConfirmationModal';
+import dynamic from 'next/dynamic';
 import { useVenues, useBookings, useDisabledSlots } from '@/hooks/useData';
 import { getLocalDateString } from '@/utils/dateUtils';
+
+// Lazy load modal
+const ConfirmationModal = dynamic(() => import('@/components/ConfirmationModal').then(mod => ({ default: mod.ConfirmationModal })), { ssr: false });
 
 export default function SearchPage() {
     const { user, isLoading: authLoading } = useAuth();

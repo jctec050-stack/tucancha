@@ -22,9 +22,11 @@ const OwnerDashboard = dynamic(
     }
 );
 
-import { TermsModal } from '@/components/TermsModal';
+// Lazy load modals
+const TermsModal = dynamic(() => import('@/components/TermsModal').then(mod => ({ default: mod.TermsModal })), { ssr: false });
+const ReactivationModal = dynamic(() => import('@/components/ReactivationModal').then(mod => ({ default: mod.ReactivationModal })), { ssr: false });
+
 import { Toaster, toast } from 'react-hot-toast';
-import { ReactivationModal } from '@/components/ReactivationModal';
 import { supabase } from '@/lib/supabase';
 import { getBookings } from '@/services/dataService';
 

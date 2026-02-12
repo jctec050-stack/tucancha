@@ -6,8 +6,11 @@ import { useRouter } from 'next/navigation';
 import { Booking } from '@/types';
 import { cancelBooking, deleteBooking } from '@/services/dataService';
 import { usePlayerBookings } from '@/hooks/useData';
-import { ConfirmationModal } from '@/components/ConfirmationModal';
 import { Toast } from '@/components/Toast';
+import dynamic from 'next/dynamic';
+
+// Lazy load modal
+const ConfirmationModal = dynamic(() => import('@/components/ConfirmationModal').then(mod => ({ default: mod.ConfirmationModal })), { ssr: false });
 
 export default function BookingsPage() {
     const { user, isLoading } = useAuth();

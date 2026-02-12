@@ -109,7 +109,11 @@ export const getVenues = async (ownerId?: string): Promise<Venue[]> => {
     try {
         const { data, error } = await supabase
             .from('venues')
-            .select(`*, courts (*)`)
+            .select(`
+                id, name, address, image_url, opening_hours, closed_days, amenities, 
+                contact_info, latitude, longitude, is_active, owner_id,
+                courts (id, name, type, price_per_hour, is_active, image_url)
+            `)
             .eq('is_active', true)
             .order('name');
 
@@ -473,7 +477,7 @@ export const getBookings = async (
         let query = supabase
             .from('bookings')
             .select(`
-                *,
+                id, date, start_time, end_time, price, status, payment_status, created_at,
                 profiles:player_id (full_name, email, phone),
                 venues:venue_id!inner (name, address, contact_info, latitude, longitude, owner_id),
                 courts:court_id (name, type)

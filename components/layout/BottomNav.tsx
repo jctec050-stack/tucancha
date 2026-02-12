@@ -96,6 +96,7 @@ export const BottomNav = () => {
                         <Link
                             key={item.href}
                             href={item.href}
+                            prefetch={true} // Explicit prefetch
                             className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${isActive ? 'text-indigo-600' : 'text-gray-400 hover:text-gray-600'
                                 }`}
                         >

@@ -8,8 +8,11 @@ import { Venue, Booking, DisabledSlot } from '@/types';
 import { toggleSlotAvailability } from '@/services/dataService';
 import { useOwnerVenues, useOwnerBookings, useDisabledSlots } from '@/hooks/useData';
 import { ScheduleManager } from '@/components/ScheduleManager';
-import { RecurringBookingModal } from '@/components/RecurringBookingModal';
 import { Toast } from '@/components/Toast';
+import dynamic from 'next/dynamic';
+
+// Lazy load modal
+const RecurringBookingModal = dynamic(() => import('@/components/RecurringBookingModal').then(mod => ({ default: mod.RecurringBookingModal })), { ssr: false });
 
 export default function SchedulePage() {
     const { user, isLoading } = useAuth();

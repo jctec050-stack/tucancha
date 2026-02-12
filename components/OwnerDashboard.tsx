@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { Booking, Venue, DisabledSlot } from '../types';
 import { usePagination } from '@/hooks/usePagination';
 import { getLocalDateString, addDays } from '@/utils/dateUtils';
@@ -277,7 +275,9 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
 
   }, [dailyBookings, disabledSlots, venue.courts]);
 
-  const handleDownloadPDF = () => {
+  const handleDownloadPDF = async () => {
+    const jsPDF = (await import('jspdf')).default;
+    const autoTable = (await import('jspdf-autotable')).default;
     const doc = new jsPDF();
 
     // Add Header
