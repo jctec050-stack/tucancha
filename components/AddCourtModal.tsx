@@ -12,6 +12,7 @@ interface AddCourtModalProps {
     currentImageUrl: string;
     currentAmenities?: string[];
     currentContactInfo?: string;
+    currentLimitFutureBookings?: boolean;
     currentCourts?: Court[];
     onClose: () => void;
     onSave: (
@@ -23,7 +24,8 @@ interface AddCourtModalProps {
         amenities: string[],
         contactInfo: string,
         newCourts: Omit<Court, 'id'>[],
-        courtsToDelete: string[]
+        courtsToDelete: string[],
+        limitFutureBookings: boolean
     ) => Promise<void>;
 }
 
@@ -35,6 +37,7 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
     currentImageUrl,
     currentAmenities = [],
     currentContactInfo = '',
+    currentLimitFutureBookings = false,
     currentCourts = [],
     onClose,
     onSave
@@ -58,6 +61,9 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
 
     // Step 5: Contact
     const [contactPhone, setContactPhone] = useState(currentContactInfo);
+
+    // Step X: Settings
+    const [limitFutureBookings, setLimitFutureBookings] = useState(currentLimitFutureBookings);
 
     // Pending Courts List
     const [pendingCourts, setPendingCourts] = useState<Omit<Court, 'id'>[]>([]);
@@ -216,7 +222,8 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
                 amenities,
                 contactPhone,
                 pendingCourts,
-                courtsToDelete
+                courtsToDelete,
+                limitFutureBookings
             );
             onClose();
         } catch (err) {
@@ -277,7 +284,9 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
 
                     {/* Section 2: Opening Hours */}
                     <div className="bg-gray-50 p-4 rounded-2xl space-y-4">
-                        <h4 className="font-bold text-gray-800">2. Horarios de Atención</h4>
+                        <div className="flex justify-between items-center">
+                            <h4 className="font-bold text-gray-800">2. Horarios y Reglas</h4>
+                        </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-2">Apertura</label>
@@ -297,6 +306,23 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
                                     className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
                                 />
                             </div>
+                        </div>
+
+                        {/* Limit Future Bookings Toggle */}
+                        <div className="flex items-center justify-between bg-white p-3 rounded-xl border border-gray-200">
+                            <div>
+                                <p className="text-sm font-bold text-gray-800">Habilitado por día</p>
+                                <p className="text-xs text-gray-500">Solo permitir reservas para el día actual</p>
+                            </div>
+                            <label className="relative inline-flex items-center cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={limitFutureBookings}
+                                    onChange={(e) => setLimitFutureBookings(e.target.checked)}
+                                    className="sr-only peer"
+                                />
+                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                            </label>
                         </div>
                         
                         <div className="mt-4">

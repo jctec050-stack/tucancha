@@ -57,7 +57,8 @@ export default function VenuesPage() {
         amenities: string[],
         contactInfo: string,
         newCourts: Omit<Court, 'id'>[],
-        courtsToDelete: string[] = []
+        courtsToDelete: string[] = [],
+        limitFutureBookings: boolean = false
     ) => {
         if (!user) return;
 
@@ -77,7 +78,8 @@ export default function VenuesPage() {
                     closed_days: closedDays,
                     image_url: imageUrl,
                     amenities: amenities,
-                    contact_info: contactInfo
+                    contact_info: contactInfo,
+                    limit_future_bookings: limitFutureBookings
                 };
 
                 const success = await updateVenue(venueToEdit.id, updates);
@@ -103,7 +105,8 @@ export default function VenuesPage() {
                         opening_hours: openingHours,
                         closed_days: closedDays,
                         amenities: amenities,
-                        contact_info: contactInfo
+                        contact_info: contactInfo,
+                        limit_future_bookings: limitFutureBookings
                     },
                     newCourts
                 );
@@ -167,6 +170,7 @@ export default function VenuesPage() {
                     currentImageUrl={venueToEdit?.image_url || ''}
                     currentAmenities={venueToEdit?.amenities || []}
                     currentContactInfo={venueToEdit?.contact_info || ''}
+                    currentLimitFutureBookings={venueToEdit?.limit_future_bookings || false}
                     currentCourts={venueToEdit?.courts || []}
                     onClose={() => setShowAddCourtModal(false)}
                     onSave={handleSaveVenue}

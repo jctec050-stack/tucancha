@@ -62,6 +62,7 @@ export interface Venue {
   contact_info?: string;
   image_url?: string;
   is_active: boolean;
+  limit_future_bookings: boolean; // Si true, solo se puede reservar en el día actual
   created_at: string;
   updated_at: string;
   courts: Court[]; // Populated via join

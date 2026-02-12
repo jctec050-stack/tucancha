@@ -111,7 +111,7 @@ export const getVenues = async (ownerId?: string): Promise<Venue[]> => {
             .from('venues')
             .select(`
                 id, name, address, image_url, opening_hours, closed_days, amenities, 
-                contact_info, latitude, longitude, is_active, owner_id,
+                contact_info, latitude, longitude, is_active, owner_id, limit_future_bookings,
                 courts (id, name, type, price_per_hour, is_active, image_url)
             `)
             .eq('is_active', true)
@@ -178,6 +178,7 @@ export const createVenue = async (venueData: Omit<Venue, 'id' | 'courts' | 'crea
             contact_info: venueData.contact_info,
             latitude: venueData.latitude,
             longitude: venueData.longitude,
+            limit_future_bookings: venueData.limit_future_bookings ?? false,
             is_active: true
         };
 

@@ -554,7 +554,14 @@ export default function SearchPage() {
                                             onClick={() => {
                                                 const d = new Date(selectedDate + 'T00:00:00');
                                                 d.setDate(d.getDate() - 1);
-                                                setSelectedDate(getLocalDateString(d));
+                                                const prevDate = getLocalDateString(d);
+                                                
+                                                if (selectedVenue.limit_future_bookings && prevDate < getLocalDateString()) {
+                                                    // Allow going back to today if we somehow got ahead, but logic below prevents future
+                                                    // But generally if limited to today, we just want today.
+                                                    if (prevDate < getLocalDateString()) return; // Don't allow past
+                                                }
+                                                setSelectedDate(prevDate);
                                             }}
                                             className="p-3 hover:bg-white md:hover:bg-gray-100 rounded-lg text-gray-500 transition shadow-sm md:shadow-none"
                                         >
@@ -565,6 +572,8 @@ export default function SearchPage() {
                                                 type="date"
                                                 value={selectedDate}
                                                 onChange={(e) => setSelectedDate(e.target.value)}
+                                                min={selectedVenue.limit_future_bookings ? getLocalDateString() : undefined}
+                                                max={selectedVenue.limit_future_bookings ? getLocalDateString() : undefined}
                                                 className="text-xl font-bold text-indigo-600 bg-transparent outline-none cursor-pointer text-center md:text-left w-full"
                                             />
                                         </div>
@@ -572,7 +581,13 @@ export default function SearchPage() {
                                             onClick={() => {
                                                 const d = new Date(selectedDate + 'T00:00:00');
                                                 d.setDate(d.getDate() + 1);
-                                                setSelectedDate(getLocalDateString(d));
+                                                const nextDate = getLocalDateString(d);
+                                                
+                                                if (selectedVenue.limit_future_bookings && nextDate > getLocalDateString()) {
+                                                    setToast({ message: 'Este complejo solo permite reservas para el día actual.', type: 'info' });
+                                                    return;
+                                                }
+                                                setSelectedDate(nextDate);
                                             }}
                                             className="p-3 hover:bg-white md:hover:bg-gray-100 rounded-lg text-gray-500 transition shadow-sm md:shadow-none"
                                         >
