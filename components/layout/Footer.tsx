@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 
 export const Footer = () => {
     const [version, setVersion] = useState<string>('');
@@ -27,6 +28,15 @@ export const Footer = () => {
             <p className="mt-1">
                 © {new Date().getFullYear()} TuCancha!. Todos los derechos reservados.
             </p>
+            <div className="mt-2 space-x-4">
+                <Link href="/terms" className="hover:underline hover:text-gray-600 transition-colors">
+                    Términos y Condiciones
+                </Link>
+                <span>•</span>
+                <Link href="/privacy" className="hover:underline hover:text-gray-600 transition-colors">
+                    Política de Privacidad
+                </Link>
+            </div>
         </footer>
     );
 };

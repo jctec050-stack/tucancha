@@ -208,7 +208,16 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onRegister, onSwitch
                             >
                                 términos y condiciones
                             </a>{' '}
-                            y la política de privacidad.
+                            y la{' '}
+                            <a 
+                                href="/privacy" 
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="font-bold text-indigo-600 hover:underline"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                política de privacidad
+                            </a>.
                         </label>
                     </div>
 
