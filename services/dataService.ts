@@ -523,21 +523,26 @@ export const getBookings = async (
         if (error) throw error;
 
         // Map and Flatten
-        const mappedData = (data || []).map(b => ({
-            ...b,
-            start_time: b.start_time?.substring(0, 5), // Trim seconds
-            end_time: b.end_time?.substring(0, 5),
-            status: getDerivedStatus(b),
-            player_name: b.player_name || (b.profiles as any)?.full_name,
-            player_phone: b.player_phone || (b.profiles as any)?.phone,
-            venue_name: (b.venues as any)?.name,
-            venue_address: (b.venues as any)?.address,
-            venue_contact_info: (b.venues as any)?.contact_info,
-            venue_latitude: (b.venues as any)?.latitude,
-            venue_longitude: (b.venues as any)?.longitude,
-            court_name: (b.courts as any)?.name,
-            court_type: (b.courts as any)?.type
-        })) as unknown as Booking[];
+        const mappedData = (data || []).map(b => {
+            // Force cast 'b' to any to access joined tables safely
+            const raw = b as any;
+            
+            return {
+                ...b,
+                start_time: b.start_time?.substring(0, 5), // Trim seconds
+                end_time: b.end_time?.substring(0, 5),
+                status: getDerivedStatus(b),
+                player_name: raw.player_name || raw.profiles?.full_name,
+                player_phone: raw.player_phone || raw.profiles?.phone,
+                venue_name: raw.venues?.name,
+                venue_address: raw.venues?.address,
+                venue_contact_info: raw.venues?.contact_info,
+                venue_latitude: raw.venues?.latitude,
+                venue_longitude: raw.venues?.longitude,
+                court_name: raw.courts?.name,
+                court_type: raw.courts?.type
+            };
+        }) as unknown as Booking[];
 
         return {
             data: mappedData,
