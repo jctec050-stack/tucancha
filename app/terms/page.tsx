@@ -18,53 +18,103 @@ export default function TermsPage() {
 
         <div className="prose prose-indigo max-w-none text-gray-600 space-y-6">
           <section>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">1. Aceptación de los Términos</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">1. RELACIÓN CONTRACTUAL</h2>
             <p>
-              Al acceder y utilizar la plataforma TuCancha, usted acepta estar sujeto a estos Términos y Condiciones. Si no está de acuerdo con alguna parte de estos términos, no podrá utilizar nuestros servicios.
+              Los presentes Términos y Condiciones regulan el acceso y uso de la plataforma TuCancha (en adelante, la "Plataforma"), que comprende el sitio web y sus aplicaciones móviles. Al utilizar la Plataforma, usted acepta vincularse legalmente a estos términos.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">2. Descripción del Servicio</h2>
-            <p>
-              TuCancha es una plataforma que conecta a jugadores con complejos deportivos para facilitar la reserva de canchas. No somos propietarios ni operamos los complejos deportivos listados.
+            <h2 className="text-xl font-bold text-gray-900 mb-2">2. NATURALEZA DE LA PLATAFORMA</h2>
+            <p>TuCancha funciona exclusivamente como un mercado en línea y punto de encuentro.</p>
+            <p className="mt-2">
+              <span className="font-semibold text-gray-900">Intermediación:</span> La Plataforma facilita que propietarios de establecimientos deportivos ("Clubes") publiquen sus espacios y que los usuarios ("Jugadores") realicen reservas.
+            </p>
+            <p className="mt-2">
+              <span className="font-semibold text-gray-900">Exclusión de Responsabilidad:</span> TuCancha no es dueño, ni gestiona, ni controla los locales deportivos. El contrato de alquiler de la cancha o servicio deportivo es una transacción directa entre el Club y el Jugador.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">3. Registro de Usuario</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">3. REGISTRO Y CUENTA</h2>
             <p>
-              Para utilizar el servicio, debe registrarse proporcionando información veraz y completa. Usted es responsable de mantener la confidencialidad de su cuenta y contraseña.
+              Para realizar reservas o publicar anuncios, el usuario debe crear una cuenta con datos exactos y veraces.
+            </p>
+            <p className="mt-2">
+              Usted es responsable de la seguridad de su contraseña y de cualquier actividad realizada bajo su cuenta.
+            </p>
+            <p className="mt-2">
+              El acceso a la plataforma es personal e intransferible.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">4. Reservas y Cancelaciones</h2>
-            <ul className="list-disc pl-5 space-y-2">
-              <li>Las reservas están sujetas a la disponibilidad del complejo.</li>
-              <li>Las políticas de cancelación son establecidas por cada complejo deportivo.</li>
-              <li>El usuario se compromete a respetar los horarios reservados y las normas de cada complejo.</li>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">4. OBLIGACIONES DE LOS CLUBES (ANFITRIONES)</h2>
+            <p>
+              <span className="font-semibold text-gray-900">Legalidad:</span> El Club garantiza que cumple con todas las licencias, permisos y normativas municipales para operar.
+            </p>
+            <p className="mt-2">
+              <span className="font-semibold text-gray-900">Exactitud:</span> El anuncio debe reflejar fielmente el estado, precio y disponibilidad de la cancha.
+            </p>
+            <p className="mt-2">
+              <span className="font-semibold text-gray-900">Seguridad:</span> El Club es el único responsable de la seguridad física de los Jugadores dentro de sus instalaciones.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">5. OBLIGACIONES DE LOS JUGADORES</h2>
+            <p>
+              <span className="font-semibold text-gray-900">Uso del Espacio:</span> El Jugador se compromete a utilizar las instalaciones de forma adecuada y a respetar el reglamento interno de cada Club.
+            </p>
+            <p className="mt-2">
+              <span className="font-semibold text-gray-900">Responsabilidad:</span> El Jugador responde por cualquier daño causado a la propiedad del Club por negligencia o mal uso, tanto de su parte como de sus invitados.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">6. TARIFAS Y PAGOS</h2>
+            <p>
+              <span className="font-semibold text-gray-900">Costos de Servicio:</span> TuCancha podrá cobrar una comisión por cada reserva realizada a través de la plataforma, la cual será comunicada antes de confirmar la transacción.
+            </p>
+            <p className="mt-2">
+              <span className="font-semibold text-gray-900">Pagos fuera de plataforma:</span> Se prohíbe explícitamente acordar pagos por fuera de la Plataforma con el fin de eludir las comisiones de TuCancha. El incumplimiento de esta regla podrá causar la baja definitiva de la cuenta.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">7. CANCELACIONES Y REEMBOLSOS</h2>
+            <p>
+              Cada Club establece su propia política de cancelación (ej. tiempo mínimo de aviso).
+            </p>
+            <p className="mt-2">
+              En caso de mal clima (para canchas abiertas) o fuerza mayor, el Club podrá cancelar la reserva sin penalización, debiendo coordinar la reprogramación o devolución según lo estipulado en la política de cancelación vigente en el anuncio.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">8. CONDUCTA Y EVALUACIONES</h2>
+            <p>
+              <span className="font-semibold text-gray-900">Respeto:</span> No se tolerará la discriminación, el lenguaje ofensivo o la violencia de cualquier tipo.
+            </p>
+            <p className="mt-2">
+              <span className="font-semibold text-gray-900">Reseñas:</span> Los usuarios podrán calificarse mutuamente. Estas evaluaciones deben ser honestas y no manipuladas. TuCancha se reserva el derecho de eliminar comentarios difamatorios o falsos.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">9. LIMITACIÓN DE RESPONSABILIDAD</h2>
+            <p>TuCancha no será responsable por:</p>
+            <ul className="list-disc pl-5 space-y-2 mt-2">
+              <li>Lesiones físicas, accidentes o incidentes de salud ocurridos durante el uso de las canchas.</li>
+              <li>Robos o pérdidas de pertenencias personales en los predios deportivos.</li>
+              <li>Fallos técnicos en la Plataforma que impidan temporalmente realizar una reserva.</li>
             </ul>
           </section>
 
           <section>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">5. Responsabilidades</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">10. JURISDICCIÓN Y LEY APLICABLE</h2>
             <p>
-              TuCancha no se hace responsable por lesiones, daños o pérdidas ocurridas dentro de los complejos deportivos. La relación contractual por el uso de las instalaciones es directamente entre el usuario y el complejo.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">6. Privacidad de Datos</h2>
-            <p>
-              Sus datos personales serán tratados de acuerdo con nuestra Política de Privacidad. Utilizamos su información para gestionar las reservas y mejorar el servicio.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">7. Modificaciones</h2>
-            <p>
-              Nos reservamos el derecho de modificar estos términos en cualquier momento. Los cambios entrarán en vigor inmediatamente después de su publicación en la plataforma.
+              Para cualquier controversia derivada del uso de la Plataforma, las partes acuerdan someterse a las leyes vigentes en la jurisdicción donde se presta el servicio y a los tribunales competentes de dicha zona.
             </p>
           </section>
         </div>
