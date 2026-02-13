@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/AuthContext';
 import { useRouter } from 'next/navigation';
 import { Booking } from '@/types';
-import { cancelBooking, deleteBooking } from '@/services/dataService';
+import { cancelBooking, deleteBooking, hideBookingForPlayer } from '@/services/dataService';
 import { usePlayerBookings } from '@/hooks/useData';
 import { Toast } from '@/components/Toast';
 import dynamic from 'next/dynamic';
@@ -21,6 +21,7 @@ export default function BookingsPage() {
     const { bookings, totalCount, isLoading: isLoadingBookings, mutate } = usePlayerBookings(user?.id, page, LIMIT);
     
     const [bookingToCancel, setBookingToCancel] = useState<string[] | null>(null);
+    const [actionType, setActionType] = useState<'CANCEL' | 'DELETE'>('CANCEL');
     const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null);
 
     const totalPages = Math.ceil(totalCount / LIMIT);
@@ -130,13 +131,23 @@ export default function BookingsPage() {
 
     const handleCancelClick = (bookingIds: string[]) => {
         setBookingToCancel(bookingIds);
+        setActionType('CANCEL');
     };
 
-    const confirmCancel = async () => {
+    const handleDeleteClick = (bookingIds: string[]) => {
+        setBookingToCancel(bookingIds);
+        setActionType('DELETE');
+    };
+
+    const confirmAction = async () => {
         if (!bookingToCancel) return;
 
         try {
             const promises = bookingToCancel.map(async (id) => {
+                if (actionType === 'DELETE') {
+                    return await hideBookingForPlayer(id);
+                }
+
                 const booking = bookings.find(b => b.id === id);
                 if (!booking) return false;
                 if (booking.status === 'CANCELLED') {
@@ -151,7 +162,12 @@ export default function BookingsPage() {
 
             if (successCount > 0) {
                 await mutate();
-                setToast({ message: `${successCount} reserva(s) actualizadas.`, type: 'success' });
+                setToast({ 
+                    message: actionType === 'DELETE' 
+                        ? `${successCount} reserva(s) eliminada(s) de tu historial.` 
+                        : `${successCount} reserva(s) cancelada(s).`, 
+                    type: 'success' 
+                });
             } else {
                 setToast({ message: 'Error al procesar la solicitud.', type: 'error' });
             }
@@ -272,6 +288,14 @@ export default function BookingsPage() {
                                         Cancelar
                                     </button>
                                 )}
+                                {group.status === 'COMPLETED' && (
+                                    <button
+                                        onClick={() => handleDeleteClick(group.id)}
+                                        className="flex-1 md:flex-none px-6 py-2 border border-gray-200 text-gray-500 font-bold rounded-xl hover:bg-gray-50 hover:text-red-600 transition"
+                                    >
+                                        Eliminar
+                                    </button>
+                                )}
                             </div>
                         </div>
                     ))
@@ -280,12 +304,15 @@ export default function BookingsPage() {
 
             <ConfirmationModal
                 isOpen={!!bookingToCancel}
-                title="Cancelar Reserva"
-                message={`¿Estás seguro de que quieres cancelar ${bookingToCancel && bookingToCancel.length > 1 ? 'estas reservas' : 'esta reserva'}?`}
-                confirmText="Sí, Cancelar"
-                cancelText="Mantenerme Reservado"
+                title={actionType === 'DELETE' ? "Eliminar del Historial" : "Cancelar Reserva"}
+                message={actionType === 'DELETE' 
+                    ? "¿Quieres eliminar esta reserva de tu historial? No podrás deshacer esta acción."
+                    : `¿Estás seguro de que quieres cancelar ${bookingToCancel && bookingToCancel.length > 1 ? 'estas reservas' : 'esta reserva'}?`
+                }
+                confirmText={actionType === 'DELETE' ? "Sí, Eliminar" : "Sí, Cancelar"}
+                cancelText={actionType === 'DELETE' ? "Cancelar" : "Mantenerme Reservado"}
                 isDangerous={true}
-                onConfirm={confirmCancel}
+                onConfirm={confirmAction}
                 onCancel={() => setBookingToCancel(null)}
             />
             

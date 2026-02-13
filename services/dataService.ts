@@ -478,7 +478,7 @@ export const getBookings = async (
         let query = supabase
             .from('bookings')
             .select(`
-                id, date, start_time, end_time, price, status, payment_status, created_at,
+                id, date, start_time, end_time, price, status, payment_status, created_at, is_hidden_for_player,
                 profiles:player_id (full_name, email, phone),
                 venues:venue_id!inner (name, address, contact_info, latitude, longitude, owner_id),
                 courts:court_id (name, type)
@@ -495,6 +495,8 @@ export const getBookings = async (
 
         if (playerId) {
             query = query.eq('player_id', playerId);
+            // Filter out hidden bookings for player (handle null as false)
+            query = query.not('is_hidden_for_player', 'eq', true);
         }
 
         if (startDate) {
@@ -853,6 +855,21 @@ export const deleteBooking = async (id: string): Promise<boolean> => {
         return true;
     } catch (error) {
         console.error('❌ Error deleting booking:', error);
+        return false;
+    }
+};
+
+export const hideBookingForPlayer = async (id: string): Promise<boolean> => {
+    try {
+        const { error } = await supabase
+            .from('bookings')
+            .update({ is_hidden_for_player: true })
+            .eq('id', id);
+
+        if (error) throw error;
+        return true;
+    } catch (error) {
+        console.error('❌ Error hiding booking:', error);
         return false;
     }
 };

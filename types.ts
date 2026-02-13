@@ -101,6 +101,7 @@ export interface Booking {
   payment_status: PaymentStatus;
   payment_method?: PaymentMethod;
   notes?: string;
+  is_hidden_for_player?: boolean;
   created_at: string;
   updated_at: string;
   // Populated fields (from joins)
