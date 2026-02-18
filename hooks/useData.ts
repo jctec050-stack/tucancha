@@ -101,7 +101,8 @@ export function usePlayerBookings(userId?: string, page = 1, limit = 20) {
     const { bookings, totalCount, isLoading, isError, mutate } = useBookings({
         playerId: userId,
         page,
-        limit
+        limit,
+        includePlayerVisibility: true // We need this to filter hidden bookings
     });
 
     return {

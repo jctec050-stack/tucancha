@@ -461,6 +461,7 @@ export interface GetBookingsOptions {
     startDate?: string;
     endDate?: string;
     status?: string;
+    includePlayerVisibility?: boolean;
 }
 
 export interface PaginatedResult<T> {
@@ -472,17 +473,25 @@ export const getBookings = async (
     options: GetBookingsOptions = {}
 ): Promise<PaginatedResult<Booking>> => {
     try {
-        const { ownerId, venueId, playerId, page, limit, startDate, endDate, status } = options;
+        const { ownerId, venueId, playerId, page, limit, startDate, endDate, status, includePlayerVisibility } = options;
+
+        // Base select string
+        let selectQuery = `
+            id, date, start_time, end_time, price, status, payment_status, created_at,
+            profiles:player_id (full_name, email, phone),
+            venues:venue_id!inner (name, address, contact_info, latitude, longitude, owner_id),
+            courts:court_id (name, type)
+        `;
+
+        // Conditionally add is_hidden_for_player if requested
+        if (includePlayerVisibility) {
+            selectQuery += `, is_hidden_for_player`;
+        }
 
         // Base query
         let query = supabase
             .from('bookings')
-            .select(`
-                id, date, start_time, end_time, price, status, payment_status, created_at, is_hidden_for_player,
-                profiles:player_id (full_name, email, phone),
-                venues:venue_id!inner (name, address, contact_info, latitude, longitude, owner_id),
-                courts:court_id (name, type)
-            `, { count: 'exact' });
+            .select(selectQuery, { count: 'exact' });
 
         // Apply Filters
         if (ownerId) {
@@ -495,8 +504,12 @@ export const getBookings = async (
 
         if (playerId) {
             query = query.eq('player_id', playerId);
-            // Filter out hidden bookings for player (handle null as false)
-            query = query.not('is_hidden_for_player', 'eq', true);
+            
+            // Only filter if the column is included and requested
+            if (includePlayerVisibility) {
+                // Filter out hidden bookings for player (handle null as false)
+                query = query.not('is_hidden_for_player', 'eq', true);
+            }
         }
 
         if (startDate) {
