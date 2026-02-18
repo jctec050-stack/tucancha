@@ -54,6 +54,7 @@ interface UseBookingsOptions {
     endDate?: string;
     status?: string;
     enabled?: boolean;
+    includePlayerVisibility?: boolean;
 }
 
 export function useBookings(options: UseBookingsOptions = {}) {
