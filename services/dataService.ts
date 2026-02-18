@@ -543,11 +543,22 @@ export const getBookings = async (
             // Force cast 'b' to any to access joined tables safely
             const raw = b as any;
             
-            return {
-                ...b,
-                start_time: b.start_time?.substring(0, 5), // Trim seconds
+            const bookingData: Booking = {
+                id: b.id,
+                venue_id: b.venue_id,
+                court_id: b.court_id,
+                player_id: b.player_id,
+                date: b.date,
+                start_time: b.start_time?.substring(0, 5),
                 end_time: b.end_time?.substring(0, 5),
+                price: b.price,
                 status: getDerivedStatus(b),
+                payment_status: b.payment_status,
+                payment_method: b.payment_method,
+                notes: b.notes,
+                is_hidden_for_player: b.is_hidden_for_player,
+                created_at: b.created_at,
+                updated_at: b.updated_at,
                 player_name: raw.player_name || raw.profiles?.full_name,
                 player_phone: raw.player_phone || raw.profiles?.phone,
                 venue_name: raw.venues?.name,
@@ -558,7 +569,9 @@ export const getBookings = async (
                 court_name: raw.courts?.name,
                 court_type: raw.courts?.type
             };
-        }) as unknown as Booking[];
+            
+            return bookingData;
+        });
 
         return {
             data: mappedData,
