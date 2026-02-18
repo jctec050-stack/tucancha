@@ -539,7 +539,9 @@ export const getBookings = async (
         if (error) throw error;
 
         // Map and Flatten
-        const mappedData = (data || []).map(b => {
+        // Force cast data to any[] to avoid 'GenericStringError' inference issues
+        const rows = (data || []) as any[];
+        const mappedData = rows.map(b => {
             // Force cast 'b' to any to access joined tables safely
             const raw = b as any;
             
