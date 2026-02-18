@@ -199,8 +199,8 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onRegister, onSwitch
                         </div>
                         <label htmlFor="terms" className="text-sm text-gray-600 cursor-pointer select-none">
                             Acepto los{' '}
-                            <a 
-                                href="/terms" 
+                            <a
+                                href="/terms"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="font-bold text-indigo-600 hover:underline"
@@ -209,8 +209,8 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onRegister, onSwitch
                                 términos y condiciones
                             </a>{' '}
                             y la{' '}
-                            <a 
-                                href="/privacy" 
+                            <a
+                                href="/privacy"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="font-bold text-indigo-600 hover:underline"
@@ -248,7 +248,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onRegister, onSwitch
                 onClose={handleSuccessClose}
                 title="¡Cuenta Creada!"
                 message="Tu registro ha sido exitoso. Por favor revisa tu email para confirmar tu cuenta y poder iniciar sesión."
-                buttonText="Ir al Login"
+                buttonText="Iniciar Sesión"
             />
         </div>
     );

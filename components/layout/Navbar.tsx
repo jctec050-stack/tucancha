@@ -86,7 +86,7 @@ export const Navbar = () => {
         ];
     } else if (user.role === 'OWNER') {
         navItems = [
-            { label: '📊 Dashboard', href: '/dashboard' },
+            { label: '📊 Panel', href: '/dashboard' },
             { label: '📅 Horarios', href: '/dashboard/schedule' },
             { label: '🏭 Mis Complejos', href: '/dashboard/venues' },
             { label: '💳 Facturación', href: '/dashboard/billing' }, // New link
