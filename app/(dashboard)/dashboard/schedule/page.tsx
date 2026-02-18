@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { getLocalDateString } from '@/utils/dateUtils';
 import { Venue, Booking, DisabledSlot } from '@/types';
 import { toggleSlotAvailability } from '@/services/dataService';
-import { useOwnerVenues, useOwnerBookings, useDisabledSlots } from '@/hooks/useData';
+import { useOwnerVenues, useBookingsByDate, useDisabledSlots } from '@/hooks/useData';
 import { ScheduleManager } from '@/components/ScheduleManager';
 import { Toast } from '@/components/Toast';
 import dynamic from 'next/dynamic';
@@ -18,8 +18,8 @@ export default function SchedulePage() {
     const { user, isLoading } = useAuth();
     const router = useRouter();
     const { venues, isLoading: venuesLoading } = useOwnerVenues(user?.id);
-    const { bookings, isLoading: bookingsLoading, mutate: mutateBookings } = useOwnerBookings(user?.id);
     const [selectedDate, setSelectedDate] = useState<string>(getLocalDateString());
+    const { bookings, isLoading: bookingsLoading, mutate: mutateBookings } = useBookingsByDate(user?.id, selectedDate);
     const { disabledSlots, isLoading: slotsLoading, mutate: mutateSlots } = useDisabledSlots(venues[0]?.id || null, selectedDate);
     const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null);
     const [isRecurringModalOpen, setIsRecurringModalOpen] = useState(false);

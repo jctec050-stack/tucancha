@@ -669,7 +669,7 @@ export default function SearchPage() {
                                                     b.court_id === court.id &&
                                                     b.date === selectedDate &&
                                                     b.start_time === slot &&
-                                                    b.status === 'ACTIVE'
+                                                    b.status !== 'CANCELLED' // Any non-cancelled booking blocks the slot
                                                 );
 
                                                 const isDisabled = disabledSlots.some(s =>

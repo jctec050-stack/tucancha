@@ -477,7 +477,7 @@ export const getBookings = async (
 
         // Base select string
         let selectQuery = `
-            id, date, start_time, end_time, price, status, payment_status, created_at,
+            id, venue_id, court_id, player_id, date, start_time, end_time, price, status, payment_status, created_at,
             profiles:player_id (full_name, email, phone),
             venues:venue_id!inner (name, address, contact_info, latitude, longitude, owner_id),
             courts:court_id (name, type)
@@ -504,7 +504,7 @@ export const getBookings = async (
 
         if (playerId) {
             query = query.eq('player_id', playerId);
-            
+
             // Only filter if the column is included and requested
             if (includePlayerVisibility) {
                 // Filter out hidden bookings for player (handle null as false)
@@ -544,7 +544,7 @@ export const getBookings = async (
         const mappedData = rows.map(b => {
             // Force cast 'b' to any to access joined tables safely
             const raw = b as any;
-            
+
             const bookingData: Booking = {
                 id: b.id,
                 venue_id: b.venue_id,
@@ -571,7 +571,7 @@ export const getBookings = async (
                 court_name: raw.courts?.name,
                 court_type: raw.courts?.type
             };
-            
+
             return bookingData;
         });
 
@@ -847,7 +847,7 @@ export const updateBookingStatus = async (id: string, status: 'CONFIRMED' | 'CAN
 export const cancelBooking = async (id: string): Promise<boolean> => {
     try {
         const success = await updateBookingStatus(id, 'CANCELLED');
-        
+
         if (success) {
             // Trigger API notification in background
             fetch('/api/cancel-booking', {
@@ -856,7 +856,7 @@ export const cancelBooking = async (id: string): Promise<boolean> => {
                 body: JSON.stringify({ bookingId: id })
             }).catch(e => console.error('Error triggering cancellation API:', e));
         }
-        
+
         return success;
     } catch (error) {
         console.error('Error cancelling booking:', error);
@@ -868,16 +868,16 @@ export const deleteBooking = async (id: string): Promise<boolean> => {
     try {
         // Fetch booking first to notify before deleting
         const { data: booking } = await supabase.from('bookings').select('venue_id').eq('id', id).single();
-        
+
         const { error } = await supabase.from('bookings').delete().eq('id', id);
         if (error) throw error;
 
         if (booking) {
-             // Notify cancellation (even if deleted)
-             // We can't use the same API because the record is gone, but we can send a custom push here if needed.
-             // Or better: Don't delete, just cancel. But if logic requires delete:
-             // For now, we assume 'cancelBooking' is the main flow for users.
-             // If we really need notification on delete, we should do it before deleting or soft-delete.
+            // Notify cancellation (even if deleted)
+            // We can't use the same API because the record is gone, but we can send a custom push here if needed.
+            // Or better: Don't delete, just cancel. But if logic requires delete:
+            // For now, we assume 'cancelBooking' is the main flow for users.
+            // If we really need notification on delete, we should do it before deleting or soft-delete.
         }
 
         return true;
