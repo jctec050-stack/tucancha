@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Booking } from '@/types';
 import { cancelBooking, deleteBooking, hideBookingForPlayer } from '@/services/dataService';
 import { usePlayerBookings } from '@/hooks/useData';
+import { calculateDistance } from '@/lib/geocoding';
 import { Toast } from '@/components/Toast';
 import dynamic from 'next/dynamic';
 
@@ -23,6 +24,7 @@ export default function BookingsPage() {
     const [bookingToCancel, setBookingToCancel] = useState<string[] | null>(null);
     const [actionType, setActionType] = useState<'CANCEL' | 'DELETE'>('CANCEL');
     const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null);
+    const [userLocation, setUserLocation] = useState<{ lat: number, lng: number } | null>(null);
 
     const totalPages = Math.ceil(totalCount / LIMIT);
 
@@ -34,6 +36,21 @@ export default function BookingsPage() {
         if (!isLoading && user?.role !== 'PLAYER') {
             router.push('/'); // Redirect owner to home or dashboard
             return;
+        }
+
+        // Get User Location
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    setUserLocation({
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    });
+                },
+                (error) => {
+                    console.error('Error getting location:', error);
+                }
+            );
         }
     }, [user, isLoading, router]);
 
@@ -85,7 +102,15 @@ export default function BookingsPage() {
                 count: sorted.length,
                 timeRange: `${first.start_time.substring(0, 5)} - ${endTime}`,
                 isRecurring: false,
-                dayName: ''
+                dayName: '',
+                distance: userLocation && first.venue_latitude && first.venue_longitude
+                    ? calculateDistance(
+                        userLocation.lat,
+                        userLocation.lng,
+                        first.venue_latitude,
+                        first.venue_longitude
+                      ).toFixed(1)
+                    : null
             };
         });
 
@@ -122,7 +147,15 @@ export default function BookingsPage() {
                 price: group.reduce((sum, b) => sum + b.price, 0),
                 count: group.length,
                 isRecurring: true,
-                dayName: dayName
+                dayName: dayName,
+                distance: userLocation && first.venue_latitude && first.venue_longitude
+                    ? calculateDistance(
+                        userLocation.lat,
+                        userLocation.lng,
+                        first.venue_latitude,
+                        first.venue_longitude
+                      ).toFixed(1)
+                    : null
             };
         });
 
@@ -226,7 +259,18 @@ export default function BookingsPage() {
                                         {group.status === 'COMPLETED' ? 'Completada' : group.status === 'ACTIVE' ? 'Activa' : 'Cancelada'}
                                     </span>
                                 </div>
-                                <h4 className="text-lg font-bold text-gray-900">{group.venueName}</h4>
+                                <div className="flex items-center gap-2">
+                                    <h4 className="text-lg font-bold text-gray-900">{group.venueName}</h4>
+                                    {group.distance && (
+                                        <span className="text-xs font-medium text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            </svg>
+                                            {group.distance} km
+                                        </span>
+                                    )}
+                                </div>
                                 {group.venueAddress && (
                                     <a 
                                         href={`https://www.google.com/maps/search/?api=1&query=${group.venueLatitude && group.venueLongitude ? `${group.venueLatitude},${group.venueLongitude}` : encodeURIComponent(group.venueAddress)}`}
