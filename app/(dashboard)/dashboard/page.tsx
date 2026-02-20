@@ -45,6 +45,7 @@ export default function DashboardPage() {
     // Let's use local state for venues to simplify debugging if useOwnerVenues is acting up or missing
     const [venues, setVenues] = useState<Venue[]>([]);
     const [venuesLoading, setVenuesLoading] = useState(true);
+    const [selectedVenueIndex, setSelectedVenueIndex] = useState(0);
     const [selectedDate, setSelectedDate] = useState<string>(getLocalDateString());
 
     // Estado para el mes seleccionado en el historial
@@ -271,10 +272,11 @@ export default function DashboardPage() {
     // Fetch Disabled Slots
     useEffect(() => {
         const fetchDisabledSlots = async () => {
-            if (venues.length === 0) return;
+            const currentVenue = venues[selectedVenueIndex] || venues[0];
+            if (!currentVenue) return;
             try {
                 setLoadingSlots(true);
-                const fetchedDisabledSlots = await getDisabledSlots(venues[0].id, selectedDate);
+                const fetchedDisabledSlots = await getDisabledSlots(currentVenue.id, selectedDate);
                 setDisabledSlots(fetchedDisabledSlots);
             } catch (error) {
                 console.error('Error fetching disabled slots:', error);
@@ -285,7 +287,7 @@ export default function DashboardPage() {
 
         fetchDisabledSlots();
         fetchDisabledSlots();
-    }, [selectedDate, venues]);
+    }, [selectedDate, venues, selectedVenueIndex]);
 
 
 
@@ -489,12 +491,30 @@ export default function DashboardPage() {
 
             ) : (
                 <>
+                    {/* Selector de Complejo */}
+                    {venues.length > 1 && (
+                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-6">
+                            <label className="block text-sm font-bold text-gray-700 mb-2">Complejo seleccionado</label>
+                            <select
+                                value={selectedVenueIndex}
+                                onChange={(e) => setSelectedVenueIndex(Number(e.target.value))}
+                                className="w-full md:w-auto px-4 py-2.5 border border-gray-200 rounded-xl bg-white text-gray-900 font-semibold focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none shadow-sm cursor-pointer transition"
+                            >
+                                {venues.map((v, i) => (
+                                    <option key={v.id} value={i}>
+                                        {v.name} — {v.courts.map(c => c.type).filter((t, idx, arr) => arr.indexOf(t) === idx).join(', ')}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+
                     <OwnerDashboard
                         bookings={bookings}
                         monthlyBookings={monthlyBookings}
                         chartBookings={chartBookings}
                         disabledSlots={disabledSlots}
-                        venue={venues[0]} // Currently showing first venue, could add selector
+                        venue={venues[selectedVenueIndex] || venues[0]}
                         selectedDate={selectedDate}
                         onDateChange={setSelectedDate}
                         selectedMonth={selectedMonth}
