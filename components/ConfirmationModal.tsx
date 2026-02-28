@@ -3,7 +3,7 @@ import React from 'react';
 interface ConfirmationModalProps {
     isOpen: boolean;
     title: string;
-    message: string;
+    message: React.ReactNode;
     onConfirm: () => void;
     onCancel: () => void;
     confirmText?: string;
@@ -25,9 +25,9 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
 
     return (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[70] flex items-center justify-center p-4 animate-in fade-in duration-200">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-in zoom-in-95 duration-200">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
                 <h3 className="text-xl font-bold text-gray-900 mb-2">{title}</h3>
-                <p className="text-gray-600 mb-6">{message}</p>
+                <div className="text-gray-600 mb-6">{message}</div>
 
                 <div className="flex justify-end gap-3">
                     <button

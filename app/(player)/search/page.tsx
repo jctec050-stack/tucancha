@@ -763,7 +763,45 @@ export default function SearchPage() {
             <ConfirmationModal
                 isOpen={showConfirmModal}
                 title="Confirmar Reserva"
-                message={`Estás a punto de reservar ${selectedSlots.length} turno(s) para el ${selectedDate}. \n\n⚠️ OBSERVACIÓN IMPORTANTE:\nSe puede cancelar la reserva hasta 3hs antes del horario reservado. Posterior a eso, se aplicará una multa en la próxima reserva.`}
+                message={
+                    <div className="space-y-4">
+                        <div className="whitespace-pre-line">
+                            {`Estás a punto de reservar ${selectedSlots.length} turno(s) para el ${selectedDate}.\n\n⚠️ OBSERVACIÓN IMPORTANTE:\nSe puede cancelar la reserva hasta 3hs antes del horario reservado. Posterior a eso, se aplicará una multa en la próxima reserva.`}
+                        </div>
+                        
+                        {selectedVenue?.deposit_required && (
+                            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 animate-in fade-in slide-in-from-bottom-2 text-left">
+                                <h4 className="font-bold text-blue-800 mb-2 flex items-center gap-2">
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                    Requiere Seña
+                                </h4>
+                                <p className="text-sm text-blue-700 mb-3">
+                                    Para confirmar tu reserva, es necesario realizar una transferencia bancaria a la siguiente cuenta:
+                                </p>
+                                
+                                <div className="bg-white p-3 rounded-lg border border-blue-100 text-sm space-y-1 shadow-sm">
+                                    <p><span className="font-bold text-gray-700">Banco:</span> {selectedVenue.bank_name}</p>
+                                    <p><span className="font-bold text-gray-700">Cuenta:</span> {selectedVenue.account_number}</p>
+                                    <p><span className="font-bold text-gray-700">Titular:</span> {selectedVenue.account_name}</p>
+                                    <p><span className="font-bold text-gray-700">RUC/CI:</span> {selectedVenue.tax_id}</p>
+                                    {selectedVenue.alias && <p><span className="font-bold text-gray-700">Alias:</span> {selectedVenue.alias}</p>}
+                                </div>
+
+                                <div className="mt-4">
+                                     <a 
+                                        href={`https://wa.me/${selectedVenue.contact_info?.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola, envío comprobante de transferencia para la reserva de cancha en ${selectedVenue.name} para el ${selectedDate}.`)}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center justify-center gap-2 w-full py-2 bg-green-500 hover:bg-green-600 text-white font-bold rounded-lg transition shadow-md hover:shadow-lg"
+                                    >
+                                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
+                                        Enviar Comprobante
+                                    </a>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                }
                 onConfirm={executeBooking}
                 onCancel={() => setShowConfirmModal(false)}
                 confirmText="Aceptar y Reservar"
