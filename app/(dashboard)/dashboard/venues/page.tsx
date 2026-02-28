@@ -58,7 +58,13 @@ export default function VenuesPage() {
         contactInfo: string,
         newCourts: Omit<Court, 'id'>[],
         courtsToDelete: string[] = [],
-        limitFutureBookings: boolean = false
+        limitFutureBookings: boolean = false,
+        depositRequired: boolean = false,
+        bankName: string = '',
+        accountNumber: string = '',
+        accountName: string = '',
+        taxId: string = '',
+        alias: string = ''
     ) => {
         if (!user) return;
 
@@ -79,7 +85,13 @@ export default function VenuesPage() {
                     image_url: imageUrl,
                     amenities: amenities,
                     contact_info: contactInfo,
-                    limit_future_bookings: limitFutureBookings
+                    limit_future_bookings: limitFutureBookings,
+                    deposit_required: depositRequired,
+                    bank_name: bankName,
+                    account_number: accountNumber,
+                    account_name: accountName,
+                    tax_id: taxId,
+                    alias: alias
                 };
 
                 const success = await updateVenue(venueToEdit.id, updates);
@@ -106,7 +118,13 @@ export default function VenuesPage() {
                         closed_days: closedDays,
                         amenities: amenities,
                         contact_info: contactInfo,
-                        limit_future_bookings: limitFutureBookings
+                        limit_future_bookings: limitFutureBookings,
+                        deposit_required: depositRequired,
+                        bank_name: bankName,
+                        account_number: accountNumber,
+                        account_name: accountName,
+                        tax_id: taxId,
+                        alias: alias
                     },
                     newCourts
                 );
@@ -172,6 +190,12 @@ export default function VenuesPage() {
                     currentContactInfo={venueToEdit?.contact_info || ''}
                     currentLimitFutureBookings={venueToEdit?.limit_future_bookings || false}
                     currentCourts={venueToEdit?.courts || []}
+                    currentDepositRequired={venueToEdit?.deposit_required || false}
+                    currentBankName={venueToEdit?.bank_name || ''}
+                    currentAccountNumber={venueToEdit?.account_number || ''}
+                    currentAccountName={venueToEdit?.account_name || ''}
+                    currentTaxId={venueToEdit?.tax_id || ''}
+                    currentAlias={venueToEdit?.alias || ''}
                     onClose={() => setShowAddCourtModal(false)}
                     onSave={handleSaveVenue}
                 />

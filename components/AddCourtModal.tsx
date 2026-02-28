@@ -14,6 +14,12 @@ interface AddCourtModalProps {
     currentContactInfo?: string;
     currentLimitFutureBookings?: boolean;
     currentCourts?: Court[];
+    currentDepositRequired?: boolean;
+    currentBankName?: string;
+    currentAccountNumber?: string;
+    currentAccountName?: string;
+    currentTaxId?: string;
+    currentAlias?: string;
     onClose: () => void;
     onSave: (
         venueName: string,
@@ -25,7 +31,13 @@ interface AddCourtModalProps {
         contactInfo: string,
         newCourts: Omit<Court, 'id'>[],
         courtsToDelete: string[],
-        limitFutureBookings: boolean
+        limitFutureBookings: boolean,
+        depositRequired: boolean,
+        bankName: string,
+        accountNumber: string,
+        accountName: string,
+        taxId: string,
+        alias: string
     ) => Promise<void>;
 }
 
@@ -39,12 +51,29 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
     currentContactInfo = '',
     currentLimitFutureBookings = false,
     currentCourts = [],
+    currentDepositRequired = false,
+    currentBankName = '',
+    currentAccountNumber = '',
+    currentAccountName = '',
+    currentTaxId = '',
+    currentAlias = '',
     onClose,
     onSave
 }) => {
     // Venue State
     const [venueName, setVenueName] = useState(currentVenueName);
     const [venueAddress, setVenueAddress] = useState(currentVenueAddress);
+    
+    // Deposit Settings
+    const [depositRequired, setDepositRequired] = useState(currentDepositRequired);
+    const [showBankModal, setShowBankModal] = useState(false);
+    
+    // Bank Details
+    const [bankName, setBankName] = useState(currentBankName);
+    const [accountNumber, setAccountNumber] = useState(currentAccountNumber);
+    const [accountName, setAccountName] = useState(currentAccountName);
+    const [taxId, setTaxId] = useState(currentTaxId);
+    const [alias, setAlias] = useState(currentAlias);
 
     // Parse initial hours (e.g. "08:00 - 22:00")
     const [startHour, setStartHour] = useState(currentOpeningHours.split(' - ')[0] || '08:00');
@@ -182,6 +211,13 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
             return;
         }
 
+        if (depositRequired) {
+            if (!bankName || !accountNumber || !accountName || !taxId) {
+                setError('Si requieres seña, debes completar todos los datos bancarios obligatorios.');
+                return;
+            }
+        }
+
         setIsSaving(true);
         setError('');
 
@@ -223,7 +259,13 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
                 contactPhone,
                 pendingCourts,
                 courtsToDelete,
-                limitFutureBookings
+                limitFutureBookings,
+                depositRequired,
+                bankName,
+                accountNumber,
+                accountName,
+                taxId,
+                alias
             );
             onClose();
         } catch (err) {
@@ -459,9 +501,53 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
                         </div>
                     </div>
 
-                    {/* Section 6: Add Courts */}
+                    {/* Section 6: Payment Settings */}
+                    <div className="bg-gray-50 p-4 rounded-2xl space-y-4">
+                        <h4 className="font-bold text-gray-800">6. Configuración de Pagos</h4>
+                        <div className="flex items-center justify-between bg-white p-3 rounded-xl border border-gray-200">
+                            <div>
+                                <p className="text-sm font-bold text-gray-800">Requerir Seña (Transferencia)</p>
+                                <p className="text-xs text-gray-500">Solicitar comprobante de transferencia para confirmar reservas</p>
+                            </div>
+                            <label className="relative inline-flex items-center cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={depositRequired}
+                                    onChange={(e) => {
+                                        setDepositRequired(e.target.checked);
+                                        if (e.target.checked && !bankName) {
+                                            setShowBankModal(true);
+                                        }
+                                    }}
+                                    className="sr-only peer"
+                                />
+                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                            </label>
+                        </div>
+
+                        {depositRequired && (
+                            <button
+                                type="button"
+                                onClick={() => setShowBankModal(true)}
+                                className="w-full py-2 border-2 border-indigo-100 text-indigo-600 rounded-xl font-bold hover:bg-indigo-50 transition flex items-center justify-center gap-2"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+                                {bankName ? 'Editar Datos Bancarios' : 'Configurar Datos Bancarios'}
+                            </button>
+                        )}
+                        
+                        {depositRequired && bankName && (
+                            <div className="text-xs text-gray-500 bg-white p-3 rounded-lg border border-gray-100">
+                                <p><span className="font-bold">Banco:</span> {bankName}</p>
+                                <p><span className="font-bold">Cuenta:</span> {accountNumber}</p>
+                                <p><span className="font-bold">Titular:</span> {accountName}</p>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Section 7: Add Courts */}
                     <div className="bg-indigo-50 p-4 rounded-2xl space-y-4">
-                        <h4 className="font-bold text-indigo-900">6. Agregar Canchas</h4>
+                        <h4 className="font-bold text-indigo-900">7. Agregar Canchas</h4>
                         <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
                             <div className="md:col-span-4">
                                 <label className="block text-xs font-bold text-indigo-800 mb-1">Nombre Cancha</label>
@@ -545,10 +631,10 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
                         </div>
                     </div>
 
-                    {/* Section 7: Existing Courts */}
+                    {/* Section 8: Existing Courts */}
                     {currentCourts.length > 0 && (
                         <div>
-                            <h4 className="font-bold text-gray-800 mb-3">7. Canchas Existentes ({currentCourts.filter(c => !courtsToDelete.includes(c.id)).length})</h4>
+                            <h4 className="font-bold text-gray-800 mb-3">8. Canchas Existentes ({currentCourts.filter(c => !courtsToDelete.includes(c.id)).length})</h4>
                             <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
                                 {currentCourts.filter(c => !courtsToDelete.includes(c.id)).map((court) => (
                                     <div key={court.id} className="flex items-center justify-between bg-white border border-gray-200 p-3 rounded-xl shadow-sm">
@@ -578,10 +664,10 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
                         </div>
                     )}
 
-                    {/* Section 8: Pending List */}
+                    {/* Section 9: Pending List */}
                     {pendingCourts.length > 0 && (
                         <div>
-                            <h4 className="font-bold text-gray-800 mb-3">8. Canchas Nuevas a Agregar ({pendingCourts.length})</h4>
+                            <h4 className="font-bold text-gray-800 mb-3">9. Canchas Nuevas a Agregar ({pendingCourts.length})</h4>
                             <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
                                 {pendingCourts.map((court, idx) => (
                                     <div key={idx} className="flex items-center justify-between bg-white border border-gray-200 p-3 rounded-xl shadow-sm">
@@ -635,6 +721,80 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
                     </div>
                 </div>
             </div>
+            
+            {/* Bank Details Modal */}
+            {showBankModal && (
+                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-in fade-in zoom-in duration-200">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-xl font-bold text-gray-900">Datos Bancarios</h3>
+                            <button onClick={() => setShowBankModal(false)} className="text-gray-400 hover:text-gray-600">
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                        </div>
+                        
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-1">Banco</label>
+                                <input
+                                    type="text"
+                                    value={bankName}
+                                    onChange={(e) => setBankName(e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                                    placeholder="Ej: Banco Itaú"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-1">Nro. Cuenta</label>
+                                <input
+                                    type="text"
+                                    value={accountNumber}
+                                    onChange={(e) => setAccountNumber(e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                                    placeholder="Ej: 123456789"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-1">Nombre Titular</label>
+                                <input
+                                    type="text"
+                                    value={accountName}
+                                    onChange={(e) => setAccountName(e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                                    placeholder="Nombre completo"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-1">RUC o C.I.</label>
+                                <input
+                                    type="text"
+                                    value={taxId}
+                                    onChange={(e) => setTaxId(e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                                    placeholder="Documento de identidad"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-1">Alias (Opcional)</label>
+                                <input
+                                    type="text"
+                                    value={alias}
+                                    onChange={(e) => setAlias(e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                                    placeholder="Ej: mi.negocio.py"
+                                />
+                            </div>
+                            
+                            <button
+                                onClick={() => setShowBankModal(false)}
+                                className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition mt-2"
+                            >
+                                Guardar Datos
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Confirmation Modal for Deleting Court */}
             {courtToConfirmDelete && (
