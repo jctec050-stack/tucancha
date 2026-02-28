@@ -64,6 +64,7 @@ export interface Venue {
   is_active: boolean;
   limit_future_bookings: boolean; // Si true, solo se puede reservar en el día actual
   deposit_required?: boolean;
+  deposit_amount?: number;
   bank_name?: string;
   account_number?: string;
   account_name?: string;

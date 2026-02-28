@@ -60,6 +60,7 @@ export default function VenuesPage() {
         courtsToDelete: string[] = [],
         limitFutureBookings: boolean = false,
         depositRequired: boolean = false,
+        depositAmount: number = 0,
         bankName: string = '',
         accountNumber: string = '',
         accountName: string = '',
@@ -87,6 +88,7 @@ export default function VenuesPage() {
                     contact_info: contactInfo,
                     limit_future_bookings: limitFutureBookings,
                     deposit_required: depositRequired,
+                    deposit_amount: depositAmount,
                     bank_name: bankName,
                     account_number: accountNumber,
                     account_name: accountName,
@@ -120,6 +122,7 @@ export default function VenuesPage() {
                         contact_info: contactInfo,
                         limit_future_bookings: limitFutureBookings,
                         deposit_required: depositRequired,
+                        deposit_amount: depositAmount,
                         bank_name: bankName,
                         account_number: accountNumber,
                         account_name: accountName,
@@ -191,6 +194,7 @@ export default function VenuesPage() {
                     currentLimitFutureBookings={venueToEdit?.limit_future_bookings || false}
                     currentCourts={venueToEdit?.courts || []}
                     currentDepositRequired={venueToEdit?.deposit_required || false}
+                    currentDepositAmount={venueToEdit?.deposit_amount || 0}
                     currentBankName={venueToEdit?.bank_name || ''}
                     currentAccountNumber={venueToEdit?.account_number || ''}
                     currentAccountName={venueToEdit?.account_name || ''}

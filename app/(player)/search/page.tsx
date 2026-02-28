@@ -776,7 +776,7 @@ export default function SearchPage() {
                                     Requiere Seña
                                 </h4>
                                 <p className="text-sm text-blue-700 mb-3">
-                                    Para confirmar tu reserva, es necesario realizar una transferencia bancaria a la siguiente cuenta:
+                                    Para confirmar tu reserva, es necesario realizar una transferencia bancaria de <strong>Gs. {(selectedVenue.deposit_amount || 0).toLocaleString('es-PY')}</strong> a la siguiente cuenta:
                                 </p>
                                 
                                 <div className="bg-white p-3 rounded-lg border border-blue-100 text-sm space-y-1 shadow-sm">
@@ -789,7 +789,7 @@ export default function SearchPage() {
 
                                 <div className="mt-4">
                                      <a 
-                                        href={`https://wa.me/${selectedVenue.contact_info?.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola, envío comprobante de transferencia para la reserva de cancha en ${selectedVenue.name} para el ${selectedDate}.`)}`}
+                                        href={`https://wa.me/${selectedVenue.contact_info?.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola, envío comprobante de transferencia de Gs. ${(selectedVenue.deposit_amount || 0).toLocaleString('es-PY')} para la reserva de cancha en ${selectedVenue.name} para el ${selectedDate}.`)}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="flex items-center justify-center gap-2 w-full py-2 bg-green-500 hover:bg-green-600 text-white font-bold rounded-lg transition shadow-md hover:shadow-lg"

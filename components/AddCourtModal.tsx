@@ -15,6 +15,7 @@ interface AddCourtModalProps {
     currentLimitFutureBookings?: boolean;
     currentCourts?: Court[];
     currentDepositRequired?: boolean;
+    currentDepositAmount?: number;
     currentBankName?: string;
     currentAccountNumber?: string;
     currentAccountName?: string;
@@ -33,6 +34,7 @@ interface AddCourtModalProps {
         courtsToDelete: string[],
         limitFutureBookings: boolean,
         depositRequired: boolean,
+        depositAmount: number,
         bankName: string,
         accountNumber: string,
         accountName: string,
@@ -52,6 +54,7 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
     currentLimitFutureBookings = false,
     currentCourts = [],
     currentDepositRequired = false,
+    currentDepositAmount = 0,
     currentBankName = '',
     currentAccountNumber = '',
     currentAccountName = '',
@@ -66,6 +69,7 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
     
     // Deposit Settings
     const [depositRequired, setDepositRequired] = useState(currentDepositRequired);
+    const [depositAmount, setDepositAmount] = useState(currentDepositAmount);
     const [showBankModal, setShowBankModal] = useState(false);
     
     // Bank Details
@@ -212,6 +216,10 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
         }
 
         if (depositRequired) {
+            if (depositAmount <= 0) {
+                setError('Si requieres seña, el monto debe ser mayor a 0.');
+                return;
+            }
             if (!bankName || !accountNumber || !accountName || !taxId) {
                 setError('Si requieres seña, debes completar todos los datos bancarios obligatorios.');
                 return;
@@ -261,6 +269,7 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
                 courtsToDelete,
                 limitFutureBookings,
                 depositRequired,
+                depositAmount,
                 bankName,
                 accountNumber,
                 accountName,
@@ -524,6 +533,22 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
                                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
                             </label>
                         </div>
+
+                        {depositRequired && (
+                            <div className="bg-white p-3 rounded-xl border border-gray-200">
+                                <label className="block text-sm font-bold text-gray-700 mb-2">Monto de la Seña (Gs)</label>
+                                <input
+                                    type="text"
+                                    value={depositAmount === 0 ? '' : formatNumber(depositAmount)}
+                                    onChange={(e) => {
+                                        const rawValue = e.target.value.replace(/\D/g, '');
+                                        setDepositAmount(Number(rawValue));
+                                    }}
+                                    placeholder="0"
+                                    className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
+                                />
+                            </div>
+                        )}
 
                         {depositRequired && (
                             <button
