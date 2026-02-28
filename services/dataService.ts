@@ -852,8 +852,37 @@ export const updateBookingStatus = async (id: string, status: 'CONFIRMED' | 'CAN
     }
 };
 
-export const cancelBooking = async (id: string): Promise<boolean> => {
+export const cancelBooking = async (id: string, isOwner: boolean = false): Promise<boolean> => {
     try {
+        if (isOwner) {
+            // Owner Cancellation Logic
+            // 1. Fetch Booking to check Deposit
+            const { data: booking, error: fetchError } = await supabase
+                .from('bookings')
+                .select(`
+                    *,
+                    venues!inner (deposit_required)
+                `)
+                .eq('id', id)
+                .single();
+
+            if (fetchError) {
+                console.error('❌ Error fetching booking for cancellation:', fetchError);
+                return false;
+            }
+
+            // 2. Check Deposit Requirement
+            // We use 'any' casting because 'venues' is joined and not in Booking type directly
+            const venueDepositRequired = (booking as any).venues?.deposit_required;
+
+            // If deposit is required, Owner CANNOT cancel manually via this simple flow
+            // (Business Rule: "si tiene seña, no cancela")
+            if (venueDepositRequired) {
+                console.warn('⚠️ Owner cannot cancel booking with deposit requirement');
+                return false;
+            }
+        }
+
         const success = await updateBookingStatus(id, 'CANCELLED');
 
         if (success) {

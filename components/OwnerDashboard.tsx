@@ -3,6 +3,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Booking, Venue, DisabledSlot } from '../types';
 import { usePagination } from '@/hooks/usePagination';
 import { getLocalDateString, addDays } from '@/utils/dateUtils';
+import { cancelBooking } from '@/services/dataService';
 
 
 interface ScheduleItem {
@@ -378,6 +379,22 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
     doc.save(`reservas-activas-${selectedDate}.pdf`);
   };
 
+  const handleCancelBooking = async (bookingId: string) => {
+      if (confirm('¿Estás seguro de que deseas cancelar esta reserva?')) {
+          // Pass isOwner = true to enforce business logic
+          const success = await cancelBooking(bookingId, true);
+          if (success) {
+              alert('Reserva cancelada correctamente');
+              // We should ideally reload data here, but for now we rely on SWR or parent update.
+              // Since this component uses props, the parent needs to refresh.
+              // Triggering a simple refresh via window (quick fix) or callback if available
+              window.location.reload(); 
+          } else {
+              alert('No se puede cancelar esta reserva porque requiere seña. Debes gestionarla manualmente o contactar soporte.');
+          }
+      }
+  };
+
   return (
     <div className="space-y-6">
       {/* Date Filter Header */}
@@ -463,6 +480,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
                 <th className="px-6 py-4">Detalle / Cliente</th>
                 <th className="px-6 py-4 text-right">Monto</th>
                 <th className="px-6 py-4 text-center">Estado</th>
+                <th className="px-6 py-4 text-center">Acción</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -491,11 +509,24 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
                             item.status === 'DISABLED' ? 'bg-orange-500' : 'bg-gray-300'
                         }`}></span>
                     </td>
+                    <td className="px-2 py-4 text-center">
+                        {item.status === 'ACTIVE' && item.type === 'Reserva' && (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleCancelBooking(item.id);
+                                }}
+                                className="text-red-500 hover:text-red-700 text-xs font-bold underline"
+                            >
+                                Cancelar
+                            </button>
+                        )}
+                    </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
+                  <td colSpan={7} className="px-6 py-12 text-center text-gray-400">
                     No hay actividad registrada para este día
                   </td>
                 </tr>
@@ -541,6 +572,17 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
                 <span className="font-bold text-gray-900">
                   {item.price > 0 ? `Gs. ${item.price.toLocaleString('es-PY')}` : '-'}
                 </span>
+                {item.status === 'ACTIVE' && item.type === 'Reserva' && (
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            handleCancelBooking(item.id);
+                        }}
+                        className="ml-4 text-red-500 hover:text-red-700 text-xs font-bold underline"
+                    >
+                        Cancelar
+                    </button>
+                )}
               </div>
             </div>
           ))
@@ -735,8 +777,9 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
                     <th className="px-6 py-3">Cliente</th>
                     <th className="px-6 py-3 text-right">Precio</th>
                     <th className="px-6 py-3 text-center">Estado</th>
-                  </tr>
-                </thead>
+                <th className="px-6 py-3 text-center">Acción</th>
+              </tr>
+            </thead>
                 <tbody className="divide-y divide-gray-100">
                   {dailyActiveBookings.length > 0 ? (
                     dailyActiveBookings.map((booking, idx) => (
@@ -753,31 +796,45 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
                           Gs. {booking.price.toLocaleString('es-PY')}
                         </td>
                         <td className="px-6 py-4 text-center">
-                          <span className={`inline-block px-2 py-1 rounded-full text-xs font-bold ${booking.status === 'ACTIVE' ? 'bg-green-100 text-green-700' :
-                            booking.status === 'COMPLETED' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'
-                            }`}>
-                            {booking.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={5} className="px-6 py-12 text-center text-gray-400">
-                        No hay reservas activas para esta fecha.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-                <tfoot className="bg-gray-50 font-bold text-gray-900 sticky bottom-0 border-t border-gray-200">
-                  <tr>
-                    <td colSpan={3} className="px-6 py-3 text-right">Total:</td>
-                    <td className="px-6 py-3 text-right">
-                      Gs. {dailyActiveBookings.reduce((sum, b) => sum + b.price, 0).toLocaleString('es-PY')}
+                      <span className={`inline-block px-2 py-1 rounded-full text-xs font-bold ${booking.status === 'ACTIVE' ? 'bg-green-100 text-green-700' :
+                        booking.status === 'COMPLETED' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'
+                        }`}>
+                        {booking.status}
+                      </span>
                     </td>
-                    <td></td>
+                    <td className="px-2 py-4 text-center">
+                        {booking.status === 'ACTIVE' && (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleCancelBooking(booking.id);
+                                }}
+                                className="text-red-500 hover:text-red-700 text-xs font-bold underline"
+                            >
+                                Cancelar
+                            </button>
+                        )}
+                    </td>
                   </tr>
-                </tfoot>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
+                    No hay reservas activas para esta fecha.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+            <tfoot className="bg-gray-50 font-bold text-gray-900 sticky bottom-0 border-t border-gray-200">
+              <tr>
+                <td colSpan={3} className="px-6 py-3 text-right">Total:</td>
+                <td className="px-6 py-3 text-right">
+                  Gs. {dailyActiveBookings.reduce((sum, b) => sum + b.price, 0).toLocaleString('es-PY')}
+                </td>
+                <td></td>
+                <td></td>
+              </tr>
+            </tfoot>
               </table>
             </div>
           </div>
