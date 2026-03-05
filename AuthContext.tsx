@@ -75,6 +75,32 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             }
 
             if (data) {
+                // Check if there's a pending role from Google registration that needs to be applied
+                let pendingRole: string | null = localStorage.getItem('pending_google_role');
+                if (!pendingRole && typeof window !== 'undefined') {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    pendingRole = urlParams.get('role');
+                }
+
+                // If there's a pending role and it's different from the current one, update it
+                if (pendingRole && (pendingRole === 'OWNER' || pendingRole === 'PLAYER') && pendingRole !== data.role) {
+                    console.log(`🔄 Actualizando rol de ${data.role} a ${pendingRole}`);
+                    const { error: updateError } = await supabase
+                        .from('profiles')
+                        .update({ role: pendingRole })
+                        .eq('id', userId);
+
+                    if (updateError) {
+                        console.error('❌ Error updating role:', updateError);
+                    } else {
+                        data.role = pendingRole;
+                        console.log('✅ Rol actualizado correctamente');
+                    }
+                }
+
+                // Clean up pending role
+                localStorage.removeItem('pending_google_role');
+
                 const userData = {
                     id: userId,
                     email: email,
