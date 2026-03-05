@@ -9,6 +9,7 @@ interface AuthContextType {
     login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
     register: (name: string, email: string, phone: string, password: string, role: UserRole) => Promise<{ success: boolean; error?: string }>;
     resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
+    loginWithGoogle: (role?: string) => Promise<{ success: boolean; error?: string }>;
     logout: () => void;
     isLoading: boolean;
 }
@@ -95,13 +96,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 }
 
                 // Try to insert a default profile
+                // Check if there's a pending role from Google registration
+                // Strategy 1: localStorage (same browser context)
+                let pendingRole = localStorage.getItem('pending_google_role');
+
+                // Strategy 2: URL query param fallback (cross-context)
+                if (!pendingRole && typeof window !== 'undefined') {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    pendingRole = urlParams.get('role');
+                }
+
+                // Clean up
+                localStorage.removeItem('pending_google_role');
+
                 const { error: insertError } = await supabase
                     .from('profiles')
                     .insert({
                         id: userId,
                         email: email,
                         full_name: email.split('@')[0], // Fallback name
-                        role: 'OWNER' // Default to OWNER for now to be safe, or 'PLAYER'
+                        role: pendingRole || 'PLAYER'
                     });
 
                 if (insertError) {
@@ -145,7 +159,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                         console.log('⚠️ Token inválido detectado, limpiando sesión...');
                         await supabase.auth.signOut(); // Limpia estado interno de supabase
                         setUser(null);
-                        
+
                         // Limpieza agresiva de localStorage para eliminar tokens corruptos
                         Object.keys(localStorage).forEach(key => {
                             if (key.startsWith('sb-') && key.endsWith('-auth-token')) {
@@ -201,6 +215,32 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (data.user) {
             // Await profile fetch to ensure user state is ready before resolving
             await fetchProfile(data.user.id, data.user.email!);
+        }
+
+        return { success: true };
+    };
+
+    const loginWithGoogle = async (role?: string): Promise<{ success: boolean; error?: string }> => {
+        // Build redirect URL with role as query param (fallback for localStorage)
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+        const redirectUrl = role
+            ? `${baseUrl}/dashboard?role=${encodeURIComponent(role)}`
+            : `${baseUrl}/dashboard`;
+
+        const { error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo: redirectUrl,
+                queryParams: {
+                    access_type: 'offline',
+                    prompt: 'consent',
+                },
+            }
+        });
+
+        if (error) {
+            console.error('Google login error:', error);
+            return { success: false, error: error.message };
         }
 
         return { success: true };
@@ -304,7 +344,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, register, resetPassword, logout, isLoading }}>
+        <AuthContext.Provider value={{ user, login, loginWithGoogle, register, resetPassword, logout, isLoading }}>
             {children}
         </AuthContext.Provider>
     );
