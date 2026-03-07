@@ -22,6 +22,7 @@ CREATE TABLE profiles (
     email TEXT NOT NULL UNIQUE,
     full_name TEXT NOT NULL,
     phone TEXT,
+    ruc TEXT,
     role TEXT NOT NULL CHECK (role IN ('PLAYER', 'OWNER', 'ADMIN')) DEFAULT 'PLAYER',
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()

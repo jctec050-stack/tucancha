@@ -66,12 +66,12 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
     // Venue State
     const [venueName, setVenueName] = useState(currentVenueName);
     const [venueAddress, setVenueAddress] = useState(currentVenueAddress);
-    
+
     // Deposit Settings
     const [depositRequired, setDepositRequired] = useState(currentDepositRequired);
     const [depositAmount, setDepositAmount] = useState(currentDepositAmount);
     const [showBankModal, setShowBankModal] = useState(false);
-    
+
     // Bank Details
     const [bankName, setBankName] = useState(currentBankName);
     const [accountNumber, setAccountNumber] = useState(currentAccountNumber);
@@ -82,7 +82,7 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
     // Parse initial hours (e.g. "08:00 - 22:00")
     const [startHour, setStartHour] = useState(currentOpeningHours.split(' - ')[0] || '08:00');
     const [endHour, setEndHour] = useState(currentOpeningHours.split(' - ')[1] || '22:00');
-    
+
     // Closed Days
     const [closedDays, setClosedDays] = useState<number[]>(currentClosedDays);
 
@@ -375,7 +375,7 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
                                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
                             </label>
                         </div>
-                        
+
                         <div className="mt-4">
                             <label className="block text-sm font-bold text-gray-700 mb-2">Días Cerrados (No se abre)</label>
                             <div className="flex flex-wrap gap-2">
@@ -398,11 +398,10 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
                                                 setClosedDays([...closedDays, day.id]);
                                             }
                                         }}
-                                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                                            closedDays.includes(day.id)
+                                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${closedDays.includes(day.id)
                                                 ? 'bg-red-500 text-white shadow-md'
                                                 : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
-                                        }`}
+                                            }`}
                                     >
                                         {day.label}
                                     </button>
@@ -416,7 +415,7 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
 
                     {/* Section 3: Venue Photo */}
                     <div className="bg-gray-50 p-4 rounded-2xl space-y-4">
-                        <h4 className="font-bold text-gray-800">3. Foto del Complejo</h4>
+                        <h4 className="font-bold text-gray-800">3. Logo del Complejo</h4>
                         <div>
                             <label className="block text-sm font-bold text-gray-700 mb-2">Subir Imagen</label>
                             <input
@@ -560,7 +559,7 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
                                 {bankName ? 'Editar Datos Bancarios' : 'Configurar Datos Bancarios'}
                             </button>
                         )}
-                        
+
                         {depositRequired && bankName && (
                             <div className="text-xs text-gray-500 bg-white p-3 rounded-lg border border-gray-100">
                                 <p><span className="font-bold">Banco:</span> {bankName}</p>
@@ -746,7 +745,7 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
                     </div>
                 </div>
             </div>
-            
+
             {/* Bank Details Modal */}
             {showBankModal && (
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
@@ -757,7 +756,7 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
                                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
                             </button>
                         </div>
-                        
+
                         <div className="space-y-4">
                             <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-1">Banco</label>
@@ -809,7 +808,7 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
                                     placeholder="Ej: mi.negocio.py"
                                 />
                             </div>
-                            
+
                             <button
                                 onClick={() => setShowBankModal(false)}
                                 className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition mt-2"
