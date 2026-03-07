@@ -6,8 +6,9 @@ import { useRouter } from 'next/navigation';
 import { Toaster, toast } from 'react-hot-toast';
 import { supabase } from '@/lib/supabase';
 import { getOwnerVenues, getBookings } from '@/services/dataService';
-import { Venue, Subscription } from '@/types';
+import { Venue, Subscription, Payment } from '@/types';
 import { getLocalDateString } from '@/utils/dateUtils';
+import { getPaymentsByUser } from '@/services/dataService';
 
 interface BillingSummary {
     cycleStart: Date;
@@ -28,6 +29,7 @@ export default function BillingPage() {
     const [venues, setVenues] = useState<Venue[]>([]);
     const [subscription, setSubscription] = useState<Subscription | null>(null);
     const [billingSummary, setBillingSummary] = useState<BillingSummary | null>(null);
+    const [payments, setPayments] = useState<Payment[]>([]);
 
     const [showBankInfo, setShowBankInfo] = useState(false);
 
@@ -111,26 +113,18 @@ export default function BillingPage() {
                         }
                     }
 
-                    // Cycle logic based on start_date day
-                    const sDay = subStart.getDate();
-                    const candidateStart = new Date(now.getFullYear(), now.getMonth(), sDay);
-                    if (now < candidateStart) {
-                        candidateStart.setMonth(candidateStart.getMonth() - 1);
-                    }
-                    billingStart = candidateStart;
+                    // Cycle logic is now calendar month
+                    billingStart = new Date(now.getFullYear(), now.getMonth(), 1);
                 } else if (ownerVenues.length > 0) {
                     // Fallback to first venue creation
-                    const createdDate = new Date(ownerVenues[0].created_at);
-                    const sDay = createdDate.getDate();
-                    const candidateStart = new Date(now.getFullYear(), now.getMonth(), sDay);
-                    if (now < candidateStart) {
-                        candidateStart.setMonth(candidateStart.getMonth() - 1);
-                    }
-                    billingStart = candidateStart;
+                    billingStart = new Date(now.getFullYear(), now.getMonth(), 1);
                 }
 
-                const billingEnd = new Date(billingStart);
-                billingEnd.setMonth(billingEnd.getMonth() + 1);
+                const billingEnd = new Date(billingStart.getFullYear(), billingStart.getMonth() + 1, 0, 23, 59, 59); // End of month
+
+                // Fetch payments history
+                const userPayments = await getPaymentsByUser(user.id);
+                setPayments(userPayments);
 
                 // 4. Fetch Bookings & Calculate Commission
                 // Optimization: Filter at DB level using new getBookings options
@@ -392,22 +386,54 @@ export default function BillingPage() {
                     </div>
                 </div>
 
-                {/* Payment History (Mock for now, could be real if payments table populated) */}
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 opacity-70 relative">
-                    {/* Overlay for "Coming Soon" or empty state if no history */}
-                    {/* For now, let's just show it as empty or static example */}
-                    <h3 className="font-bold text-gray-900 mb-6 flex items-center gap-2">
-                        <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                        Historial de Pagos
-                    </h3>
-
-                    <div className="text-center py-8">
-                        <div className="bg-gray-50 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-                            <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                        </div>
-                        <p className="text-gray-500 text-sm">Aún no se han generado facturas.</p>
-                        <p className="text-xs text-gray-400 mt-1">Tus facturas cerradas aparecerán aquí.</p>
+                {/* Payment History */}
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div className="p-6 border-b border-gray-100">
+                        <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            Historial de Pagos
+                        </h3>
                     </div>
+
+                    {payments.length === 0 ? (
+                        <div className="text-center py-8 p-6">
+                            <div className="bg-gray-50 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                            </div>
+                            <p className="text-gray-500 text-sm">Aún no se han generado facturas pagadas.</p>
+                            <p className="text-xs text-gray-400 mt-1">Tus facturas cerradas aparecerán aquí.</p>
+                        </div>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm text-left">
+                                <thead className="bg-gray-50 text-gray-500 font-medium border-b border-gray-100">
+                                    <tr>
+                                        <th className="px-6 py-3">Fecha de Pago</th>
+                                        <th className="px-6 py-3 text-right">Monto</th>
+                                        <th className="px-6 py-3 text-center">Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {payments.map(payment => (
+                                        <tr key={payment.id} className="hover:bg-gray-50">
+                                            <td className="px-6 py-4 whitespace-nowrap text-gray-900">
+                                                {new Date(payment.created_at || '').toLocaleDateString('es-PY', { year: 'numeric', month: 'short', day: 'numeric' })}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-right font-bold text-gray-900">
+                                                Gs. {payment.amount.toLocaleString('es-PY')}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-center">
+                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${payment.status === 'COMPLETED' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                                                    }`}>
+                                                    {payment.status === 'COMPLETED' ? 'Pagado' : 'Pendiente'}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
                 </div>
             </div>
 

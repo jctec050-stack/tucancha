@@ -1199,28 +1199,12 @@ export const getAdminDashboardData = async (): Promise<AdminVenueData[]> => {
                     trialEndDate = potentialTrialEnd;
                 }
 
-                // Calculate Billing Cycle Start
-                // Create a candidate date in the current month with the subscription start day
-                // FIX: Use split logic to avoid Timezone Offset issues
-                const candidateStart = new Date(now.getFullYear(), now.getMonth(), sDay);
-
-                // If today is before the candidate start date, we are in the previous billing cycle
-                if (now < candidateStart) {
-                    candidateStart.setMonth(candidateStart.getMonth() - 1);
-                }
-                billingStart = candidateStart;
+                // Calculate Billing Cycle Start is always 1st of month
+                // (Already set above as default)
             } else if (venue.created_at) {
-                // Fallback to venue creation day if no sub
-                // Use UTC-safe parsing for created_at too
-                const [cY, cM, cD] = venue.created_at.split('T')[0].split('-').map(Number);
-                const createdDate = new Date(cY, cM - 1, cD);
-                const sDay = createdDate.getDate();
-                const candidateStart = new Date(now.getFullYear(), now.getMonth(), sDay);
-                if (now < candidateStart) {
-                    candidateStart.setMonth(candidateStart.getMonth() - 1);
-                }
-                billingStart = candidateStart;
+                // Fallback handled by default billingStart
             }
+
 
             // Billing End is Start + 1 month
             const billingEnd = new Date(billingStart);
@@ -1457,6 +1441,22 @@ export const createPayment = async (paymentData: Partial<Payment>): Promise<bool
 // ============================================
 // PUSH NOTIFICATIONS
 // ============================================
+
+export const getPaymentsByUser = async (userId: string): Promise<Payment[]> => {
+    try {
+        const { data, error } = await supabase
+            .from('payments')
+            .select('*')
+            .eq('payer_id', userId)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return data as Payment[];
+    } catch (error) {
+        console.error('❌ Error fetching payments by user:', error);
+        return [];
+    }
+};
 
 export const savePushSubscription = async (
     userId: string,

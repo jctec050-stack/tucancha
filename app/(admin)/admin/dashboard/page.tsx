@@ -132,12 +132,20 @@ const AdminDashboard = () => {
     };
 
     const markAsPaid = async (sub: AdminSubscriptionData) => {
-        if (!confirm(`¿Confirmar pago para ${sub.owner.full_name}? Se extenderá la suscripción por 30 días.`)) return;
+        if (!confirm(`¿Confirmar pago para ${sub.owner.full_name}? Se extenderá la suscripción al final del próximo mes.`)) return;
 
         const toastId = toast.loading('Procesando pago...');
 
-        const newEndDate = new Date();
-        newEndDate.setDate(newEndDate.getDate() + 30);
+        let baseDate = sub.end_date ? new Date(sub.end_date) : new Date();
+        const now = new Date();
+
+        // Si deben de hace mucho, reiniciar desde el mes actual
+        if (baseDate < new Date(now.getFullYear(), now.getMonth() - 1, 1)) {
+            baseDate = now;
+        }
+
+        // Extender al final del siguiente mes (mes actual + 1)
+        const newEndDate = new Date(baseDate.getFullYear(), baseDate.getMonth() + 2, 0);
         const endDateStr = getLocalDateString(newEndDate);
 
         // 1. Create Payment Record
