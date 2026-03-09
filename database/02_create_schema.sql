@@ -74,7 +74,7 @@ CREATE TABLE courts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     venue_id UUID NOT NULL REFERENCES venues(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
-    type TEXT NOT NULL CHECK (type IN ('Padel', 'Beach Tennis', 'Tenis', 'Futbol 5', 'Futbol 7')),
+    type TEXT NOT NULL CHECK (type IN ('Padel', 'Beach Tennis', 'Tenis', 'Futbol')),
     price_per_hour INTEGER NOT NULL CHECK (price_per_hour > 0),
     image_url TEXT,
     is_active BOOLEAN DEFAULT TRUE,

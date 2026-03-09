@@ -399,8 +399,8 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
                                             }
                                         }}
                                         className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${closedDays.includes(day.id)
-                                                ? 'bg-red-500 text-white shadow-md'
-                                                : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+                                            ? 'bg-red-500 text-white shadow-md'
+                                            : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
                                             }`}
                                     >
                                         {day.label}
@@ -592,6 +592,8 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
                                 >
                                     <option value="Padel">Padel</option>
                                     <option value="Beach Tennis">Beach Tennis</option>
+                                    <option value="Tenis">Tenis</option>
+                                    <option value="Futbol">Fútbol</option>
                                 </select>
                             </div>
                             <div className="md:col-span-3">
@@ -668,7 +670,7 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
                                                     <img src={court.image_url} alt={court.name} className="w-full h-full object-cover" />
                                                 </div>
                                             ) : (
-                                                <span className={`w-2 h-8 rounded-full ${court.type === 'Padel' ? 'bg-indigo-500' : 'bg-orange-400'}`}></span>
+                                                <span className={`w-2 h-8 rounded-full ${court.type === 'Padel' ? 'bg-indigo-500' : court.type === 'Beach Tennis' ? 'bg-orange-400' : court.type === 'Tenis' ? 'bg-yellow-500' : 'bg-green-500'}`}></span>
                                             )}
                                             <div>
                                                 <p className="font-bold text-gray-900">{court.name}</p>
@@ -701,7 +703,7 @@ export const AddCourtModal: React.FC<AddCourtModalProps> = ({
                                                     <img src={court.image_url} alt={court.name} className="w-full h-full object-cover" />
                                                 </div>
                                             ) : (
-                                                <span className={`w-2 h-8 rounded-full ${court.type === 'Padel' ? 'bg-indigo-500' : 'bg-orange-400'}`}></span>
+                                                <span className={`w-2 h-8 rounded-full ${court.type === 'Padel' ? 'bg-indigo-500' : court.type === 'Beach Tennis' ? 'bg-orange-400' : court.type === 'Tenis' ? 'bg-yellow-500' : 'bg-green-500'}`}></span>
                                             )}
                                             <div>
                                                 <p className="font-bold text-gray-900">{court.name}</p>

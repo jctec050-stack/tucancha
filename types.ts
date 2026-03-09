@@ -1,5 +1,5 @@
 
-export type SportType = 'Padel' | 'Beach Tennis' | 'Tenis' | 'Futbol 5' | 'Futbol 7';
+export type SportType = 'Padel' | 'Beach Tennis' | 'Tenis' | 'Futbol';
 export type UserRole = 'OWNER' | 'PLAYER' | 'ADMIN';
 export type BookingStatus = 'ACTIVE' | 'CANCELLED' | 'COMPLETED';
 export type PaymentStatus = 'PENDING' | 'COMPLETED' | 'FAILED' | 'REFUNDED';

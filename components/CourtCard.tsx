@@ -30,7 +30,7 @@ export const CourtCard: React.FC<CourtCardProps> = ({ court, isSelected, onSelec
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                     />
                 ) : (
-                    <div className={`w-full h-full bg-gradient-to-br ${court.type === 'Padel' ? 'from-indigo-600 to-purple-700' : 'from-orange-400 to-red-500'}`}>
+                    <div className={`w-full h-full bg-gradient-to-br ${court.type === 'Padel' ? 'from-indigo-600 to-purple-700' : court.type === 'Beach Tennis' ? 'from-orange-400 to-red-500' : court.type === 'Tenis' ? 'from-yellow-400 to-amber-500' : 'from-green-500 to-green-700'}`}>
                         {/* Fallback pattern/icon could go here */}
                     </div>
                 )}
