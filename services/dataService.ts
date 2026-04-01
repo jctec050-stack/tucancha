@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabase';
 import { Venue, Court, Booking, BookingStatus, DisabledSlot, Profile, Subscription, Payment, AdminVenueData, AdminProfileData, AdminSubscriptionData, AdminPaymentData } from '@/types';
 import { BookingSchema } from '@/lib/validations';
 import { getLocalDateString } from '@/utils/dateUtils';
+import { generateVenueSlug } from '@/utils/slugUtils';
 
 // NOTE: Removed legacy adapters import. 
 // We now map directly to snake_case matching types.ts and DB.
@@ -199,6 +200,13 @@ export const createVenue = async (venueData: Omit<Venue, 'id' | 'courts' | 'crea
         if (error) {
             console.error('❌ Error creating venue:', error);
             throw error;
+        }
+
+        // Auto-generar slug único basado en nombre + primeros 6 chars del UUID
+        if (data?.id) {
+            const slug = generateVenueSlug(data.name, data.id);
+            await supabase.from('venues').update({ slug }).eq('id', data.id);
+            data.slug = slug;
         }
 
         return data as Venue;
@@ -1490,5 +1498,106 @@ export const savePushSubscription = async (
     } catch (error) {
         console.error('❌ Error saving push subscription:', error);
         return false;
+    }
+};
+
+// ============================================
+// PÁGINAS PÚBLICAS POR COMPLEJO
+// Funciones que NO requieren autenticación
+// ============================================
+
+/**
+ * Obtiene un venue por su slug público (sin requerir login).
+ * Solo retorna venues activos. Filtra canchas inactivas.
+ * Usado por la página pública /complejo/[slug]
+ */
+export const getVenueBySlug = async (slug: string): Promise<Venue | null> => {
+    try {
+        const { data, error } = await supabase
+            .from('venues')
+            .select(`
+                id, name, address, image_url, opening_hours, closed_days,
+                amenities, contact_info, latitude, longitude, slug, alias,
+                limit_future_bookings, deposit_required,
+                courts (id, name, type, price_per_hour, is_active, image_url)
+            `)
+            .eq('slug', slug)
+            .eq('is_active', true)
+            .single();
+
+        if (error || !data) return null;
+
+        // Filtrar canchas inactivas en la vista pública
+        return {
+            ...data,
+            courts: ((data as any).courts || []).filter((c: any) => c.is_active)
+        } as Venue;
+    } catch {
+        return null;
+    }
+};
+
+/**
+ * Obtiene los slots ocupados de un venue para una fecha dada.
+ * SEGURO para uso público — solo retorna court_id, start_time, end_time.
+ * NUNCA expone datos de jugadores (player_id, nombres, pagos).
+ * Usado por la grilla de disponibilidad en la página pública.
+ */
+export const getPublicAvailability = async (
+    venueId: string,
+    date: string
+): Promise<Array<{ court_id: string; start_time: string; end_time: string }>> => {
+    try {
+        const { data, error } = await supabase
+            .from('bookings')
+            .select('court_id, start_time, end_time')
+            .eq('venue_id', venueId)
+            .eq('date', date)
+            .neq('status', 'CANCELLED');
+
+        if (error) throw error;
+
+        // Normalizar formato HH:mm
+        return (data || []).map(b => ({
+            court_id: b.court_id,
+            start_time: b.start_time?.substring(0, 5) || '',
+            end_time: b.end_time?.substring(0, 5) || ''
+        }));
+    } catch {
+        return [];
+    }
+};
+
+/**
+ * Actualiza el slug de un venue (función para el dashboard del OWNER).
+ * Valida formato antes de guardar.
+ */
+export const updateVenueSlug = async (
+    venueId: string,
+    newSlug: string
+): Promise<{ success: boolean; error?: string }> => {
+    try {
+        // Verificar que el slug no esté en uso por otro venue
+        const { data: existing } = await supabase
+            .from('venues')
+            .select('id')
+            .eq('slug', newSlug)
+            .neq('id', venueId)
+            .maybeSingle();
+
+        if (existing) {
+            return { success: false, error: 'SLUG_TAKEN' };
+        }
+
+        const { error } = await supabase
+            .from('venues')
+            .update({ slug: newSlug })
+            .eq('id', venueId);
+
+        if (error) throw error;
+        return { success: true };
+    } catch (error) {
+        console.error('❌ Error updating venue slug:', error);
+        return { success: false, error: 'ERROR_DESCONOCIDO' };
     }
 };

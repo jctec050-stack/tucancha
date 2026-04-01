@@ -70,6 +70,7 @@ export interface Venue {
   account_name?: string;
   tax_id?: string;
   alias?: string;
+  slug?: string;        // Identificador URL-safe para página pública (ej: "sport-center-asuncion-a1b2c3")
   created_at: string;
   updated_at: string;
   courts: Court[]; // Populated via join

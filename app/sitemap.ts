@@ -25,23 +25,26 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         },
     ];
 
-    // Obtener venues activos para incluir en el sitemap
+    // Obtener venues activos con slug para incluir en el sitemap
     let venueRoutes: MetadataRoute.Sitemap = [];
 
     try {
         const { data: venues, error } = await supabase
             .from('venues')
-            .select('id, updated_at')
+            .select('slug, updated_at')
             .eq('is_active', true)
+            .not('slug', 'is', null)
             .order('updated_at', { ascending: false });
 
         if (!error && venues) {
-            venueRoutes = venues.map((venue) => ({
-                url: `${baseUrl}/?venue=${venue.id}`,
-                lastModified: new Date(venue.updated_at),
-                changeFrequency: 'weekly' as const,
-                priority: 0.8,
-            }));
+            venueRoutes = venues
+                .filter(v => v.slug) // solo venues con slug generado
+                .map((venue) => ({
+                    url: `${baseUrl}/complejo/${venue.slug}`,
+                    lastModified: new Date(venue.updated_at),
+                    changeFrequency: 'daily' as const,  // disponibilidad cambia frecuente
+                    priority: 0.9,                       // alta prioridad (páginas clave)
+                }));
         }
     } catch (error) {
         console.error('Error fetching venues for sitemap:', error);
@@ -51,5 +54,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     return [...staticRoutes, ...venueRoutes];
 }
 
-// Revalidar el sitemap cada 24 horas
-export const revalidate = 86400; // 24 horas en segundos
+// Revalidar el sitemap cada 6 horas (más frecuente porque se agregan complejos)
+export const revalidate = 21600;

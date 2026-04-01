@@ -4,6 +4,7 @@ import { Booking, Venue, DisabledSlot } from '../types';
 import { usePagination } from '@/hooks/usePagination';
 import { getLocalDateString, addDays } from '@/utils/dateUtils';
 import { cancelBooking } from '@/services/dataService';
+import { VenuePublicLinkCard } from './VenuePublicLinkCard';
 
 
 interface ScheduleItem {
@@ -397,6 +398,9 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* 🔗 Link Público del Complejo */}
+      <VenuePublicLinkCard venue={venue} />
+
       {/* Date Filter Header */}
       <div className="flex items-center justify-between bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
         <h3 className="text-lg font-bold text-gray-800">Resumen Diario</h3>
