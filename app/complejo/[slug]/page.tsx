@@ -8,18 +8,19 @@ import { getVenueBySlug, getPublicAvailability } from '@/services/dataService';
 import { VenuePublicPage } from '@/components/public/VenuePublicPage';
 
 // ============================================
-// TIPOS
+// TIPOS — Next.js 15: params y searchParams son Promises
 // ============================================
 interface PageProps {
-    params: { slug: string };
-    searchParams: { fecha?: string };
+    params: Promise<{ slug: string }>;
+    searchParams: Promise<{ fecha?: string }>;
 }
 
 // ============================================
 // SEO DINÁMICO POR COMPLEJO
 // ============================================
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-    const venue = await getVenueBySlug(params.slug);
+    const { slug } = await params;
+    const venue = await getVenueBySlug(slug);
 
     if (!venue) {
         return {
@@ -52,8 +53,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 // PAGE COMPONENT (Server Component)
 // ============================================
 export default async function ComplejoPublicoPage({ params, searchParams }: PageProps) {
+    // Next.js 15: await ambas Promises antes de usar sus valores
+    const { slug } = await params;
+    const { fecha } = await searchParams;
+
     // 1. Obtener venue por slug (sin auth)
-    const venue = await getVenueBySlug(params.slug);
+    const venue = await getVenueBySlug(slug);
 
     // 2. Si no existe o está inactivo → 404
     if (!venue) {
@@ -62,7 +67,7 @@ export default async function ComplejoPublicoPage({ params, searchParams }: Page
 
     // 3. Fecha seleccionada (hoy por defecto)
     const today = new Date().toISOString().split('T')[0];
-    const selectedDate = searchParams.fecha || today;
+    const selectedDate = fecha || today;
 
     // 4. Obtener disponibilidad pública (solo court_id + horarios, sin datos de jugadores)
     const bookedSlots = await getPublicAvailability(venue.id, selectedDate);
