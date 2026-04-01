@@ -148,18 +148,23 @@ const AdminDashboard = () => {
         const newEndDate = new Date(baseDate.getFullYear(), baseDate.getMonth() + 2, 0);
         const endDateStr = getLocalDateString(newEndDate);
 
-        // 1. Create Payment Record
-        const paymentSuccess = await createPayment({
-            payment_type: 'SUBSCRIPTION',
-            subscription_id: sub.id,
-            payer_id: sub.owner_id,
-            amount: sub.price_per_month,
-            currency: 'PYG',
-            payment_method: 'CASH', // Default to CASH for manual admin entry, could be enhanced with a modal
-            status: 'COMPLETED',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-        });
+        // 1. Create Payment Record (only if there's an actual amount to pay)
+        let paymentSuccess = true;
+        const amountToPay = Math.round(sub.price_per_month || 0);
+
+        if (amountToPay > 0) {
+            paymentSuccess = await createPayment({
+                payment_type: 'SUBSCRIPTION',
+                subscription_id: sub.id,
+                payer_id: sub.owner_id,
+                amount: amountToPay,
+                currency: 'PYG',
+                payment_method: 'CASH',
+                status: 'COMPLETED',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            });
+        }
 
         if (!paymentSuccess) {
             toast.error('Error al registrar el pago', { id: toastId });
