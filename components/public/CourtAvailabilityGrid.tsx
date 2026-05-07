@@ -20,8 +20,8 @@ interface CourtAvailabilityGridProps {
     openingHours: string;           // Ej: "08:00 - 22:00"
     bookedSlots: BookedSlot[];
     selectedDate: string;
-    selectedTime: string | null;
-    onSelectTime: (time: string) => void;
+    selectedTimes: string[];
+    onToggleTime: (time: string) => void;
 }
 
 interface TimeSlot {
@@ -88,8 +88,8 @@ export function CourtAvailabilityGrid({
     openingHours,
     bookedSlots,
     selectedDate,
-    selectedTime,
-    onSelectTime,
+    selectedTimes,
+    onToggleTime,
 }: CourtAvailabilityGridProps) {
 
     // Generar slots de 1 hora según horarios del complejo
@@ -152,8 +152,8 @@ export function CourtAvailabilityGrid({
                             key={slot.time}
                             slot={slot}
                             pricePerHour={court.price_per_hour}
-                            isSelected={selectedTime === slot.time}
-                            onSelectTime={onSelectTime}
+                            isSelected={selectedTimes.includes(slot.time)}
+                            onToggleTime={onToggleTime}
                         />
                     ))}
                 </div>
@@ -170,11 +170,11 @@ export function CourtAvailabilityGrid({
 // ============================================
 // SUB-COMPONENTES
 // ============================================
-function SlotButton({ slot, pricePerHour, isSelected, onSelectTime }: {
+function SlotButton({ slot, pricePerHour, isSelected, onToggleTime }: {
     slot: TimeSlot;
     pricePerHour: number;
     isSelected: boolean;
-    onSelectTime: (time: string) => void;
+    onToggleTime: (time: string) => void;
 }) {
     const { time, isBooked, isPast } = slot;
     const isDisabled = isBooked || isPast;
@@ -210,9 +210,9 @@ function SlotButton({ slot, pricePerHour, isSelected, onSelectTime }: {
 
     return (
         <button
-            onClick={() => !isDisabled && onSelectTime(time)}
+            onClick={() => !isDisabled && onToggleTime(time)}
             disabled={isDisabled}
-            title={isBooked ? 'Horario ocupado' : isPast ? 'Horario pasado' : isSelected ? 'Horario seleccionado' : `Seleccionar ${time} - ${endTime}`}
+            title={isBooked ? 'Horario ocupado' : isPast ? 'Horario pasado' : isSelected ? 'Horario seleccionado (click para desmarcar)' : `Seleccionar ${time} - ${endTime}`}
             style={{
                 background: bg,
                 border: `1px solid ${border}`,

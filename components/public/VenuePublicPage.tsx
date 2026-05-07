@@ -74,7 +74,7 @@ export function VenuePublicPage({ venue, bookedSlots, selectedDate: initialDate 
     const [selectedCourtId, setSelectedCourtId] = useState<string | null>(
         venue.courts.length > 0 ? venue.courts[0].id : null
     );
-    const [selectedTime, setSelectedTime] = useState<string | null>(null);
+    const [selectedTimes, setSelectedTimes] = useState<string[]>([]);
     const [copyFeedback, setCopyFeedback] = useState(false);
 
     const today = new Date().toISOString().split('T')[0];
@@ -83,25 +83,34 @@ export function VenuePublicPage({ venue, bookedSlots, selectedDate: initialDate 
 
     const handleDateChange = useCallback((newDate: string) => {
         setSelectedDate(newDate);
-        setSelectedTime(null);
+        setSelectedTimes([]);
         // Actualizar URL sin perder el slug
         router.push(`?fecha=${newDate}`, { scroll: false });
     }, [router]);
 
+    const handleToggleTime = useCallback((time: string) => {
+        setSelectedTimes(prev => {
+            if (prev.includes(time)) {
+                return prev.filter(t => t !== time);
+            }
+            return [...prev, time].sort();
+        });
+    }, []);
+
     const handleReserve = useCallback(() => {
-        if (!selectedTime) return;
+        if (selectedTimes.length === 0) return;
         // Guardar intención de reserva y redirigir a login
         if (typeof window !== 'undefined') {
             sessionStorage.setItem('tc_reserve_intent', JSON.stringify({
                 venue_id: venue.id,
                 court_id: selectedCourtId,
                 date: selectedDate,
-                time: selectedTime,
+                times: selectedTimes,
                 return_to: window.location.pathname + `?fecha=${selectedDate}`,
             }));
         }
         router.push(`/login?redirect=/complejo/${venue.slug}&reserva=1`);
-    }, [venue.id, venue.slug, selectedCourtId, selectedDate, selectedTime, router]);
+    }, [venue.id, venue.slug, selectedCourtId, selectedDate, selectedTimes, router]);
 
     const handleCopyLink = useCallback(() => {
         const url = typeof window !== 'undefined' ? window.location.href.split('?')[0] : '';
@@ -274,7 +283,7 @@ export function VenuePublicPage({ venue, bookedSlots, selectedDate: initialDate 
                         return (
                             <button
                                 key={court.id}
-                                onClick={() => { setSelectedCourtId(court.id); setSelectedTime(null); }}
+                                onClick={() => { setSelectedCourtId(court.id); setSelectedTimes([]); }}
                                 style={{
                                     background: isSelected
                                         ? `linear-gradient(135deg, ${colors.bg.replace('0.15', '0.35')}, ${colors.bg})`
@@ -360,8 +369,8 @@ export function VenuePublicPage({ venue, bookedSlots, selectedDate: initialDate 
                         openingHours={venue.opening_hours}
                         bookedSlots={bookedSlots.filter(s => s.court_id === selectedCourt.id)}
                         selectedDate={selectedDate}
-                        selectedTime={selectedTime}
-                        onSelectTime={setSelectedTime}
+                        selectedTimes={selectedTimes}
+                        onToggleTime={handleToggleTime}
                     />
                 ) : (
                     <div style={{ textAlign: 'center', padding: '40px', color: 'rgba(255,255,255,0.4)' }}>
@@ -373,17 +382,19 @@ export function VenuePublicPage({ venue, bookedSlots, selectedDate: initialDate 
             {/* ═══════════════════════ CTA RESERVAR ═══════════════════════ */}
             <div style={{
                 marginTop: '40px',
-                background: selectedTime ? 'linear-gradient(135deg, rgba(16,185,129,0.15), rgba(5,150,105,0.15))' : 'linear-gradient(135deg, rgba(99,102,241,0.2), rgba(139,92,246,0.2))',
-                border: selectedTime ? '1px solid rgba(16,185,129,0.4)' : '1px solid rgba(99,102,241,0.3)',
+                background: selectedTimes.length > 0 ? 'linear-gradient(135deg, rgba(16,185,129,0.15), rgba(5,150,105,0.15))' : 'linear-gradient(135deg, rgba(99,102,241,0.2), rgba(139,92,246,0.2))',
+                border: selectedTimes.length > 0 ? '1px solid rgba(16,185,129,0.4)' : '1px solid rgba(99,102,241,0.3)',
                 borderRadius: '20px',
                 padding: '32px',
                 textAlign: 'center',
                 transition: 'all 0.3s ease'
             }}>
-                {selectedTime ? (
+                {selectedTimes.length > 0 ? (
                     <>
                         <h3 style={{ fontSize: '22px', fontWeight: 800, margin: '0 0 8px', letterSpacing: '-0.5px', color: '#6ee7b7' }}>
-                            Horario seleccionado: {selectedTime}
+                            {selectedTimes.length === 1 
+                                ? `Horario seleccionado: ${selectedTimes[0]}` 
+                                : `Horarios seleccionados: ${selectedTimes.join(', ')}`}
                         </h3>
                         <p style={{ color: 'rgba(255,255,255,0.6)', margin: '0 0 24px', fontSize: '15px' }}>
                             Para confirmar tu reserva en la cancha <strong style={{color:'white'}}>{selectedCourt?.name}</strong>, iniciá sesión o creá tu cuenta.
