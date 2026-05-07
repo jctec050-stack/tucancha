@@ -20,7 +20,8 @@ interface CourtAvailabilityGridProps {
     openingHours: string;           // Ej: "08:00 - 22:00"
     bookedSlots: BookedSlot[];
     selectedDate: string;
-    onReserve: (time: string) => void;
+    selectedTime: string | null;
+    onSelectTime: (time: string) => void;
 }
 
 interface TimeSlot {
@@ -87,7 +88,8 @@ export function CourtAvailabilityGrid({
     openingHours,
     bookedSlots,
     selectedDate,
-    onReserve,
+    selectedTime,
+    onSelectTime,
 }: CourtAvailabilityGridProps) {
 
     // Generar slots de 1 hora según horarios del complejo
@@ -150,7 +152,8 @@ export function CourtAvailabilityGrid({
                             key={slot.time}
                             slot={slot}
                             pricePerHour={court.price_per_hour}
-                            onReserve={onReserve}
+                            isSelected={selectedTime === slot.time}
+                            onSelectTime={onSelectTime}
                         />
                     ))}
                 </div>
@@ -167,10 +170,11 @@ export function CourtAvailabilityGrid({
 // ============================================
 // SUB-COMPONENTES
 // ============================================
-function SlotButton({ slot, pricePerHour, onReserve }: {
+function SlotButton({ slot, pricePerHour, isSelected, onSelectTime }: {
     slot: TimeSlot;
     pricePerHour: number;
-    onReserve: (time: string) => void;
+    isSelected: boolean;
+    onSelectTime: (time: string) => void;
 }) {
     const { time, isBooked, isPast } = slot;
     const isDisabled = isBooked || isPast;
@@ -185,7 +189,12 @@ function SlotButton({ slot, pricePerHour, onReserve }: {
     let cursor = 'pointer';
     let hoverBg = 'rgba(16,185,129,0.3)';
 
-    if (isBooked) {
+    if (isSelected) {
+        bg = 'rgba(99,102,241,0.25)';
+        border = 'rgba(99,102,241,0.8)';
+        color = 'white';
+        hoverBg = 'rgba(99,102,241,0.35)';
+    } else if (isBooked) {
         bg = 'rgba(239,68,68,0.1)';
         border = 'rgba(239,68,68,0.25)';
         color = 'rgba(252,165,165,0.6)';
@@ -201,9 +210,9 @@ function SlotButton({ slot, pricePerHour, onReserve }: {
 
     return (
         <button
-            onClick={() => !isDisabled && onReserve(time)}
+            onClick={() => !isDisabled && onSelectTime(time)}
             disabled={isDisabled}
-            title={isBooked ? 'Horario ocupado' : isPast ? 'Horario pasado' : `Reservar ${time} - ${endTime}`}
+            title={isBooked ? 'Horario ocupado' : isPast ? 'Horario pasado' : isSelected ? 'Horario seleccionado' : `Seleccionar ${time} - ${endTime}`}
             style={{
                 background: bg,
                 border: `1px solid ${border}`,
@@ -229,11 +238,13 @@ function SlotButton({ slot, pricePerHour, onReserve }: {
                 (e.currentTarget as HTMLElement).style.boxShadow = 'none';
             }}
         >
-            {/* Indicador de estado */}
             {isBooked && (
                 <div style={{ position: 'absolute', top: '6px', right: '6px', width: '6px', height: '6px', borderRadius: '50%', background: '#ef4444' }} />
             )}
-            {!isDisabled && (
+            {isSelected && (
+                <div style={{ position: 'absolute', top: '6px', right: '6px', width: '8px', height: '8px', borderRadius: '50%', background: '#818cf8', boxShadow: '0 0 8px #818cf8' }} />
+            )}
+            {!isDisabled && !isSelected && (
                 <div style={{ position: 'absolute', top: '6px', right: '6px', width: '6px', height: '6px', borderRadius: '50%', background: '#10b981', animation: 'pulse-dot 2s infinite' }} />
             )}
 
@@ -246,7 +257,13 @@ function SlotButton({ slot, pricePerHour, onReserve }: {
                 </div>
             )}
 
-            {!isDisabled && (
+            {isSelected && (
+                <div style={{ fontSize: '10px', fontWeight: 700, marginTop: '4px', color: '#c7d2fe', background: 'rgba(99,102,241,0.3)', borderRadius: '6px', padding: '2px 6px' }}>
+                    Seleccionado
+                </div>
+            )}
+
+            {!isDisabled && !isSelected && (
                 <div style={{ fontSize: '10px', fontWeight: 700, marginTop: '4px', color: 'rgba(110,231,183,0.8)', background: 'rgba(16,185,129,0.15)', borderRadius: '6px', padding: '2px 6px' }}>
                     Libre ✓
                 </div>

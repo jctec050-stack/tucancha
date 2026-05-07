@@ -74,6 +74,7 @@ export function VenuePublicPage({ venue, bookedSlots, selectedDate: initialDate 
     const [selectedCourtId, setSelectedCourtId] = useState<string | null>(
         venue.courts.length > 0 ? venue.courts[0].id : null
     );
+    const [selectedTime, setSelectedTime] = useState<string | null>(null);
     const [copyFeedback, setCopyFeedback] = useState(false);
 
     const today = new Date().toISOString().split('T')[0];
@@ -82,23 +83,25 @@ export function VenuePublicPage({ venue, bookedSlots, selectedDate: initialDate 
 
     const handleDateChange = useCallback((newDate: string) => {
         setSelectedDate(newDate);
+        setSelectedTime(null);
         // Actualizar URL sin perder el slug
         router.push(`?fecha=${newDate}`, { scroll: false });
     }, [router]);
 
-    const handleReserve = useCallback((time: string) => {
+    const handleReserve = useCallback(() => {
+        if (!selectedTime) return;
         // Guardar intención de reserva y redirigir a login
         if (typeof window !== 'undefined') {
             sessionStorage.setItem('tc_reserve_intent', JSON.stringify({
                 venue_id: venue.id,
                 court_id: selectedCourtId,
                 date: selectedDate,
-                time,
+                time: selectedTime,
                 return_to: window.location.pathname + `?fecha=${selectedDate}`,
             }));
         }
         router.push(`/login?redirect=/complejo/${venue.slug}&reserva=1`);
-    }, [venue.id, venue.slug, selectedCourtId, selectedDate, router]);
+    }, [venue.id, venue.slug, selectedCourtId, selectedDate, selectedTime, router]);
 
     const handleCopyLink = useCallback(() => {
         const url = typeof window !== 'undefined' ? window.location.href.split('?')[0] : '';
@@ -271,7 +274,7 @@ export function VenuePublicPage({ venue, bookedSlots, selectedDate: initialDate 
                         return (
                             <button
                                 key={court.id}
-                                onClick={() => setSelectedCourtId(court.id)}
+                                onClick={() => { setSelectedCourtId(court.id); setSelectedTime(null); }}
                                 style={{
                                     background: isSelected
                                         ? `linear-gradient(135deg, ${colors.bg.replace('0.15', '0.35')}, ${colors.bg})`
@@ -357,7 +360,8 @@ export function VenuePublicPage({ venue, bookedSlots, selectedDate: initialDate 
                         openingHours={venue.opening_hours}
                         bookedSlots={bookedSlots.filter(s => s.court_id === selectedCourt.id)}
                         selectedDate={selectedDate}
-                        onReserve={handleReserve}
+                        selectedTime={selectedTime}
+                        onSelectTime={setSelectedTime}
                     />
                 ) : (
                     <div style={{ textAlign: 'center', padding: '40px', color: 'rgba(255,255,255,0.4)' }}>
@@ -369,45 +373,48 @@ export function VenuePublicPage({ venue, bookedSlots, selectedDate: initialDate 
             {/* ═══════════════════════ CTA RESERVAR ═══════════════════════ */}
             <div style={{
                 marginTop: '40px',
-                background: 'linear-gradient(135deg, rgba(99,102,241,0.2), rgba(139,92,246,0.2))',
-                border: '1px solid rgba(99,102,241,0.3)',
+                background: selectedTime ? 'linear-gradient(135deg, rgba(16,185,129,0.15), rgba(5,150,105,0.15))' : 'linear-gradient(135deg, rgba(99,102,241,0.2), rgba(139,92,246,0.2))',
+                border: selectedTime ? '1px solid rgba(16,185,129,0.4)' : '1px solid rgba(99,102,241,0.3)',
                 borderRadius: '20px',
                 padding: '32px',
                 textAlign: 'center',
+                transition: 'all 0.3s ease'
             }}>
-                <h3 style={{ fontSize: '22px', fontWeight: 800, margin: '0 0 8px', letterSpacing: '-0.5px' }}>
-                    ¿Listo para reservar?
-                </h3>
-                <p style={{ color: 'rgba(255,255,255,0.5)', margin: '0 0 24px', fontSize: '15px' }}>
-                    Iniciá sesión o creá tu cuenta para confirmar tu reserva en segundos.
-                </p>
-                <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
-                    <a
-                        href={`/login?redirect=/complejo/${venue.slug}`}
-                        style={{
-                            background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-                            color: 'white', padding: '14px 32px', borderRadius: '14px',
-                            fontWeight: 800, fontSize: '15px', textDecoration: 'none',
-                            boxShadow: '0 8px 32px rgba(99,102,241,0.4)',
-                            display: 'inline-block',
-                            transition: 'transform 0.15s ease',
-                        }}
-                    >
-                        🔐 Iniciar Sesión para Reservar
-                    </a>
-                    <a
-                        href={`/register?redirect=/complejo/${venue.slug}`}
-                        style={{
-                            background: 'rgba(255,255,255,0.08)',
-                            border: '1px solid rgba(255,255,255,0.15)',
-                            color: 'rgba(255,255,255,0.8)', padding: '14px 32px', borderRadius: '14px',
-                            fontWeight: 700, fontSize: '15px', textDecoration: 'none',
-                            display: 'inline-block',
-                        }}
-                    >
-                        Crear Cuenta Gratis
-                    </a>
-                </div>
+                {selectedTime ? (
+                    <>
+                        <h3 style={{ fontSize: '22px', fontWeight: 800, margin: '0 0 8px', letterSpacing: '-0.5px', color: '#6ee7b7' }}>
+                            Horario seleccionado: {selectedTime}
+                        </h3>
+                        <p style={{ color: 'rgba(255,255,255,0.6)', margin: '0 0 24px', fontSize: '15px' }}>
+                            Para confirmar tu reserva en la cancha <strong style={{color:'white'}}>{selectedCourt?.name}</strong>, iniciá sesión o creá tu cuenta.
+                        </p>
+                        <button
+                            onClick={handleReserve}
+                            style={{
+                                background: 'linear-gradient(135deg, #10b981, #059669)',
+                                border: 'none',
+                                color: 'white', padding: '14px 32px', borderRadius: '14px',
+                                fontWeight: 800, fontSize: '16px', cursor: 'pointer',
+                                boxShadow: '0 8px 32px rgba(16,185,129,0.4)',
+                                display: 'inline-block',
+                                transition: 'transform 0.15s ease',
+                            }}
+                            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px) scale(1.02)'; }}
+                            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(0) scale(1)'; }}
+                        >
+                            Reservar e Iniciar Sesión 🎾
+                        </button>
+                    </>
+                ) : (
+                    <>
+                        <h3 style={{ fontSize: '22px', fontWeight: 800, margin: '0 0 8px', letterSpacing: '-0.5px' }}>
+                            ¿Listo para jugar?
+                        </h3>
+                        <p style={{ color: 'rgba(255,255,255,0.5)', margin: '0', fontSize: '15px' }}>
+                            Seleccioná un horario libre arriba para comenzar tu reserva.
+                        </p>
+                    </>
+                )}
             </div>
         </div>
     );
